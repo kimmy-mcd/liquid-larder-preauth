@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-Authorisations — Liquid &amp; Larder Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
+    --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0; --info:#9db8c9;
+  }
+  [data-theme="light"] {
+    --green:#ece5d8; --green-deep:#f8f5ef; --sand:#1d3e3b; --sand-dim:rgba(29,62,59,.62);
+    --line:rgba(29,62,59,.16); --err:#b05a3e; --ok:#4e7a52; --info:#3e6a8a;
+  }
+  body { transition:background .2s, color .2s; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; padding:28px 18px; }
+  .wrap { max-width:1100px; margin:0 auto; }
+  h1 { font-weight:500; font-size:19px; letter-spacing:.4em; text-transform:uppercase; }
+  .sub { color:var(--sand-dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-top:6px; margin-bottom:28px; }
+  .sub a { color:var(--sand-dim); }
+  .card { background:var(--green-deep); border:1px solid var(--line); padding:26px; margin-bottom:24px; }
+  .cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
+  label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.18em; color:var(--sand-dim); margin-bottom:6px; }
+  input, select { width:100%; padding:10px 11px; background:var(--green); color:var(--sand); border:1px solid var(--line); border-radius:0; font-size:13.5px; font-family:'Montserrat',sans-serif; }
+  input:focus, select:focus { outline:1px solid var(--sand-dim); }
+  button { padding:12px 26px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:opacity .15s; }
+  button:hover { opacity:.9; }
+  button.ghost { background:transparent; color:var(--sand); border:1px solid var(--sand-dim); padding:6px 14px; font-size:10px; }
+  button.danger { background:transparent; color:var(--err); border:1px solid var(--err); padding:6px 14px; font-size:10px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--sand-dim); font-size:10px; text-transform:uppercase; letter-spacing:.18em; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:500; }
+  td { padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .dim { color:var(--sand-dim); font-size:11px; }
+  .chip { display:inline-block; padding:4px 12px; border:1px solid; border-radius:999px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
+  .chip.sent { color:var(--sand-dim); border-color:var(--sand-dim); }
+  .chip.card_saved { color:var(--ok); border-color:var(--ok); }
+  .chip.hold_placed { color:var(--info); border-color:var(--info); }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
+  .chip.charged { color:var(--ok); border-color:var(--ok); }
+  .chip.released { color:var(--sand-dim); border-color:var(--line); }
+  .msg { font-size:13px; margin-top:12px; line-height:1.6; }
+  .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
+  .topbar { display:flex; justify-content:space-between; align-items:baseline; }
+  select.inline { width:auto; padding:7px 9px; font-size:11px; }
+  @media (max-width:700px) { .desktop-only { display:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div><h1>Liquid &amp; Larder</h1><div class="sub"><a href="../">&larr; Portal</a> &nbsp;·&nbsp; Credit Card Pre-Authorisations</div></div>
+  </div>
+
+  <div id="appArea">
+    <div class="card">
+      <div class="cardTitle">New pre-authorisation request</div>
+      <div class="grid">
+        <div><label>Venue</label><select id="venue">
+          <option>Alfie's</option><option>Bar Julius</option><option>Bistecca</option>
+          <option>Lottie</option><option>The Gidley</option><option>The Rover</option>
+          <option>Liquid &amp; Larder (Group)</option>
+        </select></div>
+        <div><label>Guest name</label><input id="gname" placeholder="Jane Citizen"></div>
+        <div><label>Guest email</label><input id="gemail" type="email" placeholder="optional"></div>
+        <div><label>Guest mobile</label><input id="gphone" placeholder="optional"></div>
+        <div><label>Booking date</label><input id="bdate" type="date"></div>
+        <div><label>Booking time</label><input id="btime" placeholder="e.g. 7:00 pm"></div>
+        <div><label>Maximum amount (AUD)</label><input id="maxamt" type="number" min="1" step="0.01" placeholder="e.g. 2000"></div>
+        <div><label>Notes</label><input id="notes" placeholder="optional"></div>
+      </div>
+      <div style="margin-top:18px"><button id="create">Create &amp; get link</button></div>
+      <div class="msg" id="createMsg"></div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <span class="cardTitle" style="margin-bottom:0">Requests</span>
+        <span>
+          <select id="filterStatus" class="inline">
+            <option value="">All statuses</option><option value="sent">Sent</option>
+            <option value="card_saved">Card saved</option><option value="hold_placed">Hold placed</option>
+            <option value="charged">Charged</option><option value="cancelled">Cancelled</option>
+          </select>
+          <button class="ghost" id="refresh">Refresh</button>
+        </span>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr>
+          <th>Guest</th><th>Venue</th><th>Booking</th><th>Max</th><th>Status</th>
+          <th class="desktop-only">Card</th><th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+      <div class="msg" id="listMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const PAY_URL = new URL('../..', location.href).href; // customer page at site root
+const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(c / 100);
+
+// Theme follows the preference saved via the portal (cached locally for instant paint)
+document.documentElement.dataset.theme = localStorage.getItem('ll_theme') || 'dark';
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data } = await sb.from('portal_prefs').select('theme').eq('user_id', session.user.id).maybeSingle();
+  if (data?.theme) { document.documentElement.dataset.theme = data.theme; localStorage.setItem('ll_theme', data.theme); }
+})();
+
+// Must be signed in via the portal — session is shared across the site origin
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../'; return; }
+  loadList();
+})();
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+// ---- create ----
+$('create').onclick = async () => {
+  const m = $('createMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    $('create').disabled = true;
+    const { request } = await api({
+      action: 'create',
+      venue_name: $('venue').value,
+      guest_name: $('gname').value.trim(),
+      guest_email: $('gemail').value.trim(),
+      guest_phone: $('gphone').value.trim(),
+      booking_date: $('bdate').value,
+      booking_time: $('btime').value.trim(),
+      max_amount: $('maxamt').value,
+      notes: $('notes').value.trim(),
+    });
+    const link = PAY_URL + '?t=' + request.token;
+    await navigator.clipboard.writeText(link).catch(() => {});
+    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--sand)">' + link + '</span>';
+    m.className = 'msg ok';
+    ['gname','gemail','gphone','bdate','btime','maxamt','notes'].forEach(id => $(id).value = '');
+    loadList();
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('create').disabled = false; }
+};
+
+// ---- list ----
+async function loadList() {
+  const m = $('listMsg'); m.textContent = '';
+  try {
+    const payload = { action: 'list' };
+    if ($('filterStatus').value) payload.status = $('filterStatus').value;
+    const { requests } = await api(payload);
+    $('rows').innerHTML = requests.map(r => `
+      <tr>
+        <td>${r.guest_name}${r.guest_email ? '<br><span class="dim">' + r.guest_email + '</span>' : ''}</td>
+        <td>${r.venue_name}</td>
+        <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + r.booking_time + '</span>' : ''}</td>
+        <td>${fmt(r.max_amount_cents)}</td>
+        <td><span class="chip ${r.status}">${r.status.replace('_',' ')}</span></td>
+        <td class="desktop-only">${r.card_brand ? r.card_brand + ' •••• ' + r.card_last4 : '—'}</td>
+        <td style="white-space:nowrap">
+          <button class="ghost" onclick="copyLink('${r.token}')">Copy link</button>
+          ${['sent','card_saved'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${r.id}')">Cancel</button>` : ''}
+        </td>
+      </tr>`).join('') || '<tr><td colspan="7" class="dim">No requests yet.</td></tr>';
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+}
+window.copyLink = t => navigator.clipboard.writeText(PAY_URL + '?t=' + t);
+window.cancelReq = async id => {
+  if (!confirm('Cancel this pre-authorisation request?')) return;
+  try { await api({ action: 'cancel', id }); loadList(); }
+  catch (e) { $('listMsg').textContent = e.message; $('listMsg').className = 'msg err'; }
+};
+$('refresh').onclick = loadList;
+$('filterStatus').onchange = loadList;
+</script>
+</body>
+</html>
