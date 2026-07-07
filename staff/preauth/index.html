@@ -94,7 +94,7 @@
       <div style="overflow-x:auto"><table>
         <thead><tr>
           <th>Guest</th><th>Venue</th><th>Date of use</th><th>Max</th><th>Status</th>
-          <th class="desktop-only">Card</th><th></th>
+          <th class="desktop-only">Created</th><th class="desktop-only">Card</th><th></th>
         </tr></thead>
         <tbody id="rows"></tbody>
       </table></div>
@@ -104,14 +104,20 @@
 </div>
 
 <script>
-const SUPABASE_URL = 'https://fppqqcpgpbdqshhldpth.supabase.co';
-const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const PAY_URL = new URL('../..', location.href).href; // customer page at site root
 const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
 const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(c / 100);
+// All event times are stored in UTC and displayed in Sydney time (AEST/AEDT)
+const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-AU', {
+  timeZone:'Australia/Sydney', day:'2-digit', month:'2-digit', year:'2-digit', hour:'numeric', minute:'2-digit', hour12:true,
+}) : '';
+// The moment the current status happened: card saved -> terms acceptance; later states -> last update
+const statusTime = r => r.status === 'sent' ? r.created_at : (r.status === 'card_saved' ? r.terms_accepted_at : r.updated_at);
 
 // Theme follows the preference saved via the portal (cached locally for instant paint)
 document.documentElement.dataset.theme = localStorage.getItem('ll_theme') || 'dark';
@@ -181,13 +187,14 @@ async function loadList() {
         <td>${r.venue_name}</td>
         <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + r.booking_time + '</span>' : ''}</td>
         <td>${fmt(r.max_amount_cents)}</td>
-        <td><span class="chip ${r.status}">${r.status.replace('_',' ')}</span></td>
+        <td><span class="chip ${r.status}">${r.status.replace('_',' ')}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}</td>
+        <td class="desktop-only dim">${fmtTs(r.created_at)}</td>
         <td class="desktop-only">${r.card_brand ? r.card_brand + ' •••• ' + r.card_last4 : '—'}</td>
         <td style="white-space:nowrap">
           <button class="ghost" onclick="copyLink('${r.token}')">Copy link</button>
           ${['sent','card_saved'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${r.id}')">Cancel</button>` : ''}
         </td>
-      </tr>`).join('') || '<tr><td colspan="7" class="dim">No requests yet.</td></tr>';
+      </tr>`).join('') || '<tr><td colspan="8" class="dim">No requests yet.</td></tr>';
   } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
 }
 window.copyLink = t => navigator.clipboard.writeText(PAY_URL + '?t=' + t);
