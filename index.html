@@ -56,7 +56,13 @@
 <script>
 const SUPABASE_URL = 'https://fppqqcpgpbdqshhldpth.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_REPLACE_ME'; // <-- Stripe TEST publishable key goes here
+// Each venue has its own Stripe account — TEST publishable keys per venue
+const VENUE_PUBLISHABLE_KEYS = {
+  'Bistecca':   'pk_test_N9G2DkfiiCyADXOdz1bezTzZ',
+  'The Gidley': 'pk_test_REPLACE_GIDLEY',
+  "Alfie's":    'pk_test_REPLACE_ALFIES',
+  'The Rover':  'pk_test_REPLACE_ROVER',
+};
 const FN = SUPABASE_URL + '/functions/v1/preauth-public';
 
 const params = new URLSearchParams(location.search);
@@ -118,7 +124,9 @@ async function init() {
     <div class="msg" id="msg"></div>
   `);
 
-  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  const pk = VENUE_PUBLISHABLE_KEYS[r.venue_name];
+  if (!pk || pk.includes('REPLACE')) return show('<div class="center">Card authorisation is not yet configured for ' + r.venue_name + '. Please contact the venue.</div>');
+  const stripe = Stripe(pk);
   const { client_secret } = await api('setup');
   const elements = stripe.elements({
     clientSecret: client_secret,
