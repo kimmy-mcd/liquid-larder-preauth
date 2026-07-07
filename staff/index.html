@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staff Portal — Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
+    --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0;
+  }
+  [data-theme="light"] {
+    --green:#ece5d8; --green-deep:#f8f5ef; --sand:#1d3e3b; --sand-dim:rgba(29,62,59,.62);
+    --line:rgba(29,62,59,.16); --err:#b05a3e; --ok:#4e7a52;
+  }
+  body { transition:background .2s, color .2s; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; padding:28px 18px; min-height:100vh; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-weight:500; font-size:19px; letter-spacing:.4em; text-transform:uppercase; }
+  .sub { color:var(--sand-dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-top:6px; margin-bottom:30px; }
+  .card { background:var(--green-deep); border:1px solid var(--line); padding:26px; margin-bottom:24px; }
+  .cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:18px; }
+  label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.18em; color:var(--sand-dim); margin-bottom:6px; }
+  input, select { width:100%; padding:10px 11px; background:var(--green); color:var(--sand); border:1px solid var(--line); border-radius:0; font-size:13.5px; font-family:'Montserrat',sans-serif; }
+  input:focus, select:focus { outline:1px solid var(--sand-dim); }
+  button { padding:12px 26px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:opacity .15s; }
+  button:hover { opacity:.9; }
+  button.ghost { background:transparent; color:var(--sand); border:1px solid var(--sand-dim); padding:6px 14px; font-size:10px; }
+  button.danger { background:transparent; color:var(--err); border:1px solid var(--err); padding:6px 14px; font-size:10px; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .msg { font-size:13px; margin-top:12px; line-height:1.6; }
+  .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
+  .login { max-width:390px; margin:70px auto; }
+  .topbar { display:flex; justify-content:space-between; align-items:baseline; }
+  .hidden { display:none; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  a.tile { display:block; background:var(--green-deep); border:1px solid var(--line); padding:26px; color:var(--sand); text-decoration:none; transition:border-color .15s; }
+  a.tile:hover { border-color:var(--sand-dim); }
+  a.tile .name { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:8px; }
+  a.tile .desc { color:var(--sand-dim); font-size:12.5px; line-height:1.6; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; color:var(--sand-dim); font-size:10px; text-transform:uppercase; letter-spacing:.18em; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:500; }
+  td { padding:11px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  .dim { color:var(--sand-dim); font-size:11px; }
+  .roleTag { text-transform:capitalize; }
+  .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div><h1>Liquid &amp; Larder</h1><div class="sub">Staff Portal</div></div>
+    <div>
+      <span class="dim hidden" id="whoami" style="margin-right:10px"></span>
+      <button class="ghost" id="themeToggle">Light mode</button>
+      <button class="ghost hidden" id="logout">Sign out</button>
+    </div>
+  </div>
+
+  <!-- SET PASSWORD (arriving via invite / reset link) -->
+  <div class="card login hidden" id="setPwCard">
+    <div class="cardTitle">Welcome — set your password</div>
+    <label>New password</label>
+    <input id="newPw" type="password" style="margin-bottom:14px">
+    <label>Confirm password</label>
+    <input id="newPw2" type="password" style="margin-bottom:18px">
+    <button id="savePw">Save &amp; enter portal</button>
+    <div class="msg" id="pwMsg"></div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="card login hidden" id="loginCard">
+    <div class="cardTitle">Staff sign in</div>
+    <label>Email</label>
+    <input id="email" type="email" placeholder="you@liquidandlarder.com.au" style="margin-bottom:14px">
+    <label>Password</label>
+    <input id="password" type="password" style="margin-bottom:18px">
+    <button id="signin">Sign in</button>
+    <button class="ghost" id="forgot" style="margin-left:8px">Forgot password</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <!-- APP TILES -->
+  <div id="appArea" class="hidden">
+    <div class="tiles" id="tiles"></div>
+    <div class="msg" id="tilesMsg"></div>
+
+    <!-- ADMIN -->
+    <div class="card hidden" id="adminCard" style="margin-top:30px">
+      <div class="cardTitle">User management</div>
+      <div class="grid3" style="margin-bottom:16px">
+        <div><label>Email</label><input id="invEmail" type="email" placeholder="new@liquidandlarder.com.au"></div>
+        <div><label>Full name</label><input id="invName" placeholder="optional"></div>
+        <div><label>Role</label><select id="invRole">
+          <option value="staff">Staff</option><option value="reservations">Reservations</option>
+          <option value="manager">Manager</option><option value="finance">Finance</option>
+          <option value="admin">Admin</option>
+        </select></div>
+      </div>
+      <button id="invite">Send invite</button>
+      <div class="msg" id="invMsg"></div>
+      <div style="overflow-x:auto;margin-top:22px"><table>
+        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody id="userRows"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const ROLES = ['staff','reservations','manager','finance','admin'];
+let myProfile = null;
+
+// ---- theme ----
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('ll_theme', t);
+  $('themeToggle').textContent = t === 'light' ? 'Dark mode' : 'Light mode';
+}
+applyTheme(localStorage.getItem('ll_theme') || 'dark'); // instant paint from cache
+$('themeToggle').onclick = async () => {
+  const t = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  applyTheme(t);
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await sb.from('portal_prefs').upsert({ user_id: session.user.id, theme: t, updated_at: new Date().toISOString() });
+};
+async function loadTheme(userId) {
+  const { data } = await sb.from('portal_prefs').select('theme').eq('user_id', userId).maybeSingle();
+  if (data?.theme) applyTheme(data.theme);
+}
+
+// Invite/recovery links arrive with a hash like #access_token=...&type=invite
+const arrivedViaInvite = /type=(invite|recovery|signup)/.test(location.hash);
+
+async function adminApi(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(ADMIN_FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY,
+      ...(session ? { 'Authorization': 'Bearer ' + session.access_token } : {}) },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function showOnly(...ids) {
+  ['setPwCard','loginCard','appArea'].forEach(id => $(id).classList.toggle('hidden', !ids.includes(id)));
+}
+
+async function main() {
+  // Give supabase-js a moment to consume the URL hash session on invite links
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session && arrivedViaInvite) { showOnly('setPwCard'); return; }
+  if (!session) { showOnly('loginCard'); return; }
+  await enter();
+}
+
+async function enter() {
+  const { data: { user } } = await sb.auth.getUser();
+  const { data: profile } = await sb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) {
+    showOnly('loginCard');
+    $('loginMsg').textContent = 'Your account does not have portal access. Ask an admin to invite you.';
+    $('loginMsg').className = 'msg err';
+    await sb.auth.signOut();
+    return;
+  }
+  myProfile = profile;
+  loadTheme(user.id);
+  $('whoami').textContent = (profile.full_name || profile.email) + ' · ' + profile.role;
+  $('whoami').classList.remove('hidden');
+  $('logout').classList.remove('hidden');
+  showOnly('appArea');
+
+  const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
+  if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
+  $('tiles').innerHTML = (apps || []).map(a => `
+    <a class="tile" href="${a.url}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
+      <div class="name">${a.name}</div>
+      <div class="desc">${a.description || ''}</div>
+    </a>`).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
+
+  if (profile.role === 'admin') { $('adminCard').classList.remove('hidden'); loadUsers(); }
+}
+
+// ---- auth actions ----
+$('signin').onclick = async () => {
+  $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) { $('loginMsg').textContent = error.message; $('loginMsg').className = 'msg err'; return; }
+  enter();
+};
+$('forgot').onclick = async () => {
+  const email = $('email').value.trim();
+  if (!email) { $('loginMsg').textContent = 'Enter your email first.'; $('loginMsg').className = 'msg err'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  $('loginMsg').textContent = error ? error.message : 'Reset link sent — check your email.';
+  $('loginMsg').className = 'msg ' + (error ? 'err' : 'ok');
+};
+$('savePw').onclick = async () => {
+  const p1 = $('newPw').value, p2 = $('newPw2').value;
+  if (p1.length < 8) { $('pwMsg').textContent = 'Use at least 8 characters.'; $('pwMsg').className = 'msg err'; return; }
+  if (p1 !== p2) { $('pwMsg').textContent = 'Passwords do not match.'; $('pwMsg').className = 'msg err'; return; }
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if (error) { $('pwMsg').textContent = error.message; $('pwMsg').className = 'msg err'; return; }
+  history.replaceState(null, '', location.pathname);
+  enter();
+};
+$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+// ---- admin ----
+$('invite').onclick = async () => {
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    $('invite').disabled = true;
+    await adminApi({
+      action: 'invite',
+      email: $('invEmail').value.trim(),
+      full_name: $('invName').value.trim(),
+      role: $('invRole').value,
+      redirect_to: location.origin + location.pathname,
+    });
+    m.textContent = 'Invite sent.'; m.className = 'msg ok';
+    $('invEmail').value = ''; $('invName').value = '';
+    loadUsers();
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('invite').disabled = false; }
+};
+
+async function loadUsers() {
+  const { data: users, error } = await sb.from('portal_profiles').select('*').order('created_at');
+  if (error) return;
+  $('userRows').innerHTML = (users || []).map(u => `
+    <tr>
+      <td>${u.email}</td>
+      <td>${u.full_name || '<span class="dim">—</span>'}</td>
+      <td><select class="roleSel" data-id="${u.id}" style="width:auto;padding:6px 8px;font-size:12px" ${u.id === myProfile.id ? 'disabled' : ''}>
+        ${ROLES.map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
+      </select></td>
+      <td>${u.active ? '<span style="color:var(--ok)">active</span>' : '<span style="color:var(--err)">disabled</span>'}</td>
+      <td style="white-space:nowrap">
+        ${u.id !== myProfile.id ? `
+          <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active})">${u.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="removeUser('${u.id}', '${u.email}')">Remove</button>` : '<span class="dim">you</span>'}
+      </td>
+    </tr>`).join('');
+  document.querySelectorAll('.roleSel').forEach(sel => sel.onchange = async () => {
+    await sb.from('portal_profiles').update({ role: sel.value }).eq('id', sel.dataset.id);
+    loadUsers();
+  });
+}
+window.toggleActive = async (id, active) => {
+  await sb.from('portal_profiles').update({ active }).eq('id', id);
+  loadUsers();
+};
+window.removeUser = async (id, email) => {
+  if (!confirm('Remove ' + email + ' entirely? They will no longer be able to sign in.')) return;
+  try { await adminApi({ action: 'remove', id }); loadUsers(); }
+  catch (e) { $('invMsg').textContent = e.message; $('invMsg').className = 'msg err'; }
+};
+
+// supabase-js fires SIGNED_IN after consuming an invite hash; re-run main then
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' && arrivedViaInvite) showOnly('setPwCard');
+});
+main();
+</script>
+</body>
+</html>
