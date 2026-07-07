@@ -171,8 +171,8 @@ async function init() {
 function success(r, already = false) {
   show(`<div class="center">
     <h2 style="margin-bottom:12px">${already ? 'Already confirmed' : 'Thank you' + (r.guest_first_name ? ', ' + r.guest_first_name : '')}</h2>
-    <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} for your booking at ${r.venue_name} on ${fmtDate(r.booking_date)}.<br><br>
-    A hold of up to ${fmt(r.max_amount_cents)} will be placed shortly before your booking, and only the final account total will be charged.</p>
+    <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} with ${r.venue_name}.<br><br>
+    A hold of up to ${fmt(r.max_amount_cents)} will be placed on ${fmtDate(r.booking_date)}, and only the final account total will be charged.</p>
   </div>`);
 }
 
