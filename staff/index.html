@@ -39,6 +39,8 @@
   .topbar { display:flex; justify-content:space-between; align-items:baseline; }
   .hidden { display:none; }
   .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  .sectionTitle { color:var(--sand-dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; margin:32px 0 14px; }
+  .sectionTitle:first-child { margin-top:0; }
   a.tile { display:block; background:var(--green-deep); border:1px solid var(--line); padding:26px; color:var(--sand); text-decoration:none; transition:border-color .15s; }
   a.tile:hover { border-color:var(--sand-dim); }
   a.tile .name { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:8px; }
@@ -87,7 +89,7 @@
 
   <!-- APP TILES -->
   <div id="appArea" class="hidden">
-    <div class="tiles" id="tiles"></div>
+    <div id="tiles"></div>
     <div class="msg" id="tilesMsg"></div>
 
     <!-- ADMIN -->
@@ -188,11 +190,21 @@ async function enter() {
 
   const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
   if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
-  $('tiles').innerHTML = (apps || []).map(a => `
+  const SECTION_ORDER = ['Accounts', 'Company metrics'];
+  const groups = {};
+  (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
+  const sections = Object.keys(groups).sort((a, b) => {
+    const ia = SECTION_ORDER.indexOf(a), ib = SECTION_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
+  });
+  const tile = a => `
     <a class="tile" href="${a.url}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
       <div class="name">${a.name}</div>
       <div class="desc">${a.description || ''}</div>
-    </a>`).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
+    </a>`;
+  $('tiles').innerHTML = sections.map(s =>
+    `<div class="sectionTitle">${s}</div><div class="tiles">` + groups[s].map(tile).join('') + '</div>'
+  ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
 
   if (profile.role === 'admin') { $('adminCard').classList.remove('hidden'); loadUsers(); }
 }
