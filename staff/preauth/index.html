@@ -71,9 +71,8 @@
         <div><label>Guest email</label><input id="gemail" type="email" placeholder="optional"></div>
         <div><label>Guest mobile</label><input id="gphone" placeholder="optional"></div>
         <div><label>Date of use</label><input id="bdate" type="date"></div>
-        <div><label>Time of use</label><input id="btime" placeholder="e.g. 7:00 pm"></div>
         <div><label>Maximum amount (AUD)</label><input id="maxamt" type="number" min="1" step="0.01" placeholder="e.g. 2000"></div>
-        <div><label>Notes</label><input id="notes" placeholder="optional"></div>
+        <div style="grid-column:1/-1"><label>Purpose of hold</label><input id="notes" placeholder="What is the card hold for? e.g. Private dining room hire + food &amp; beverage — Smith party of 12"></div>
       </div>
       <div style="margin-top:18px"><button id="create">Create &amp; get link</button></div>
       <div class="msg" id="createMsg"></div>
@@ -152,6 +151,7 @@ async function api(payload) {
 $('create').onclick = async () => {
   const m = $('createMsg'); m.textContent = ''; m.className = 'msg';
   try {
+    if (!$('notes').value.trim()) throw new Error('Please enter what this hold is for — the venue team needs it to identify the account when charging.');
     $('create').disabled = true;
     const { request } = await api({
       action: 'create',
@@ -160,7 +160,6 @@ $('create').onclick = async () => {
       guest_email: $('gemail').value.trim(),
       guest_phone: $('gphone').value.trim(),
       booking_date: $('bdate').value,
-      booking_time: $('btime').value.trim(),
       max_amount: $('maxamt').value,
       notes: $('notes').value.trim(),
     });
@@ -168,7 +167,7 @@ $('create').onclick = async () => {
     await navigator.clipboard.writeText(link).catch(() => {});
     m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--sand)">' + link + '</span>';
     m.className = 'msg ok';
-    ['gname','gemail','gphone','bdate','btime','maxamt','notes'].forEach(id => $(id).value = '');
+    ['gname','gemail','gphone','bdate','maxamt','notes'].forEach(id => $(id).value = '');
     loadList();
   } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
   finally { $('create').disabled = false; }
@@ -184,7 +183,7 @@ async function loadList() {
     $('rows').innerHTML = requests.map(r => `
       <tr>
         <td>${r.guest_name}${r.guest_email ? '<br><span class="dim">' + r.guest_email + '</span>' : ''}</td>
-        <td>${r.venue_name}</td>
+        <td>${r.venue_name}${r.notes ? '<br><span class="dim">' + r.notes + '</span>' : ''}</td>
         <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + r.booking_time + '</span>' : ''}</td>
         <td>${fmt(r.max_amount_cents)}</td>
         <td><span class="chip ${r.status}">${r.status.replace('_',' ')}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}</td>
