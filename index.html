@@ -109,6 +109,7 @@ async function init() {
   show(`
     <h2>Hi ${r.guest_first_name}, please confirm your card details</h2>
     <div class="row"><span>Venue</span><span>${r.venue_name}</span></div>
+    ${r.purpose ? '<div class="row"><span>For</span><span>' + r.purpose + '</span></div>' : ''}
     <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + r.booking_time : ''}</span></div>
     <div class="row"><span>Maximum</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
     <p class="terms" id="termsText">${terms ? terms.text :
