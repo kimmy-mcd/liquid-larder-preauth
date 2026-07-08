@@ -87,8 +87,8 @@ function show(html) { app.innerHTML = html; }
 
 async function init() {
   if (!token) return show('<div class="center">This link is missing its reference. Please use the link you were sent.</div>');
-  let r;
-  try { r = (await api('get')).request; }
+  let r, terms;
+  try { const resp = await api('get'); r = resp.request; terms = resp.terms; }
   catch (e) { return show('<div class="center">' + e.message + '</div>'); }
 
   document.getElementById('venueLine').textContent = r.venue_name;
@@ -109,14 +109,14 @@ async function init() {
   show(`
     <h2>Hi ${r.guest_first_name}, please confirm your card details</h2>
     <div class="row"><span>Venue</span><span>${r.venue_name}</span></div>
-    <div class="row"><span>Booking</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + r.booking_time : ''}</span></div>
+    <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + r.booking_time : ''}</span></div>
     <div class="row"><span>Maximum</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
-    <p class="terms" id="termsText">
-      By providing your card details you authorise ${r.venue_name} (Liquid &amp; Larder) to place a temporary hold
-      on your card of up to ${fmt(r.max_amount_cents)} prior to the booking, and to charge the final account total
-      (up to that maximum) after the booking. Any unused portion of the hold is released automatically. The amount
+    <p class="terms" id="termsText">${terms ? terms.text :
+      `By providing your card details you authorise ${r.venue_name} (Liquid &amp; Larder) to place a temporary hold
+      on your card of up to ${fmt(r.max_amount_cents)} prior to the date of use, and to charge the final account total
+      (up to that maximum) after the date of use. Any unused portion of the hold is released automatically. The amount
       charged will never exceed the authorised maximum. Your card details are held
-      securely by Stripe and are never visible to venue staff.
+      securely by Stripe and are never visible to venue staff.`}
     </p>
     <label class="accept"><input type="checkbox" id="accept"> I have read and accept the terms above and confirm I am the cardholder.</label>
     <div id="payment-element"></div>
