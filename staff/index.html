@@ -8,35 +8,13 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="/styles/core.css?v=1">
+<link rel="stylesheet" href="/styles/staff.css?v=1">
 <style>
-  :root {
-    --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
-    --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0;
-  }
-  [data-theme="light"] {
-    --green:#ece5d8; --green-deep:#f8f5ef; --sand:#1d3e3b; --sand-dim:rgba(29,62,59,.62);
-    --line:rgba(29,62,59,.16); --err:#b05a3e; --ok:#4e7a52;
-  }
-  body { transition:background .2s, color .2s; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; padding:28px 18px; min-height:100vh; }
-  .wrap { max-width:960px; margin:0 auto; }
-  h1 { font-weight:500; font-size:19px; letter-spacing:.4em; text-transform:uppercase; }
-  .sub { color:var(--sand-dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-top:6px; margin-bottom:30px; }
-  .card { background:var(--green-deep); border:1px solid var(--line); padding:26px; margin-bottom:24px; }
-  .cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:18px; }
-  label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.18em; color:var(--sand-dim); margin-bottom:6px; }
-  input, select { width:100%; padding:10px 11px; background:var(--green); color:var(--sand); border:1px solid var(--line); border-radius:0; font-size:13.5px; font-family:'Montserrat',sans-serif; }
-  input:focus, select:focus { outline:1px solid var(--sand-dim); }
-  button { padding:12px 26px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:opacity .15s; }
-  button:hover { opacity:.9; }
-  button.ghost { background:transparent; color:var(--sand); border:1px solid var(--sand-dim); padding:6px 14px; font-size:10px; }
-  button.danger { background:transparent; color:var(--err); border:1px solid var(--err); padding:6px 14px; font-size:10px; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  .msg { font-size:13px; margin-top:12px; line-height:1.6; }
-  .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
+  body { min-height:100vh; }
+  .wrap { max-width:960px; }
+  .sub { margin-bottom:30px; }
   .login { max-width:390px; margin:70px auto; }
-  .topbar { display:flex; justify-content:space-between; align-items:baseline; }
   .hidden { display:none; }
   .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
   .sectionTitle { color:var(--sand-dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; margin:32px 0 14px; }
@@ -45,10 +23,7 @@
   a.tile:hover { border-color:var(--sand-dim); }
   a.tile .name { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:8px; }
   a.tile .desc { color:var(--sand-dim); font-size:12.5px; line-height:1.6; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th { text-align:left; color:var(--sand-dim); font-size:10px; text-transform:uppercase; letter-spacing:.18em; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:500; }
-  td { padding:11px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
-  .dim { color:var(--sand-dim); font-size:11px; }
+  td { padding:11px 10px; }
   .roleTag { text-transform:capitalize; }
   .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
 </style>
@@ -121,6 +96,7 @@ const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ROLES = ['staff','reservations','manager','finance','admin'];
 let myProfile = null;
 
@@ -198,12 +174,12 @@ async function enter() {
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
   });
   const tile = a => `
-    <a class="tile" href="${a.url}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
-      <div class="name">${a.name}</div>
-      <div class="desc">${a.description || ''}</div>
+    <a class="tile" href="${esc(a.url)}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
+      <div class="name">${esc(a.name)}</div>
+      <div class="desc">${esc(a.description || '')}</div>
     </a>`;
   $('tiles').innerHTML = sections.map(s =>
-    `<div class="sectionTitle">${s}</div><div class="tiles">` + groups[s].map(tile).join('') + '</div>'
+    `<div class="sectionTitle">${esc(s)}</div><div class="tiles">` + groups[s].map(tile).join('') + '</div>'
   ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
 
   if (profile.role === 'admin') { $('adminCard').classList.remove('hidden'); loadUsers(); }
@@ -258,8 +234,8 @@ async function loadUsers() {
   if (error) return;
   $('userRows').innerHTML = (users || []).map(u => `
     <tr>
-      <td>${u.email}</td>
-      <td>${u.full_name || '<span class="dim">—</span>'}</td>
+      <td>${esc(u.email)}</td>
+      <td>${u.full_name ? esc(u.full_name) : '<span class="dim">—</span>'}</td>
       <td><select class="roleSel" data-id="${u.id}" style="width:auto;padding:6px 8px;font-size:12px" ${u.id === myProfile.id ? 'disabled' : ''}>
         ${ROLES.map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
       </select></td>
@@ -267,7 +243,7 @@ async function loadUsers() {
       <td style="white-space:nowrap">
         ${u.id !== myProfile.id ? `
           <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active})">${u.active ? 'Disable' : 'Enable'}</button>
-          <button class="danger" onclick="removeUser('${u.id}', '${u.email}')">Remove</button>` : '<span class="dim">you</span>'}
+          <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}')">Remove</button>` : '<span class="dim">you</span>'}
       </td>
     </tr>`).join('');
   document.querySelectorAll('.roleSel').forEach(sel => sel.onchange = async () => {
