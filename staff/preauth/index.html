@@ -8,37 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="stylesheet" href="/styles/core.css?v=1">
+<link rel="stylesheet" href="/styles/staff.css?v=1">
 <style>
-  :root {
-    --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
-    --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0; --info:#9db8c9;
-  }
-  [data-theme="light"] {
-    --green:#ece5d8; --green-deep:#f8f5ef; --sand:#1d3e3b; --sand-dim:rgba(29,62,59,.62);
-    --line:rgba(29,62,59,.16); --err:#b05a3e; --ok:#4e7a52; --info:#3e6a8a;
-  }
-  body { transition:background .2s, color .2s; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; padding:28px 18px; }
-  .wrap { max-width:1100px; margin:0 auto; }
-  h1 { font-weight:500; font-size:19px; letter-spacing:.4em; text-transform:uppercase; }
-  .sub { color:var(--sand-dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-top:6px; margin-bottom:28px; }
+  .wrap { max-width:1100px; }
+  .sub { margin-bottom:28px; }
   .sub a { color:var(--sand-dim); }
-  .card { background:var(--green-deep); border:1px solid var(--line); padding:26px; margin-bottom:24px; }
-  .cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:18px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
-  label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.18em; color:var(--sand-dim); margin-bottom:6px; }
-  input, select { width:100%; padding:10px 11px; background:var(--green); color:var(--sand); border:1px solid var(--line); border-radius:0; font-size:13.5px; font-family:'Montserrat',sans-serif; }
-  input:focus, select:focus { outline:1px solid var(--sand-dim); }
-  button { padding:12px 26px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:opacity .15s; }
-  button:hover { opacity:.9; }
-  button.ghost { background:transparent; color:var(--sand); border:1px solid var(--sand-dim); padding:6px 14px; font-size:10px; }
-  button.danger { background:transparent; color:var(--err); border:1px solid var(--err); padding:6px 14px; font-size:10px; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  table { width:100%; border-collapse:collapse; font-size:13px; }
-  th { text-align:left; color:var(--sand-dim); font-size:10px; text-transform:uppercase; letter-spacing:.18em; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:500; }
-  td { padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
-  .dim { color:var(--sand-dim); font-size:11px; }
+  td { padding:12px 10px; }
   .chip { display:inline-block; padding:4px 12px; border:1px solid; border-radius:999px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
   .chip.sent { color:var(--sand-dim); border-color:var(--sand-dim); }
   .chip.card_saved { color:var(--ok); border-color:var(--ok); }
@@ -46,9 +23,6 @@
   .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
   .chip.charged { color:var(--ok); border-color:var(--ok); }
   .chip.released { color:var(--sand-dim); border-color:var(--line); }
-  .msg { font-size:13px; margin-top:12px; line-height:1.6; }
-  .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
-  .topbar { display:flex; justify-content:space-between; align-items:baseline; }
   select.inline { width:auto; padding:7px 9px; font-size:11px; }
   @media (max-width:700px) { .desktop-only { display:none; } }
 </style>
@@ -111,6 +85,7 @@ const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(c / 100);
 // All event times are stored in UTC and displayed in Sydney time (AEST/AEDT)
 const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-AU', {
@@ -166,7 +141,7 @@ $('create').onclick = async () => {
     });
     const link = PAY_URL + '?t=' + request.token;
     await navigator.clipboard.writeText(link).catch(() => {});
-    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--sand)">' + link + '</span>';
+    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--sand)">' + esc(link) + '</span>';
     m.className = 'msg ok';
     ['gname','gemail','gphone','bdate','maxamt','notes'].forEach(id => $(id).value = '');
     loadList();
@@ -183,16 +158,16 @@ async function loadList() {
     const { requests } = await api(payload);
     $('rows').innerHTML = requests.map(r => `
       <tr>
-        <td>${r.guest_name}${r.guest_email ? '<br><span class="dim">' + r.guest_email + '</span>' : ''}</td>
-        <td>${r.venue_name}${r.notes ? '<br><span class="dim">' + r.notes + '</span>' : ''}</td>
-        <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + r.booking_time + '</span>' : ''}</td>
+        <td>${esc(r.guest_name)}${r.guest_email ? '<br><span class="dim">' + esc(r.guest_email) + '</span>' : ''}</td>
+        <td>${esc(r.venue_name)}${r.notes ? '<br><span class="dim">' + esc(r.notes) + '</span>' : ''}</td>
+        <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + esc(r.booking_time) + '</span>' : ''}</td>
         <td>${fmt(r.max_amount_cents)}</td>
-        <td><span class="chip ${r.status}">${r.status.replace('_',' ')}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}</td>
+        <td><span class="chip ${esc(r.status)}">${esc(r.status.replace('_',' '))}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}</td>
         <td class="desktop-only dim">${fmtTs(r.created_at)}</td>
-        <td class="desktop-only">${r.card_brand ? r.card_brand + ' •••• ' + r.card_last4 : '—'}</td>
+        <td class="desktop-only">${r.card_brand ? esc(r.card_brand) + ' •••• ' + esc(r.card_last4) : '—'}</td>
         <td style="white-space:nowrap">
-          <button class="ghost" onclick="copyLink('${r.token}')">Copy link</button>
-          ${['sent','card_saved'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${r.id}')">Cancel</button>` : ''}
+          <button class="ghost" onclick="copyLink('${esc(r.token)}')">Copy link</button>
+          ${['sent','card_saved'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${esc(r.id)}')">Cancel</button>` : ''}
         </td>
       </tr>`).join('') || '<tr><td colspan="8" class="dim">No requests yet.</td></tr>';
   } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
