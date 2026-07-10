@@ -10,38 +10,42 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=1">
-<link rel="stylesheet" href="/styles/staff.css?v=2">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
 <style>
-  .wrap { max-width:1100px; }
-  .sub { margin-bottom:28px; }
-  .sub a { color:var(--sand-dim); }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
-  td { padding:12px 10px; }
-  .chip { display:inline-block; padding:4px 12px; border:1px solid; border-radius:999px; font-size:10px; letter-spacing:.14em; text-transform:uppercase; }
-  .chip.sent { color:var(--sand-dim); border-color:var(--sand-dim); }
-  .chip.card_saved { color:var(--ok); border-color:var(--ok); }
-  .chip.hold_placed { color:var(--info); border-color:var(--info); }
-  .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
-  .chip.charged { color:var(--ok); border-color:var(--ok); }
-  .chip.released { color:var(--sand-dim); border-color:var(--line); }
-  .chip.refunded { color:var(--info); border-color:var(--info); }
-  select.inline { width:auto; padding:7px 9px; font-size:11px; }
-  #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:50; align-items:center; justify-content:center; }
-  #overlay .card { max-width:440px; width:92%; margin:0; max-height:90vh; overflow-y:auto; }
-  #overlay .row { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
-  #overlay .row span:first-child { color:var(--sand-dim); }
-  #overlay label { margin-top:14px; }
-  .warn { color:var(--err); font-size:12px; margin-top:8px; }
+  :root { --page-w:1144px; }
+  .sub a { color:var(--green); text-decoration:none; }
+  .sub a:hover { text-decoration:underline; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; }
+  td { padding:14px 10px; }
+  td a { color:var(--green); font-weight:500; }
+  .chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 12px; font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+  .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
+  .chip.sent { background:rgba(100,108,104,.10); color:var(--dim); }
+  .chip.card_saved, .chip.charged { background:rgba(66,112,74,.10); color:var(--ok); }
+  .chip.hold_placed, .chip.refunded { background:rgba(62,106,138,.10); color:var(--info); }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgba(164,78,51,.10); color:var(--err); }
+  .chip.released { background:rgba(100,108,104,.08); color:var(--dim); }
+  select.inline { width:auto; padding:8px 12px; font-size:11px; }
+  #overlay { display:none; position:fixed; inset:0; background:rgba(22,48,46,.40); z-index:50; align-items:center; justify-content:center; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #overlay .card { max-width:460px; width:92%; margin:0; max-height:90vh; overflow-y:auto; border-radius:20px; animation:pop .25s ease both; }
+  @keyframes pop { from { opacity:0; transform:scale(.97) translateY(8px); } to { opacity:1; transform:none; } }
+  #overlay .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
+  #overlay .row span:first-child { color:var(--dim); }
+  #overlay .row span:last-child { font-weight:500; text-align:right; }
+  #overlay label { margin-top:16px; }
+  .warn { background:rgba(164,78,51,.08); color:var(--err); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.55; margin-top:10px; }
   @media (max-width:700px) { .desktop-only { display:none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar">
+<header class="topbar">
+  <div class="bar">
     <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../">&larr; Hub</a> &nbsp;·&nbsp; Credit Card Pre-Authorisations &nbsp;·&nbsp; <a href="finance/">Finance</a></div></div>
+    <button class="ghost" id="refresh">Refresh</button>
   </div>
-
+</header>
+<div class="wrap">
   <div id="appArea">
     <div class="card">
       <div class="cardTitle">New pre-authorisation request</div>
@@ -63,18 +67,15 @@
     </div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:12px;flex-wrap:wrap">
         <span class="cardTitle" style="margin-bottom:0">Requests</span>
-        <span>
-          <select id="filterStatus" class="inline">
-            <option value="">All statuses</option><option value="sent">Sent</option>
-            <option value="card_saved">Card saved</option><option value="hold_placed">Hold placed</option>
-            <option value="hold_failed">Hold failed</option><option value="charged">Charged</option>
-            <option value="released">Released</option><option value="refunded">Refunded</option>
-            <option value="cancelled">Cancelled</option><option value="expired">Expired</option>
-          </select>
-          <button class="ghost" id="refresh">Refresh</button>
-        </span>
+        <select id="filterStatus" class="inline">
+          <option value="">All statuses</option><option value="sent">Sent</option>
+          <option value="card_saved">Card saved</option><option value="hold_placed">Hold placed</option>
+          <option value="hold_failed">Hold failed</option><option value="charged">Charged</option>
+          <option value="released">Released</option><option value="refunded">Refunded</option>
+          <option value="cancelled">Cancelled</option><option value="expired">Expired</option>
+        </select>
       </div>
       <div style="overflow-x:auto"><table>
         <thead><tr>
@@ -106,15 +107,6 @@ const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-AU', {
 }) : '';
 // The moment the current status happened: card saved -> terms acceptance; later states -> last update
 const statusTime = r => r.status === 'sent' ? r.created_at : (r.status === 'card_saved' ? r.terms_accepted_at : r.updated_at);
-
-// Theme follows the preference saved via the portal (cached locally for instant paint)
-document.documentElement.dataset.theme = localStorage.getItem('ll_theme') || 'dark';
-(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-  const { data } = await sb.from('portal_prefs').select('theme').eq('user_id', session.user.id).maybeSingle();
-  if (data?.theme) { document.documentElement.dataset.theme = data.theme; localStorage.setItem('ll_theme', data.theme); }
-})();
 
 // Must be signed in via the portal — session is shared across the site origin
 (async () => {
@@ -154,7 +146,7 @@ $('create').onclick = async () => {
     });
     const link = PAY_URL + '?t=' + request.token;
     await navigator.clipboard.writeText(link).catch(() => {});
-    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--sand)">' + esc(link) + '</span>';
+    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--green);font-weight:500">' + esc(link) + '</span>';
     m.className = 'msg ok';
     ['gname','gemail','gphone','bdate','maxamt','notes'].forEach(id => $(id).value = '');
     loadList();
