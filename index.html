@@ -8,12 +8,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/styles/core.css?v=1">
 <style>
   body { min-height:100vh; display:flex; justify-content:center; padding:40px 18px; }
   .wrap { width:100%; max-width:470px; }
   .brand { text-align:center; margin-bottom:34px; }
-  .brand h1 { font-family:'Montserrat',sans-serif; font-weight:500; font-size:22px; letter-spacing:.42em; text-transform:uppercase; text-indent:.42em; }
+  .brand h1.logo { height:24px; background:var(--sand); -webkit-mask:url(/assets/wordmark.svg) no-repeat center / contain; mask:url(/assets/wordmark.svg) no-repeat center / contain; }
   .brand .rule { width:44px; height:1px; background:var(--sand-dim); margin:14px auto; }
   .brand p { color:var(--sand-dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; text-indent:.28em; }
   .card { padding:32px 28px; }
@@ -35,7 +37,7 @@
 <body>
 <div class="wrap">
   <div class="brand">
-    <h1>Liquid &amp; Larder</h1>
+    <h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
     <div class="rule"></div>
     <p id="venueLine">Card Pre-Authorisation</p>
   </div>
