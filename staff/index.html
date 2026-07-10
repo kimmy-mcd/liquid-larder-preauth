@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Staff Portal — Liquid &amp; Larder</title>
+<title>Staff Hub — Liquid &amp; Larder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Staff Portal</div></div>
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Staff Hub</div></div>
     <div>
       <span class="dim hidden" id="whoami" style="margin-right:10px"></span>
       <button class="ghost" id="themeToggle">Light mode</button>
@@ -48,7 +48,7 @@
     <input id="newPw" type="password" style="margin-bottom:14px">
     <label>Confirm password</label>
     <input id="newPw2" type="password" style="margin-bottom:18px">
-    <button id="savePw">Save &amp; enter portal</button>
+    <button id="savePw">Save &amp; enter hub</button>
     <div class="msg" id="pwMsg"></div>
   </div>
 
@@ -154,7 +154,7 @@ async function enter() {
   const { data: profile } = await sb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
   if (!profile || !profile.active) {
     showOnly('loginCard');
-    $('loginMsg').textContent = 'Your account does not have portal access. Ask an admin to invite you.';
+    $('loginMsg').textContent = 'Your account does not have hub access. Ask an admin to invite you.';
     $('loginMsg').className = 'msg err';
     await sb.auth.signOut();
     return;
