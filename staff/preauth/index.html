@@ -39,7 +39,7 @@
 <body>
 <div class="wrap">
   <div class="topbar">
-    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../">&larr; Portal</a> &nbsp;·&nbsp; Credit Card Pre-Authorisations</div></div>
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../">&larr; Portal</a> &nbsp;·&nbsp; Credit Card Pre-Authorisations &nbsp;·&nbsp; <a href="finance/">Finance</a></div></div>
   </div>
 
   <div id="appArea">
@@ -184,6 +184,7 @@ async function loadList() {
         <td class="desktop-only">${r.card_brand ? esc(r.card_brand) + ' •••• ' + esc(r.card_last4) : '—'}</td>
         <td style="white-space:nowrap">
           <button class="ghost" onclick="copyLink('${esc(r.token)}')">Copy link</button>
+          ${['sent','card_saved'].includes(r.status) && ['admin','reservations','manager'].includes(myRole) ? `<button class="ghost" onclick="dateDlg('${esc(r.id)}')">Edit date</button>` : ''}
           ${['sent','card_saved','hold_failed'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${esc(r.id)}')">Cancel</button>` : ''}
           ${r.status === 'hold_placed' && ['admin','manager'].includes(myRole) ? `<button onclick="chargeDlg('${esc(r.id)}')">Charge</button>` : ''}
           ${['charged','refunded'].includes(r.status) && myRole === 'admin' && (r.refunded_cents||0) < (r.final_amount_cents||0) ? `<button class="ghost" onclick="refundDlg('${esc(r.id)}')">Refund</button>` : ''}
@@ -273,6 +274,35 @@ window.chargeDlg = id => {
       $('capGo').style.display = $('capRelease').style.display = 'none';
       loadList();
     } catch (e) { m.textContent = e.message; m.className = 'msg err'; $('capRelease').disabled = false; }
+  };
+};
+
+window.dateDlg = id => {
+  const r = rowById[id]; if (!r) return;
+  const sydToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+  dlg.innerHTML = `
+    <div class="cardTitle">Edit date of use</div>
+    ${dlgHeader(r)}
+    <label>New date of use</label><input id="newDate" type="date" min="${sydToday}" value="${esc(r.booking_date)}">
+    <p class="dim" style="font-size:12px;margin:10px 0 0">Hold timing follows this date. If the guest's card is already saved and the new date is within 48 hours, the hold is placed immediately.</p>
+    <div style="margin-top:18px; display:flex; gap:10px">
+      <button id="dateGo">Save date</button>
+      <button class="ghost" onclick="closeDlg()">Close</button>
+    </div>
+    <div class="msg" id="dateMsg"></div>`;
+  overlay.style.display = 'flex';
+  $('dateGo').onclick = async () => {
+    const m = $('dateMsg'); m.textContent = ''; m.className = 'msg';
+    try {
+      const d = $('newDate').value;
+      if (!d) throw new Error('Pick a date.');
+      $('dateGo').disabled = true;
+      const res = await api({ action: 'update_date', id, booking_date: d });
+      m.textContent = 'Date updated.' + (res.hold_placed_now ? ' The hold has been placed now (date is within 48 hours).' : (res.hold_error ? ' Immediate hold attempt failed: ' + res.hold_error + ' — the daily run will retry and alert.' : ''));
+      m.className = 'msg ok';
+      $('dateGo').style.display = 'none';
+      loadList();
+    } catch (e) { m.textContent = e.message; m.className = 'msg err'; $('dateGo').disabled = false; }
   };
 };
 
