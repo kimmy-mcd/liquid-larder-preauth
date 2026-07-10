@@ -10,38 +10,38 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=1">
-<link rel="stylesheet" href="/styles/staff.css?v=2">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
 <style>
-  .wrap { max-width:1200px; }
-  .sub { margin-bottom:28px; }
-  .sub a { color:var(--sand-dim); }
+  :root { --page-w:1244px; }
+  .sub a { color:var(--green); text-decoration:none; }
+  .sub a:hover { text-decoration:underline; }
   .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; align-items:end; }
   td { padding:10px 8px; font-size:13px; }
-  th { font-size:11px; }
+  td a { color:var(--green); font-weight:500; }
   .num { text-align:right; white-space:nowrap; }
-  .chip { display:inline-block; padding:3px 10px; border:1px solid; border-radius:999px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
-  .chip.sent { color:var(--sand-dim); border-color:var(--sand-dim); }
-  .chip.card_saved { color:var(--ok); border-color:var(--ok); }
-  .chip.hold_placed { color:var(--info); border-color:var(--info); }
-  .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
-  .chip.charged { color:var(--ok); border-color:var(--ok); }
-  .chip.released { color:var(--sand-dim); border-color:var(--line); }
-  .chip.refunded { color:var(--info); border-color:var(--info); }
+  .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:3px 10px; font-size:9px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
+  .chip::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex:none; }
+  .chip.sent { background:rgba(100,108,104,.10); color:var(--dim); }
+  .chip.card_saved, .chip.charged { background:rgba(66,112,74,.10); color:var(--ok); }
+  .chip.hold_placed, .chip.refunded { background:rgba(62,106,138,.10); color:var(--info); }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgba(164,78,51,.10); color:var(--err); }
+  .chip.released { background:rgba(100,108,104,.08); color:var(--dim); }
   select.inline, input.inline { width:100%; padding:8px 9px; font-size:12px; }
   .totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
-  .totals .box { border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
-  .totals .box .v { font-size:20px; font-family:'Gilda Display',serif; margin-top:4px; }
-  .totals .box .d { font-size:11px; color:var(--sand-dim); margin-top:6px; }
+  .totals .box { background:linear-gradient(135deg, var(--sand-soft), #faf6ec); border-radius:14px; padding:16px 18px; }
+  .totals .box .v { font-size:22px; font-family:'Gilda Display',serif; margin-top:4px; color:var(--green); }
+  .totals .box .d { font-size:11px; color:var(--dim); margin-top:6px; }
   @media (max-width:700px) { .desktop-only { display:none; } }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar">
+<header class="topbar">
+  <div class="bar">
     <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../">&larr; Pre-authorisations</a> &nbsp;·&nbsp; Finance &amp; Reconciliation</div></div>
   </div>
-
+</header>
+<div class="wrap">
   <div id="appArea">
     <div class="card">
       <div class="cardTitle">Filters</div>
@@ -103,14 +103,6 @@ const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-AU', {
   timeZone:'Australia/Sydney', day:'2-digit', month:'2-digit', year:'2-digit', hour:'numeric', minute:'2-digit', hour12:true,
 }) : '';
 const fmtD = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-AU') : '';
-
-document.documentElement.dataset.theme = localStorage.getItem('ll_theme') || 'dark';
-(async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (!session) return;
-  const { data } = await sb.from('portal_prefs').select('theme').eq('user_id', session.user.id).maybeSingle();
-  if (data?.theme) { document.documentElement.dataset.theme = data.theme; localStorage.setItem('ll_theme', data.theme); }
-})();
 
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
