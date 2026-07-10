@@ -1,0 +1,23 @@
+/* Liquid & Larder — styles shared by staff pages only. Load after core.css. */
+[data-theme="light"] {
+  --green:#ece5d8; --green-deep:#f8f5ef; --sand:#1d3e3b; --sand-dim:rgba(29,62,59,.62);
+  --line:rgba(29,62,59,.16); --err:#b05a3e; --ok:#4e7a52; --info:#3e6a8a;
+}
+body { transition:background .2s, color .2s; padding:28px 18px; }
+.wrap { margin:0 auto; }
+h1 { font-weight:500; font-size:19px; letter-spacing:.4em; text-transform:uppercase; }
+.sub { color:var(--sand-dim); font-size:11px; letter-spacing:.22em; text-transform:uppercase; margin-top:6px; }
+.card { padding:26px; margin-bottom:24px; }
+.cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:18px; }
+label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.18em; color:var(--sand-dim); margin-bottom:6px; }
+input, select { width:100%; padding:10px 11px; background:var(--green); color:var(--sand); border:1px solid var(--line); border-radius:0; font-size:13.5px; font-family:'Montserrat',sans-serif; }
+input:focus, select:focus { outline:1px solid var(--sand-dim); }
+button { padding:12px 26px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; cursor:pointer; transition:opacity .15s; }
+button.ghost { background:transparent; color:var(--sand); border:1px solid var(--sand-dim); padding:6px 14px; font-size:10px; }
+button.danger { background:transparent; color:var(--err); border:1px solid var(--err); padding:6px 14px; font-size:10px; }
+.msg { margin-top:12px; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th { text-align:left; color:var(--sand-dim); font-size:10px; text-transform:uppercase; letter-spacing:.18em; padding:9px 10px; border-bottom:1px solid var(--line); font-weight:500; }
+td { border-bottom:1px solid var(--line); vertical-align:middle; }
+.dim { color:var(--sand-dim); font-size:11px; }
+.topbar { display:flex; justify-content:space-between; align-items:baseline; }
