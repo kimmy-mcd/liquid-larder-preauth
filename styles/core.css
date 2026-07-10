@@ -1,0 +1,14 @@
+/* Liquid & Larder — core styles shared by every page (guest + staff). */
+/* Dark palette only here; the light theme lives in staff.css. */
+:root {
+  --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
+  --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0; --info:#9db8c9;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; }
+.card { background:var(--green-deep); border:1px solid var(--line); }
+button:hover { opacity:.9; }
+button:disabled { opacity:.4; cursor:not-allowed; }
+.msg { font-size:13px; line-height:1.6; }
+.msg.err { color:var(--err); }
+.msg.ok { color:var(--ok); }
