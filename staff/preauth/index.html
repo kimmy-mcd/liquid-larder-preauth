@@ -25,7 +25,14 @@
   .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
   .chip.charged { color:var(--ok); border-color:var(--ok); }
   .chip.released { color:var(--sand-dim); border-color:var(--line); }
+  .chip.refunded { color:var(--info); border-color:var(--info); }
   select.inline { width:auto; padding:7px 9px; font-size:11px; }
+  #overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:50; align-items:center; justify-content:center; }
+  #overlay .card { max-width:440px; width:92%; margin:0; max-height:90vh; overflow-y:auto; }
+  #overlay .row { display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  #overlay .row span:first-child { color:var(--sand-dim); }
+  #overlay label { margin-top:14px; }
+  .warn { color:var(--err); font-size:12px; margin-top:8px; }
   @media (max-width:700px) { .desktop-only { display:none; } }
 </style>
 </head>
@@ -63,6 +70,7 @@
             <option value="">All statuses</option><option value="sent">Sent</option>
             <option value="card_saved">Card saved</option><option value="hold_placed">Hold placed</option>
             <option value="hold_failed">Hold failed</option><option value="charged">Charged</option>
+            <option value="released">Released</option><option value="refunded">Refunded</option>
             <option value="cancelled">Cancelled</option><option value="expired">Expired</option>
           </select>
           <button class="ghost" id="refresh">Refresh</button>
@@ -79,6 +87,8 @@
     </div>
   </div>
 </div>
+
+<div id="overlay"><div class="card" id="dlgCard"></div></div>
 
 <script>
 const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
@@ -153,24 +163,30 @@ $('create').onclick = async () => {
 };
 
 // ---- list ----
+let myRole = null;      // provided by the server with each list response
+let rowById = {};       // cache for dialogs
 async function loadList() {
   const m = $('listMsg'); m.textContent = '';
   try {
     const payload = { action: 'list' };
     if ($('filterStatus').value) payload.status = $('filterStatus').value;
-    const { requests } = await api(payload);
+    const { requests, role } = await api(payload);
+    myRole = role || myRole;
+    rowById = Object.fromEntries(requests.map(r => [r.id, r]));
     $('rows').innerHTML = requests.map(r => `
       <tr>
         <td>${esc(r.guest_name)}${r.guest_email ? '<br><span class="dim">' + esc(r.guest_email) + '</span>' : ''}</td>
         <td>${esc(r.venue_name)}${r.notes ? '<br><span class="dim">' + esc(r.notes) + '</span>' : ''}</td>
         <td>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}${r.booking_time ? '<br><span class="dim">' + esc(r.booking_time) + '</span>' : ''}</td>
         <td>${fmt(r.max_amount_cents)}</td>
-        <td><span class="chip ${esc(r.status)}">${esc(r.status.replace('_',' '))}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}${r.status === 'hold_failed' && r.hold_last_error ? '<br><span class="dim">' + esc(r.hold_last_error) + '</span>' : ''}</td>
+        <td><span class="chip ${esc(r.status)}">${esc(r.status.replace('_',' '))}</span>${r.status !== 'sent' && statusTime(r) ? '<br><span class="dim">' + fmtTs(statusTime(r)) + '</span>' : ''}${r.status === 'hold_failed' && r.hold_last_error ? '<br><span class="dim">' + esc(r.hold_last_error) + '</span>' : ''}${['charged','refunded'].includes(r.status) && r.final_amount_cents ? '<br><span class="dim">' + fmt(r.final_amount_cents) + ' charged' + (r.refunded_cents ? ', ' + fmt(r.refunded_cents) + ' refunded' : '') + (r.receipt_url ? ' · <a href="' + esc(r.receipt_url) + '" target="_blank" rel="noopener">receipt</a>' : '') + '</span>' : ''}${r.status === 'hold_placed' && r.hold_placed_at ? '<br><span class="dim">charge by ' + fmtTs(new Date(new Date(r.hold_placed_at).getTime() + 7*86400000).toISOString()).split(',')[0] + '</span>' : ''}</td>
         <td class="desktop-only dim">${fmtTs(r.created_at)}</td>
         <td class="desktop-only">${r.card_brand ? esc(r.card_brand) + ' •••• ' + esc(r.card_last4) : '—'}</td>
         <td style="white-space:nowrap">
           <button class="ghost" onclick="copyLink('${esc(r.token)}')">Copy link</button>
-          ${['sent','card_saved'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${esc(r.id)}')">Cancel</button>` : ''}
+          ${['sent','card_saved','hold_failed'].includes(r.status) ? `<button class="danger" onclick="cancelReq('${esc(r.id)}')">Cancel</button>` : ''}
+          ${r.status === 'hold_placed' && ['admin','manager'].includes(myRole) ? `<button onclick="chargeDlg('${esc(r.id)}')">Charge</button>` : ''}
+          ${['charged','refunded'].includes(r.status) && myRole === 'admin' && (r.refunded_cents||0) < (r.final_amount_cents||0) ? `<button class="ghost" onclick="refundDlg('${esc(r.id)}')">Refund</button>` : ''}
         </td>
       </tr>`).join('') || '<tr><td colspan="8" class="dim">No requests yet.</td></tr>';
   } catch (e) {
@@ -188,6 +204,109 @@ function showNoAccess() {
       <a href="../"><button class="ghost">&larr; Back to portal</button></a>
     </div>`;
 }
+// ---- charge / release / refund dialogs (steps 15-17) ----
+const overlay = $('overlay'), dlg = $('dlgCard');
+function closeDlg() { overlay.style.display = 'none'; dlg.innerHTML = ''; }
+overlay.onclick = e => { if (e.target === overlay) closeDlg(); };
+
+function dlgHeader(r) {
+  const lapse = r.hold_placed_at ? fmtTs(new Date(new Date(r.hold_placed_at).getTime() + 7*86400000).toISOString()) : '';
+  return `
+    <div class="row"><span>Guest</span><span>${esc(r.guest_name)}</span></div>
+    <div class="row"><span>Venue</span><span>${esc(r.venue_name)}</span></div>
+    <div class="row"><span>Purpose of hold</span><span>${esc(r.notes || '')}</span></div>
+    <div class="row"><span>Date of use</span><span>${new Date(r.booking_date + 'T00:00:00').toLocaleDateString('en-AU')}</span></div>
+    <div class="row"><span>Card</span><span>${r.card_brand ? esc(r.card_brand) + ' •••• ' + esc(r.card_last4) : '—'}</span></div>
+    <div class="row"><span>Maximum authorised</span><span>${fmt(r.max_amount_cents)}</span></div>
+    ${lapse ? `<div class="row"><span>Hold lapses</span><span>${lapse}</span></div>` : ''}`;
+}
+
+window.chargeDlg = id => {
+  const r = rowById[id]; if (!r) return;
+  dlg.innerHTML = `
+    <div class="cardTitle">Charge final account</div>
+    ${dlgHeader(r)}
+    <label>Total bill (AUD)</label><input id="capAmt" type="number" min="0.01" step="0.01" placeholder="e.g. ${(r.max_amount_cents/100).toFixed(2)}">
+    <label>Re-type amount to confirm</label><input id="capAmt2" type="number" min="0.01" step="0.01">
+    <div class="warn" id="capWarn" style="display:none"></div>
+    <label>Your password</label><input id="capPw" type="password" autocomplete="current-password">
+    <div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap">
+      <button id="capGo">Charge card</button>
+      <button class="ghost" id="capRelease">Release without charging</button>
+      <button class="ghost" onclick="closeDlg()">Close</button>
+    </div>
+    <div class="msg" id="capMsg"></div>`;
+  overlay.style.display = 'flex';
+  const warn = $('capWarn');
+  const checkCap = () => {
+    const v = Math.round(Number($('capAmt').value) * 100);
+    if (v > r.max_amount_cents) {
+      warn.textContent = 'Bill is above the authorised maximum — only ' + fmt(r.max_amount_cents) + ' will be charged. The guest never pays more than they authorised.';
+      warn.style.display = 'block';
+    } else warn.style.display = 'none';
+  };
+  $('capAmt').oninput = checkCap;
+  $('capGo').onclick = async () => {
+    const m = $('capMsg'); m.textContent = ''; m.className = 'msg';
+    try {
+      const a1 = Math.round(Number($('capAmt').value) * 100), a2 = Math.round(Number($('capAmt2').value) * 100);
+      if (!a1 || a1 <= 0) throw new Error('Enter the total bill amount.');
+      if (a1 !== a2) throw new Error('Amounts do not match — please re-type the total bill.');
+      if (!$('capPw').value) throw new Error('Please enter your password to confirm the charge.');
+      $('capGo').disabled = true;
+      const res = await api({ action: 'capture', id, amount: $('capAmt').value, password: $('capPw').value });
+      m.innerHTML = 'Charged ' + fmt(res.charged_cents) + (res.capped ? ' (capped at the authorised maximum)' : '') +
+        (res.receipt_url ? ' · <a href="' + esc(res.receipt_url) + '" target="_blank" rel="noopener">receipt</a>' : '') + '. Remainder of the hold releases automatically.';
+      m.className = 'msg ok';
+      $('capGo').style.display = $('capRelease').style.display = 'none';
+      loadList();
+    } catch (e) { m.textContent = e.message; m.className = 'msg err'; $('capGo').disabled = false; }
+  };
+  $('capRelease').onclick = async () => {
+    const m = $('capMsg'); m.textContent = ''; m.className = 'msg';
+    try {
+      if (!$('capPw').value) throw new Error('Please enter your password to confirm the release.');
+      if (!confirm('Release the full hold of ' + fmt(r.max_amount_cents) + ' without charging anything?')) return;
+      $('capRelease').disabled = true;
+      await api({ action: 'release', id, password: $('capPw').value });
+      m.textContent = 'Hold released — nothing was charged.'; m.className = 'msg ok';
+      $('capGo').style.display = $('capRelease').style.display = 'none';
+      loadList();
+    } catch (e) { m.textContent = e.message; m.className = 'msg err'; $('capRelease').disabled = false; }
+  };
+};
+
+window.refundDlg = id => {
+  const r = rowById[id]; if (!r) return;
+  const refundable = (r.final_amount_cents || 0) - (r.refunded_cents || 0);
+  dlg.innerHTML = `
+    <div class="cardTitle">Refund (admin)</div>
+    ${dlgHeader(r)}
+    <div class="row"><span>Charged</span><span>${fmt(r.final_amount_cents || 0)}</span></div>
+    <div class="row"><span>Refundable</span><span>${fmt(refundable)}</span></div>
+    <label>Refund amount (AUD) — leave blank for full refund</label><input id="refAmt" type="number" min="0.01" step="0.01" max="${(refundable/100).toFixed(2)}">
+    <label>Your password</label><input id="refPw" type="password" autocomplete="current-password">
+    <div style="margin-top:18px; display:flex; gap:10px">
+      <button class="danger" id="refGo">Refund</button>
+      <button class="ghost" onclick="closeDlg()">Close</button>
+    </div>
+    <div class="msg" id="refMsg"></div>`;
+  overlay.style.display = 'flex';
+  $('refGo').onclick = async () => {
+    const m = $('refMsg'); m.textContent = ''; m.className = 'msg';
+    try {
+      if (!$('refPw').value) throw new Error('Please enter your password to confirm the refund.');
+      const amt = $('refAmt').value.trim();
+      if (!confirm('Refund ' + (amt ? fmt(Math.round(Number(amt)*100)) : fmt(refundable) + ' (full amount)') + ' to the guest?')) return;
+      $('refGo').disabled = true;
+      const res = await api({ action: 'refund', id, amount: amt || undefined, password: $('refPw').value });
+      m.textContent = 'Refunded ' + fmt(res.refunded_cents) + '.'; m.className = 'msg ok';
+      $('refGo').style.display = 'none';
+      loadList();
+    } catch (e) { m.textContent = e.message; m.className = 'msg err'; $('refGo').disabled = false; }
+  };
+};
+
 window.copyLink = t => navigator.clipboard.writeText(PAY_URL + '?t=' + t);
 window.cancelReq = async id => {
   if (!confirm('Cancel this pre-authorisation request?')) return;
