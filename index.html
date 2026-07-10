@@ -8,19 +8,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://js.stripe.com/v3/"></script>
+<link rel="stylesheet" href="/styles/core.css?v=1">
 <style>
-  :root {
-    --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
-    --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0;
-  }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; min-height:100vh; display:flex; justify-content:center; padding:40px 18px; }
+  body { min-height:100vh; display:flex; justify-content:center; padding:40px 18px; }
   .wrap { width:100%; max-width:470px; }
   .brand { text-align:center; margin-bottom:34px; }
   .brand h1 { font-family:'Montserrat',sans-serif; font-weight:500; font-size:22px; letter-spacing:.42em; text-transform:uppercase; text-indent:.42em; }
   .brand .rule { width:44px; height:1px; background:var(--sand-dim); margin:14px auto; }
   .brand p { color:var(--sand-dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; text-indent:.28em; }
-  .card { background:var(--green-deep); border:1px solid var(--line); padding:32px 28px; }
+  .card { padding:32px 28px; }
   h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:22px; line-height:1.35; margin-bottom:20px; }
   .row { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px; }
   .row span:first-child { color:var(--sand-dim); text-transform:uppercase; letter-spacing:.12em; font-size:11px; padding-top:3px; }
@@ -31,11 +27,7 @@
   label.accept input { margin-top:2px; accent-color:var(--sand); }
   #payment-element { margin-bottom:22px; }
   button { width:100%; padding:15px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:12px; letter-spacing:.22em; text-transform:uppercase; text-indent:.22em; cursor:pointer; transition:opacity .15s; }
-  button:hover { opacity:.9; }
-  button:disabled { opacity:.4; cursor:not-allowed; }
-  .msg { margin-top:14px; font-size:13px; line-height:1.6; }
-  .msg.err { color:var(--err); }
-  .msg.ok { color:var(--ok); }
+  .msg { margin-top:14px; }
   .center { text-align:center; padding:28px 0; font-size:14px; line-height:1.7; }
   .footer { text-align:center; color:var(--sand-dim); font-size:10.5px; letter-spacing:.06em; margin-top:26px; line-height:1.8; }
 </style>
@@ -80,6 +72,7 @@ async function api(action, extra = {}) {
   return data;
 }
 
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(c / 100);
 const fmtDate = d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
@@ -89,7 +82,7 @@ async function init() {
   if (!token) return show('<div class="center">This link is missing its reference. Please use the link you were sent.</div>');
   let r, terms;
   try { const resp = await api('get'); r = resp.request; terms = resp.terms; }
-  catch (e) { return show('<div class="center">' + e.message + '</div>'); }
+  catch (e) { return show('<div class="center">' + esc(e.message) + '</div>'); }
 
   document.getElementById('venueLine').textContent = r.venue_name;
 
@@ -98,7 +91,7 @@ async function init() {
   if (siFromRedirect && r.status === 'sent') {
     show('<div class="center">Confirming your card&hellip;</div>');
     try { await api('complete', { setup_intent_id: siFromRedirect }); return success(r); }
-    catch (e) { return show('<div class="center msg err">' + e.message + '</div>'); }
+    catch (e) { return show('<div class="center msg err">' + esc(e.message) + '</div>'); }
   }
 
   if (r.status !== 'sent') {
@@ -107,13 +100,13 @@ async function init() {
   }
 
   show(`
-    <h2>Hi ${r.guest_first_name}, please confirm your card details</h2>
-    <div class="row"><span>Venue</span><span>${r.venue_name}</span></div>
-    ${r.purpose ? '<div class="row"><span>For</span><span>' + r.purpose + '</span></div>' : ''}
-    <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + r.booking_time : ''}</span></div>
+    <h2>Hi ${esc(r.guest_first_name)}, please confirm your card details</h2>
+    <div class="row"><span>Venue</span><span>${esc(r.venue_name)}</span></div>
+    ${r.purpose ? '<div class="row"><span>For</span><span>' + esc(r.purpose) + '</span></div>' : ''}
+    <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + esc(r.booking_time) : ''}</span></div>
     <div class="row"><span>Maximum</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
-    <p class="terms" id="termsText">${terms ? terms.text :
-      `By providing your card details you authorise ${r.venue_name} (Liquid &amp; Larder) to place a temporary hold
+    <p class="terms" id="termsText">${terms ? esc(terms.text) :
+      `By providing your card details you authorise ${esc(r.venue_name)} (Liquid &amp; Larder) to place a temporary hold
       on your card of up to ${fmt(r.max_amount_cents)} prior to the date of use, and to charge the final account total
       (up to that maximum) after the date of use. Any unused portion of the hold is released automatically. The amount
       charged will never exceed the authorised maximum. Your card details are held
@@ -126,7 +119,7 @@ async function init() {
   `);
 
   const pk = VENUE_PUBLISHABLE_KEYS[r.venue_name];
-  if (!pk || pk.includes('REPLACE')) return show('<div class="center">Card authorisation is not yet configured for ' + r.venue_name + '. Please contact the venue.</div>');
+  if (!pk || pk.includes('REPLACE')) return show('<div class="center">Card authorisation is not yet configured for ' + esc(r.venue_name) + '. Please contact the venue.</div>');
   const stripe = Stripe(pk);
   const { client_secret } = await api('setup');
   const elements = stripe.elements({
@@ -171,8 +164,8 @@ async function init() {
 
 function success(r, already = false) {
   show(`<div class="center">
-    <h2 style="margin-bottom:12px">${already ? 'Already confirmed' : 'Thank you' + (r.guest_first_name ? ', ' + r.guest_first_name : '')}</h2>
-    <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} with ${r.venue_name}.<br><br>
+    <h2 style="margin-bottom:12px">${already ? 'Already confirmed' : 'Thank you' + (r.guest_first_name ? ', ' + esc(r.guest_first_name) : '')}</h2>
+    <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} with ${esc(r.venue_name)}.<br><br>
     A hold of up to ${fmt(r.max_amount_cents)} will be placed on ${fmtDate(r.booking_date)}, and only the final account total will be charged.</p>
   </div>`);
 }
