@@ -10,35 +10,40 @@
 <script src="https://js.stripe.com/v3/"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=1">
+<link rel="stylesheet" href="/styles/core.css?v=3">
 <style>
-  body { min-height:100vh; display:flex; justify-content:center; padding:40px 18px; }
-  .wrap { width:100%; max-width:470px; }
-  .brand { text-align:center; margin-bottom:34px; }
-  .brand h1.logo { height:24px; background:var(--sand); -webkit-mask:url(/assets/wordmark.svg) no-repeat center / contain; mask:url(/assets/wordmark.svg) no-repeat center / contain; }
-  .brand .rule { width:44px; height:1px; background:var(--sand-dim); margin:14px auto; }
-  .brand p { color:var(--sand-dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; text-indent:.28em; }
-  .card { padding:32px 28px; }
-  h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:22px; line-height:1.35; margin-bottom:20px; }
-  .row { display:flex; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--line); font-size:13px; }
-  .row span:first-child { color:var(--sand-dim); text-transform:uppercase; letter-spacing:.12em; font-size:11px; padding-top:3px; }
-  .row span:last-child { text-align:right; }
-  .amount { font-family:'Gilda Display',serif; font-size:24px; }
-  .terms { font-size:12px; color:var(--sand-dim); line-height:1.7; margin:22px 0 16px; }
-  label.accept { display:flex; gap:10px; font-size:12.5px; line-height:1.55; align-items:flex-start; cursor:pointer; margin-bottom:20px; }
-  label.accept input { margin-top:2px; accent-color:var(--sand); }
-  #payment-element { margin-bottom:22px; }
-  button { width:100%; padding:15px; background:var(--sand); color:var(--green-deep); border:none; border-radius:999px; font-family:'Montserrat',sans-serif; font-weight:600; font-size:12px; letter-spacing:.22em; text-transform:uppercase; text-indent:.22em; cursor:pointer; transition:opacity .15s; }
+  body { min-height:100vh; display:flex; justify-content:center; padding:48px 18px; }
+  .wrap { width:100%; max-width:480px; animation:rise .5s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  .brand { text-align:center; margin-bottom:30px; }
+  .brand h1.logo { height:24px; background:var(--green); -webkit-mask:url(/assets/wordmark.svg) no-repeat center / contain; mask:url(/assets/wordmark.svg) no-repeat center / contain; }
+  .brand p { color:var(--dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; text-indent:.28em; margin-top:12px; }
+  .card { border-radius:20px; padding:34px 30px; }
+  .secure { display:inline-flex; align-items:center; gap:7px; background:var(--sand-soft); color:var(--green); border-radius:999px; padding:6px 14px; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; margin-bottom:20px; }
+  .secure svg { width:11px; height:11px; }
+  h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:23px; line-height:1.35; margin-bottom:22px; color:var(--green); }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--hairline); font-size:13.5px; }
+  .row:last-of-type { border-bottom:none; }
+  .row span:first-child { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; padding-top:4px; white-space:nowrap; }
+  .row span:last-child { text-align:right; font-weight:500; }
+  .amountBox { background:linear-gradient(135deg, var(--sand-soft), #faf6ec); border-radius:14px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px; }
+  .amountBox .lbl { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; }
+  .amount { font-family:'Gilda Display',serif; font-size:28px; color:var(--green); }
+  .terms { font-size:12px; color:var(--dim); line-height:1.75; margin:20px 0 16px; }
+  label.accept { display:flex; gap:10px; font-size:12.5px; line-height:1.55; align-items:flex-start; cursor:pointer; margin-bottom:22px; }
+  label.accept input { margin-top:2px; accent-color:var(--green); width:15px; height:15px; }
+  #payment-element { margin-bottom:2px; }
+  button { width:100%; margin-top:24px; padding:16px; font-size:12px; letter-spacing:.2em; text-indent:.2em; }
   .msg { margin-top:14px; }
   .center { text-align:center; padding:28px 0; font-size:14px; line-height:1.7; }
-  .footer { text-align:center; color:var(--sand-dim); font-size:10.5px; letter-spacing:.06em; margin-top:26px; line-height:1.8; }
+  .footer { text-align:center; color:var(--dim); font-size:10.5px; letter-spacing:.05em; margin-top:24px; line-height:1.8; }
+  @media (max-width:420px) { .card { padding:26px 20px; } body { padding:32px 14px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="brand">
     <h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
-    <div class="rule"></div>
     <p id="venueLine">Card Pre-Authorisation</p>
   </div>
   <div class="card" id="app">
@@ -102,11 +107,12 @@ async function init() {
   }
 
   show(`
+    <span class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure card authorisation</span>
     <h2>Hi ${esc(r.guest_first_name)}, please confirm your card details</h2>
     <div class="row"><span>Venue</span><span>${esc(r.venue_name)}</span></div>
     ${r.purpose ? '<div class="row"><span>For</span><span>' + esc(r.purpose) + '</span></div>' : ''}
     <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + esc(r.booking_time) : ''}</span></div>
-    <div class="row"><span>Maximum</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
+    <div class="amountBox"><span class="lbl">Maximum hold</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
     <p class="terms" id="termsText">${terms ? esc(terms.text) :
       `By providing your card details you authorise ${esc(r.venue_name)} (Liquid &amp; Larder) to place a temporary hold
       on your card of up to ${fmt(r.max_amount_cents)} prior to the date of use, and to charge the final account total
@@ -129,11 +135,11 @@ async function init() {
     appearance: {
       theme: 'flat',
       variables: {
-        colorPrimary: '#dcd1c0', colorBackground: '#1d3e3b', colorText: '#dcd1c0',
-        colorTextSecondary: 'rgba(220,209,192,.62)', colorTextPlaceholder: 'rgba(220,209,192,.4)',
-        colorDanger: '#d9856a', fontFamily: 'Montserrat, sans-serif', borderRadius: '0px',
+        colorPrimary: '#1d3e3b', colorBackground: '#fbfaf7', colorText: '#242c2a',
+        colorTextSecondary: '#646c68', colorTextPlaceholder: '#a9aeab',
+        colorDanger: '#a44e33', fontFamily: 'Montserrat, sans-serif', borderRadius: '10px',
       },
-      rules: { '.Input': { border: '1px solid rgba(220,209,192,.25)' } },
+      rules: { '.Input': { border: '1px solid #e6dfd2' } },
     },
     fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap' }],
   });
