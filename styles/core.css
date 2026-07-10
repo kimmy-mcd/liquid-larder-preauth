@@ -1,14 +1,30 @@
 /* Liquid & Larder — core styles shared by every page (guest + staff). */
-/* Dark palette only here; the light theme lives in staff.css. */
+/* v3: warm paper base, brand green + sand as accents. */
 :root {
-  --green:#1d3e3b; --green-deep:#16302e; --sand:#dcd1c0; --sand-dim:rgba(220,209,192,.62);
-  --line:rgba(220,209,192,.18); --err:#d9856a; --ok:#a8c3a0; --info:#9db8c9;
+  --bg:#faf8f4; --card:#ffffff; --ink:#242c2a; --dim:#646c68;
+  --green:#1d3e3b; --green-hi:#28524d; --sand:#dcd1c0; --sand-soft:#f2ecdf;
+  --err:#a44e33; --ok:#42704a; --info:#3e6a8a;
+  --hairline:rgba(29,62,59,.08);
+  --shadow-card:0 1px 2px rgba(29,62,59,.04), 0 12px 40px -8px rgba(29,62,59,.10);
+  --shadow-btn:0 2px 6px rgba(29,62,59,.30), inset 0 1px 0 rgba(255,255,255,.12);
+  --ring:0 0 0 3px rgba(29,62,59,.14);
+  --r-card:16px; --r-input:10px;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--green); color:var(--sand); font-family:'Montserrat',sans-serif; }
-.card { background:var(--green-deep); border:1px solid var(--line); }
-button:hover { opacity:.9; }
-button:disabled { opacity:.4; cursor:not-allowed; }
+body { background:var(--bg); color:var(--ink); font-family:'Montserrat',sans-serif;
+       -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
+/* ambient brand-tinted glows */
+body::before, body::after { content:''; position:fixed; border-radius:50%; filter:blur(90px); z-index:-1; pointer-events:none; }
+body::before { width:620px; height:620px; top:-260px; right:-160px; background:rgba(220,209,192,.5); }
+body::after { width:520px; height:520px; bottom:-240px; left:-180px; background:rgba(29,62,59,.09); }
+.card { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); }
+button { border:none; border-radius:999px; cursor:pointer;
+  background:linear-gradient(180deg, var(--green-hi), var(--green)); color:#faf8f4;
+  font-family:'Montserrat',sans-serif; font-weight:600; letter-spacing:.18em;
+  text-transform:uppercase; box-shadow:var(--shadow-btn);
+  transition:transform .15s, filter .15s, opacity .15s; }
+button:hover { transform:translateY(-1px); filter:brightness(1.06); }
+button:disabled { opacity:.4; cursor:not-allowed; transform:none; filter:none; }
 .msg { font-size:13px; line-height:1.6; }
 .msg.err { color:var(--err); }
 .msg.ok { color:var(--ok); }
