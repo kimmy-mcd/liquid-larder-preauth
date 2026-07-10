@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pre-Authorisation Finance — Liquid &amp; Larder Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=1">
+<link rel="stylesheet" href="/styles/staff.css?v=2">
+<style>
+  .wrap { max-width:1200px; }
+  .sub { margin-bottom:28px; }
+  .sub a { color:var(--sand-dim); }
+  .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; align-items:end; }
+  td { padding:10px 8px; font-size:13px; }
+  th { font-size:11px; }
+  .num { text-align:right; white-space:nowrap; }
+  .chip { display:inline-block; padding:3px 10px; border:1px solid; border-radius:999px; font-size:9px; letter-spacing:.12em; text-transform:uppercase; }
+  .chip.sent { color:var(--sand-dim); border-color:var(--sand-dim); }
+  .chip.card_saved { color:var(--ok); border-color:var(--ok); }
+  .chip.hold_placed { color:var(--info); border-color:var(--info); }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { color:var(--err); border-color:var(--err); }
+  .chip.charged { color:var(--ok); border-color:var(--ok); }
+  .chip.released { color:var(--sand-dim); border-color:var(--line); }
+  .chip.refunded { color:var(--info); border-color:var(--info); }
+  select.inline, input.inline { width:100%; padding:8px 9px; font-size:12px; }
+  .totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+  .totals .box { border:1px solid var(--line); border-radius:8px; padding:14px 16px; }
+  .totals .box .v { font-size:20px; font-family:'Gilda Display',serif; margin-top:4px; }
+  .totals .box .d { font-size:11px; color:var(--sand-dim); margin-top:6px; }
+  @media (max-width:700px) { .desktop-only { display:none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../">&larr; Pre-authorisations</a> &nbsp;·&nbsp; Finance &amp; Reconciliation</div></div>
+  </div>
+
+  <div id="appArea">
+    <div class="card">
+      <div class="cardTitle">Filters</div>
+      <div class="filters">
+        <div><label>Venue</label><select id="fVenue" class="inline">
+          <option value="">All venues</option>
+          <option>Alfie's</option><option>Bistecca</option>
+          <option>The Gidley</option><option>Liquid &amp; Larder</option>
+        </select></div>
+        <div><label>Status</label><select id="fStatus" class="inline">
+          <option value="">All statuses</option>
+          <option value="hold_placed">Hold placed</option><option value="charged">Charged</option>
+          <option value="released">Released</option><option value="refunded">Refunded</option>
+          <option value="hold_failed">Hold failed</option><option value="card_saved">Card saved</option>
+          <option value="sent">Sent</option><option value="cancelled">Cancelled</option>
+          <option value="expired">Expired</option>
+        </select></div>
+        <div><label>Date of use from</label><input id="fFrom" type="date" class="inline"></div>
+        <div><label>Date of use to</label><input id="fTo" type="date" class="inline"></div>
+        <div><label>Search guest / purpose</label><input id="fQ" class="inline" placeholder="e.g. Smith"></div>
+        <div style="display:flex; gap:8px">
+          <button id="apply">Apply</button>
+          <button class="ghost" id="exportCsv">Export CSV</button>
+        </div>
+      </div>
+      <div class="msg" id="listMsg"></div>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">Totals by venue (filtered)</div>
+      <div class="totals" id="totals"></div>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">Transactions</div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr>
+          <th>Date of use</th><th>Venue</th><th>Guest</th><th class="desktop-only">Purpose</th>
+          <th class="num">Max</th><th class="num">Charged</th><th class="num">Refunded</th><th class="num">Net</th>
+          <th>Status</th><th class="desktop-only">By</th><th class="desktop-only">When (Sydney)</th><th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format((c || 0) / 100);
+// All event times are stored in UTC and displayed in Sydney time (AEST/AEDT)
+const fmtTs = ts => ts ? new Date(ts).toLocaleString('en-AU', {
+  timeZone:'Australia/Sydney', day:'2-digit', month:'2-digit', year:'2-digit', hour:'numeric', minute:'2-digit', hour12:true,
+}) : '';
+const fmtD = d => d ? new Date(d + 'T00:00:00').toLocaleDateString('en-AU') : '';
+
+document.documentElement.dataset.theme = localStorage.getItem('ll_theme') || 'dark';
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return;
+  const { data } = await sb.from('portal_prefs').select('theme').eq('user_id', session.user.id).maybeSingle();
+  if (data?.theme) { document.documentElement.dataset.theme = data.theme; localStorage.setItem('ll_theme', data.theme); }
+})();
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; return; }
+  loadList();
+})();
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+let current = [];   // last filtered result, used by the CSV export
+
+// The money movement on a row: who acted and when
+const byWhen = r =>
+  r.status === 'charged' || r.status === 'refunded' ? [r.captured_by, r.captured_at]
+  : r.status === 'released' ? [r.released_by, r.released_at]
+  : [null, null];
+const netCents = r => (['charged','refunded'].includes(r.status) ? (r.final_amount_cents || 0) - (r.refunded_cents || 0) : 0);
+
+async function loadList() {
+  const m = $('listMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    const payload = { action: 'list', limit: 1000 };
+    if ($('fStatus').value) payload.status = $('fStatus').value;
+    if ($('fVenue').value) payload.venue_name = $('fVenue').value;
+    if ($('fFrom').value) payload.date_from = $('fFrom').value;
+    if ($('fTo').value) payload.date_to = $('fTo').value;
+    if ($('fQ').value.trim()) payload.q = $('fQ').value.trim();
+    const { requests } = await api(payload);
+    current = requests.slice().sort((a, b) =>
+      a.venue_name.localeCompare(b.venue_name) || String(a.booking_date).localeCompare(String(b.booking_date)));
+
+    // Totals per venue
+    const byVenue = {};
+    for (const r of current) {
+      const v = byVenue[r.venue_name] ??= { charged: 0, refunded: 0, count: 0, held: 0 };
+      if (['charged','refunded'].includes(r.status)) { v.charged += r.final_amount_cents || 0; v.refunded += r.refunded_cents || 0; v.count++; }
+      if (r.status === 'hold_placed') v.held += r.max_amount_cents || 0;
+    }
+    $('totals').innerHTML = Object.entries(byVenue).map(([venue, t]) => `
+      <div class="box">
+        <div class="dim" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase">${esc(venue)}</div>
+        <div class="v">${fmt(t.charged - t.refunded)}</div>
+        <div class="d">${t.count} charge${t.count === 1 ? '' : 's'} · ${fmt(t.charged)} charged − ${fmt(t.refunded)} refunded${t.held ? ' · ' + fmt(t.held) + ' on hold' : ''}</div>
+      </div>`).join('') || '<span class="dim">No transactions for these filters.</span>';
+
+    $('rows').innerHTML = current.map(r => {
+      const [by, when] = byWhen(r);
+      return `
+      <tr>
+        <td>${fmtD(r.booking_date)}</td>
+        <td>${esc(r.venue_name)}</td>
+        <td>${esc(r.guest_name)}${r.guest_email ? '<br><span class="dim">' + esc(r.guest_email) + '</span>' : ''}</td>
+        <td class="desktop-only dim">${esc(r.notes || '')}</td>
+        <td class="num">${fmt(r.max_amount_cents)}</td>
+        <td class="num">${['charged','refunded'].includes(r.status) ? fmt(r.final_amount_cents) : '—'}</td>
+        <td class="num">${r.refunded_cents ? fmt(r.refunded_cents) : '—'}</td>
+        <td class="num">${['charged','refunded'].includes(r.status) ? fmt(netCents(r)) : '—'}</td>
+        <td><span class="chip ${esc(r.status)}">${esc(r.status.replace('_',' '))}</span></td>
+        <td class="desktop-only dim">${esc(by || '')}</td>
+        <td class="desktop-only dim">${fmtTs(when)}</td>
+        <td>${r.receipt_url ? '<a href="' + esc(r.receipt_url) + '" target="_blank" rel="noopener">receipt</a>' : ''}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="12" class="dim">Nothing matches these filters.</td></tr>';
+  } catch (e) {
+    if (/role does not include/i.test(e.message)) {
+      $('appArea').innerHTML = `
+        <div class="card" style="text-align:center;padding:48px 24px">
+          <div class="cardTitle" style="margin-bottom:10px">No access</div>
+          <p class="dim" style="margin:0 0 18px">Your portal role doesn&#39;t include credit card pre-authorisations.</p>
+          <a href="../../"><button class="ghost">&larr; Back to portal</button></a>
+        </div>`;
+      return;
+    }
+    m.textContent = e.message; m.className = 'msg err';
+  }
+}
+
+// CSV export — grouped by venue (rows already sorted venue, then date of use)
+$('exportCsv').onclick = () => {
+  const q = s => '"' + String(s ?? '').replaceAll('"', '""') + '"';
+  const aud = c => c === null || c === undefined ? '' : (c / 100).toFixed(2);
+  const head = ['Venue','Date of use','Guest','Guest email','Purpose','Status','Max AUD','Charged AUD','Refunded AUD','Net AUD','Actioned by','Actioned at (Sydney)','Receipt URL','Created (Sydney)'];
+  const lines = [head.map(q).join(',')];
+  for (const r of current) {
+    const [by, when] = byWhen(r);
+    lines.push([
+      r.venue_name, r.booking_date, r.guest_name, r.guest_email || '', r.notes || '',
+      r.status.replace('_',' '),
+      aud(r.max_amount_cents),
+      ['charged','refunded'].includes(r.status) ? aud(r.final_amount_cents) : '',
+      r.refunded_cents ? aud(r.refunded_cents) : '',
+      ['charged','refunded'].includes(r.status) ? aud(netCents(r)) : '',
+      by || '', fmtTs(when), r.receipt_url || '', fmtTs(r.created_at),
+    ].map(q).join(','));
+  }
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date()).replaceAll('-', '');
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'preauth-finance-' + today + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$('apply').onclick = loadList;
+['fVenue','fStatus','fFrom','fTo'].forEach(id => $(id).onchange = loadList);
+$('fQ').onkeydown = e => { if (e.key === 'Enter') loadList(); };
+</script>
+</body>
+</html>
