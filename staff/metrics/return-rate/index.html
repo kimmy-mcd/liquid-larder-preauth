@@ -1,1 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Return Rate — Company Metrics · Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { --page-w:1144px; --s12:#1d3e3b; --s6:#42704a; --s3:#3e6a8a; --s1:#b08968; --sNew:#a44e33; --sTot:#9a8f7a; }
+  .hidden { display:none; }
+  .who { display:flex; align-items:center; gap:12px; }
+  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
+    padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+  .who .back:hover { background:#eae2cf; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
+    color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .who .meta { text-align:right; line-height:1.35; }
+  .who .meta .n { font-size:12.5px; font-weight:600; }
+  .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
+  @media (max-width:700px) { .who .meta { display:none; } }
+
+  .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; }
+
+  .venueSeg { display:inline-flex; background:var(--card); border:1px solid var(--hairline); box-shadow:var(--shadow-card);
+    border-radius:999px; padding:5px; gap:3px; }
+  .venueSeg button { border:none; background:transparent; color:var(--dim); font-family:'Gilda Display',serif;
+    font-size:14px; padding:9px 20px; border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; letter-spacing:.01em;
+    text-transform:none; font-weight:400; }
+  .venueSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:26px; }
+  .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
+  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgba(220,209,192,0)); }
+  .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
+  .kpi .val .u { font-size:18px; color:var(--dim); font-family:'Montserrat',sans-serif; }
+  .kpi .delta { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
+  .kpi .delta.up { background:rgba(66,112,74,.12); color:var(--ok); }
+  .kpi .delta.down { background:rgba(164,78,51,.12); color:var(--err); }
+  .kpi .delta.flat { background:var(--sand-soft); color:var(--dim); }
+  .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:8px; }
+
+  .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px; }
+  .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:18px; }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+
+  .seg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; }
+  .seg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif;
+    font-weight:600; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:8px 15px;
+    border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
+  .seg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+
+  .chips { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:16px; }
+  .chip { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:500; color:var(--ink);
+    background:#fbfaf7; border:1px solid #e6dfd2; padding:7px 13px; border-radius:999px; cursor:pointer; transition:all .15s; user-select:none; }
+  .chip .dot { width:11px; height:11px; border-radius:50%; flex:none; }
+  .chip.off { color:var(--dim); opacity:.5; }
+  .chip.off .dot { background:#cfc8bb !important; }
+  .chip:hover { border-color:var(--green); }
+
+  .tfbar { display:none; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:18px; }
+  .tfbar .lead { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-right:2px; }
+  .tfbar select { width:auto; padding:9px 13px; border-radius:999px; font-size:12.5px; }
+
+  .chart-wrap { position:relative; width:100%; height:420px; }
+  .loading, .error { display:flex; align-items:center; justify-content:center; height:420px; font-size:13.5px; color:var(--dim); }
+  .error { color:var(--err); }
+
+  .splitStats { display:none; flex-wrap:wrap; gap:14px; margin-top:20px; }
+  .splitStats .s { flex:1; min-width:150px; background:#fbfaf7; border:1px solid var(--hairline); border-radius:12px; padding:16px 18px; }
+  .splitStats .s .n { font-family:'Gilda Display',serif; font-size:26px; color:var(--green); line-height:1; }
+  .splitStats .s .n.newc { color:var(--err); }
+  .splitStats .s .l { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin-top:8px; font-weight:600; }
+  .splitStats .s .p { font-size:12px; color:var(--dim); margin-top:3px; }
+
+  .footnote { font-size:11px; color:var(--dim); margin-top:16px; line-height:1.6; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Company metrics</div></div>
+    <div class="who">
+      <a class="back" href="/staff/">&larr; Hub</a>
+      <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <div class="avatar hidden" id="avatar"></div>
+      <button class="ghost hidden" id="logout">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="wrap" style="display:none;">
+  <div class="pageHead">
+    <div>
+      <h2>Guest return rate</h2>
+      <p>Completed reservations only &middot; guests matched by mobile number &middot; live from Supabase</p>
+    </div>
+    <div class="venueSeg" id="venueSeg"></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <div class="panelHead">
+      <div class="t" id="viewTitle">Return rate over time</div>
+      <div class="seg" id="seg">
+        <button data-view="rates" class="on">Return rates</button>
+        <button data-view="split">New vs returning</button>
+        <button data-view="volume">Volume</button>
+      </div>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <div class="tfbar" id="tfBar"></div>
+
+    <div id="loading" class="loading">Loading…</div>
+    <div id="error" class="error" style="display:none;"></div>
+    <div class="chart-wrap" id="chartWrap" style="display:none;"><canvas id="chart"></canvas></div>
+    <div class="splitStats" id="splitStats"></div>
+
+    <p class="footnote" id="footnote"></p>
+  </div>
+</div>
+
+<script>
+// ── auth (accounts project) ───────────────────────────────────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const authSb = supabase.createClient(AUTH_URL, AUTH_ANON);
+
+// ── data (reporting project) ──────────────────────────────────────────────
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtLabel = ym => { const [y,m] = ym.split('-'); return MONTHS[+m-1] + ' ' + y; };
+const pad = m => String(m).padStart(2,'0');
+const LOW_VOL = 100;
+
+const VENUES = [
+  { slug:'gidley',   name:'The Gidley', fn:'get_gidley_return_rate',   covid:true,  mig:true  },
+  { slug:'bistecca', name:'Bistecca',   fn:'get_bistecca_return_rate', covid:true,  mig:true  },
+  { slug:'alfies',   name:"Alfie's",    fn:'get_alfies_return_rate',   covid:false, mig:false },
+];
+const SERIES = [
+  { key:'pct_12m',        label:'12m return %',       color:cssv('--s12'),  axis:'yPct',   kind:'pct' },
+  { key:'pct_6m',         label:'6m return %',        color:cssv('--s6'),   axis:'yPct',   kind:'pct' },
+  { key:'pct_3m',         label:'3m return %',        color:cssv('--s3'),   axis:'yPct',   kind:'pct' },
+  { key:'pct_1m',         label:'1m return %',        color:cssv('--s1'),   axis:'yPct',   kind:'pct', dash:[4,3] },
+  { key:'new_guests',     label:'New guests',         color:cssv('--sNew'), axis:'yCount', kind:'count', dash:[5,4] },
+  { key:'total_completed',label:'Total reservations', color:cssv('--sTot'), axis:'yCount', kind:'count', dash:[6,3] },
+];
+
+let venue = VENUES[0], view = 'rates', chart = null;
+const cache = {};
+const vis = { pct_12m:true, pct_6m:true, pct_3m:true, pct_1m:false, new_guests:true, total_completed:true };
+let splitTf = 'fytd', splitYear = null, splitFy = null;
+
+// ── login gate ────────────────────────────────────────────────────────────
+async function gate() {
+  const { data:{ session } } = await authSb.auth.getSession();
+  if (!session) { location.replace('/staff/'); return false; }
+  const { data:{ user } } = await authSb.auth.getUser();
+  const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) { location.replace('/staff/'); return false; }
+  const name = profile.full_name || profile.email;
+  $('whoName').textContent = name;
+  $('whoRole').textContent = profile.role;
+  $('avatar').textContent = (name.match(/\b[a-zA-Z]/g) || [name[0] || '?']).slice(0,2).join('').toUpperCase();
+  ['whoMeta','avatar','logout'].forEach(id => $(id).classList.remove('hidden'));
+  $('wrap').style.display = 'block';
+  return true;
+}
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href = '/staff/'; };
+
+// ── venue switcher ────────────────────────────────────────────────────────
+function buildVenueSwitcher() {
+  const el = $('venueSeg');
+  el.innerHTML = VENUES.map(v => `<button data-slug="${v.slug}" class="${v.slug===venue.slug?'on':''}">${v.name}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (b.dataset.slug === venue.slug) return;
+    venue = VENUES.find(v => v.slug === b.dataset.slug);
+    el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.slug===venue.slug));
+    load();
+  });
+}
+
+async function load() {
+  $('error').style.display = 'none';
+  if (cache[venue.slug]) return draw(cache[venue.slug]);
+  $('chartWrap').style.display = 'none';
+  const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading ' + venue.name + '…';
+  try {
+    const { data, error } = await dataClient.rpc(venue.fn);
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) throw new Error('No data returned');
+    const rows = data.slice().sort((a,b) => a.month.localeCompare(b.month));
+    cache[venue.slug] = rows;
+    draw(rows);
+  } catch (err) {
+    $('loading').style.display = 'none';
+    const e = $('error'); e.style.display = 'flex'; e.textContent = 'Could not load data: ' + err.message;
+  }
+}
+
+function draw(rows) {
+  $('loading').style.display = 'none';
+  $('chartWrap').style.display = 'block';
+  renderKpis(rows);
+  render(rows);
+}
+
+function renderKpis(rows) {
+  const now = new Date();
+  const cur = now.getFullYear() + '-' + pad(now.getMonth()+1);
+  const complete = rows.filter(r => r.month < cur && +r.total_matched >= 50);
+  const box = $('kpis');
+  if (!complete.length) { box.innerHTML = ''; return; }
+  const latest = complete[complete.length-1];
+  const prior  = complete.slice(Math.max(0, complete.length-13), complete.length-1);
+  const avg = a => a.length ? a.reduce((s,x)=>s+x,0)/a.length : null;
+  const pct12 = +latest.pct_12m, prior12 = avg(prior.map(r=>+r.pct_12m));
+  const d12 = prior12!==null ? pct12-prior12 : null;
+  const newPct = +latest.total_matched>0 ? +latest.new_guests/+latest.total_matched*100 : null;
+  const priorNew = avg(prior.map(r=> +r.total_matched>0 ? +r.new_guests/+r.total_matched*100 : 0));
+  const dNew = (newPct!==null && priorNew!==null) ? newPct-priorNew : null;
+  const label = fmtLabel(latest.month).toUpperCase();
+  const range = prior.length ? fmtLabel(prior[0].month)+' – '+fmtLabel(prior[prior.length-1].month) : '';
+  const tag = (d, invert) => {
+    if (d===null) return '';
+    const cls = Math.abs(d)<0.5 ? 'flat' : (d>0 ? (invert?'down':'up') : (invert?'up':'down'));
+    return `<span class="delta ${cls}">${d>0?'+':''}${d.toFixed(1)}pp vs prior yr</span>`;
+  };
+  box.innerHTML = `
+    <div class="kpi"><div class="lab">12m return · ${label}</div>
+      <div class="val">${pct12.toFixed(1)}<span class="u">%</span></div>${tag(d12,false)}</div>
+    <div class="kpi"><div class="lab">12m return · prior year avg</div>
+      <div class="val">${prior12!==null?prior12.toFixed(1):'–'}<span class="u">%</span></div><div class="subnote">${range}</div></div>
+    <div class="kpi"><div class="lab">New guests · ${label}</div>
+      <div class="val">${newPct!==null?newPct.toFixed(1):'–'}<span class="u">%</span></div>${tag(dNew,true)}</div>
+    <div class="kpi"><div class="lab">Covers · ${label}</div>
+      <div class="val">${(+latest.total_completed).toLocaleString()}</div><div class="subnote">completed reservations</div></div>`;
+}
+
+function buildChips(rows) {
+  const wrap = $('chips');
+  if (view !== 'rates') { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'flex';
+  wrap.innerHTML = SERIES.map(s => `<span class="chip ${vis[s.key]?'':'off'}" data-k="${s.key}"><span class="dot" style="background:${s.color}"></span>${s.label}</span>`).join('');
+  wrap.querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    vis[c.dataset.k] = !vis[c.dataset.k];
+    c.classList.toggle('off', !vis[c.dataset.k]);
+    render(rows);
+  });
+}
+
+function availYears(rows) { return [...new Set(rows.map(r => +r.month.slice(0,4)))].sort((a,b)=>b-a); }
+function availFys(rows) {
+  const set = new Set(rows.map(r => { const y=+r.month.slice(0,4), m=+r.month.slice(5,7); return m>=7 ? y+1 : y; }));
+  return [...set].sort((a,b)=>b-a);
+}
+function fyLabel(fyEnd) { return `FY${fyEnd-1}/${String(fyEnd).slice(2)}`; }
+
+function computeRange() {
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth()+1;
+  switch (splitTf) {
+    case 'month':   { const s=`${y}-${pad(m)}`; return { start:s, end:s, label:fmtLabel(s) }; }
+    case 'quarter': { const q=Math.floor((m-1)/3), sm=q*3+1; return { start:`${y}-${pad(sm)}`, end:`${y}-${pad(sm+2)}`, label:`Q${q+1} ${y}` }; }
+    case 'cytd':    return { start:`${y}-01`, end:`${y}-12`, label:`${y} to date` };
+    case 'fytd':    { const fe = m>=7 ? y+1 : y; return { start:`${fe-1}-07`, end:`${fe}-06`, label:`${fyLabel(fe)} to date` }; }
+    case 'year':    { const yy=splitYear; return { start:`${yy}-01`, end:`${yy}-12`, label:`${yy}` }; }
+    case 'fy':      { const fe=splitFy; return { start:`${fe-1}-07`, end:`${fe}-06`, label:fyLabel(fe) }; }
+    default:        return { start:'0000-00', end:'9999-99', label:'All time' };
+  }
+}
+
+function buildTfBar(rows) {
+  const bar = $('tfBar');
+  if (view !== 'split') { bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const years = availYears(rows), fys = availFys(rows);
+  if (splitYear === null || !years.includes(splitYear)) splitYear = years[0];
+  if (splitFy === null || !fys.includes(splitFy)) splitFy = fys[0];
+  const opt = (v,l,sel) => `<option value="${v}" ${sel?'selected':''}>${l}</option>`;
+  bar.innerHTML = `
+    <span class="lead">Period</span>
+    <select id="tfSelect">
+      ${opt('month','This month',splitTf==='month')}
+      ${opt('quarter','This quarter',splitTf==='quarter')}
+      ${opt('cytd','Calendar year to date',splitTf==='cytd')}
+      ${opt('fytd','Financial year to date',splitTf==='fytd')}
+      ${opt('year','Choose year…',splitTf==='year')}
+      ${opt('fy','Choose financial year…',splitTf==='fy')}
+      ${opt('all','All time',splitTf==='all')}
+    </select>
+    <select id="tfYear" style="display:${splitTf==='year'?'inline-block':'none'}">${years.map(y=>opt(y,y,y===splitYear)).join('')}</select>
+    <select id="tfFy" style="display:${splitTf==='fy'?'inline-block':'none'}">${fys.map(f=>opt(f,fyLabel(f),f===splitFy)).join('')}</select>`;
+  $('tfSelect').onchange = e => { splitTf = e.target.value; render(rows); };
+  const yEl = $('tfYear'); if (yEl) yEl.onchange = e => { splitYear = +e.target.value; render(rows); };
+  const fEl = $('tfFy');   if (fEl) fEl.onchange = e => { splitFy = +e.target.value; render(rows); };
+}
+
+function shadePlugin(rows) { return { id:'shade', beforeDraw(c) {
+  if (!venue.covid) return;
+  const { ctx, chartArea, scales } = c; if (!chartArea || !scales.x) return;
+  const keys = rows.map(r=>r.month);
+  [['2020-04','2020-06'],['2021-07','2021-10']].forEach(([f,t]) => {
+    const fi = keys.indexOf(f), ti = keys.indexOf(t); if (fi<0||ti<0) return;
+    ctx.save(); ctx.fillStyle='rgba(29,62,59,0.06)';
+    ctx.fillRect(scales.x.getPixelForValue(fi), chartArea.top,
+      scales.x.getPixelForValue(ti)-scales.x.getPixelForValue(fi), chartArea.bottom-chartArea.top);
+    ctx.restore();
+  });
+} }; }
+function migPlugin(rows) { return { id:'mig', afterDraw(c) {
+  if (!venue.mig) return;
+  const { ctx, chartArea, scales } = c; if (!chartArea || !scales.x) return;
+  const idx = rows.map(r=>r.month).indexOf('2023-08'); if (idx<0) return;
+  const x = scales.x.getPixelForValue(idx);
+  ctx.save(); ctx.strokeStyle='rgba(100,108,104,0.5)'; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x,chartArea.top); ctx.lineTo(x,chartArea.bottom); ctx.stroke(); ctx.setLineDash([]);
+  ctx.font='10px Montserrat, sans-serif'; ctx.fillStyle='rgba(100,108,104,0.85)'; ctx.textAlign='left';
+  ctx.fillText('SevenRooms migration', x+5, chartArea.top+13); ctx.restore();
+} }; }
+
+function niceMax(v, step) { return Math.max(step, Math.ceil(v*1.15/step)*step); }
+
+function render(rows) {
+  buildChips(rows);
+  buildTfBar(rows);
+  $('splitStats').style.display = view==='split' ? 'flex' : 'none';
+  if (chart) { chart.destroy(); chart = null; }
+  const labels = rows.map(r => fmtLabel(r.month));
+  const ctx = $('chart');
+  if (view === 'rates')  { $('viewTitle').textContent = 'Return rate over time'; return renderRates(ctx, labels, rows); }
+  if (view === 'split')  return renderSplit(ctx, rows);
+  $('viewTitle').textContent = 'Monthly volume'; return renderVolume(ctx, labels, rows);
+}
+
+function renderRates(ctx, labels, rows) {
+  const val = (r,s) => s.kind==='pct'
+    ? (+r.total_matched < LOW_VOL ? null : +r[s.key])
+    : (+r.total_completed < LOW_VOL ? null : +r[s.key]);
+  const datasets = SERIES.filter(s => vis[s.key]).map(s => ({
+    label:s.label, data:rows.map(r=>val(r,s)), borderColor:s.color,
+    backgroundColor: s.axis==='yCount' ? s.color+'12' : 'transparent',
+    borderWidth: s.key==='pct_12m'?2.4:(s.axis==='yCount'?1.6:2),
+    borderDash:s.dash||[], pointRadius:0, pointHoverRadius:4, tension:.3,
+    fill: s.axis==='yCount', spanGaps:false, yAxisID:s.axis,
+  }));
+  const maxPct = Math.max(...rows.filter(r=>+r.total_matched>=LOW_VOL).map(r=>+r.pct_12m), 5);
+  const maxCount = Math.max(...rows.filter(r=>+r.total_completed>=LOW_VOL).map(r=>Math.max(+r.total_completed,+r.new_guests)), 100);
+  const countOn = vis.new_guests || vis.total_completed;
+  chart = new Chart(ctx, {
+    type:'line', plugins:[shadePlugin(rows), migPlugin(rows)],
+    data:{ labels, datasets },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:tooltipCfg() },
+      scales:{
+        x:{ ticks:{maxTicksLimit:14,maxRotation:45,font:{size:11},color:'#646c68'}, grid:{display:false} },
+        yPct:{ type:'linear', position:'left', min:0, max:niceMax(maxPct,5),
+          ticks:{callback:v=>v+'%',font:{size:11},color:'#646c68',stepSize:5}, grid:{color:'rgba(29,62,59,0.06)'} },
+        yCount:{ type:'linear', position:'right', min:0, max:niceMax(maxCount,500), display:countOn,
+          ticks:{font:{size:11},color:'#9a8f7a'}, grid:{display:false} },
+      } }
+  });
+}
+
+function renderSplit(ctx, rows) {
+  const r = computeRange();
+  $('viewTitle').textContent = 'New vs returning · ' + r.label;
+  const inRange = rows.filter(x => x.month >= r.start && x.month <= r.end);
+  const matched = inRange.reduce((s,x)=>s + +x.total_matched, 0);
+  const news    = inRange.reduce((s,x)=>s + +x.new_guests, 0);
+  const returning = Math.max(0, matched - news);
+  const covers  = inRange.reduce((s,x)=>s + +x.total_completed, 0);
+  const stats = $('splitStats');
+  if (matched === 0) {
+    if (chart) { chart.destroy(); chart = null; }
+    const c = $('chart').getContext('2d'); c.clearRect(0,0,c.canvas.width,c.canvas.height);
+    stats.innerHTML = `<div class="s"><div class="n">–</div><div class="l">No matched guests in this period</div></div>`;
+    return;
+  }
+  const retPct = returning/matched*100, newPct = news/matched*100;
+  const centerPlugin = { id:'center', afterDraw(ch) {
+    const { ctx:cx, chartArea } = ch; if (!chartArea) return;
+    const cxx = (chartArea.left+chartArea.right)/2, cyy = (chartArea.top+chartArea.bottom)/2;
+    cx.save(); cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillStyle=cssv('--green'); cx.font='600 30px "Gilda Display", serif';
+    cx.fillText(matched.toLocaleString(), cxx, cyy-8);
+    cx.fillStyle=cssv('--dim'); cx.font='600 10px Montserrat, sans-serif';
+    cx.fillText('MATCHED GUESTS', cxx, cyy+16); cx.restore();
+  } };
+  chart = new Chart(ctx, {
+    type:'doughnut', plugins:[centerPlugin],
+    data:{ labels:['Returning','New'], datasets:[{ data:[returning,news],
+      backgroundColor:[cssv('--s12'),cssv('--sNew')], borderColor:'#fff', borderWidth:3, hoverOffset:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'64%',
+      plugins:{ legend:{ display:true, position:'bottom', labels:{ font:{size:12}, color:'#646c68', usePointStyle:true, pointStyleWidth:10, padding:18 } },
+        tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
+          callbacks:{ label:i => ' ' + i.label + ': ' + i.parsed.toLocaleString() + ' (' + (i.parsed/matched*100).toFixed(1) + '%)' } } } }
+  });
+  stats.innerHTML = `
+    <div class="s"><div class="n">${returning.toLocaleString()}</div><div class="l">Returning guests</div><div class="p">${retPct.toFixed(1)}% of matched</div></div>
+    <div class="s"><div class="n newc">${news.toLocaleString()}</div><div class="l">New guests</div><div class="p">${newPct.toFixed(1)}% of matched</div></div>
+    <div class="s"><div class="n">${matched.toLocaleString()}</div><div class="l">Matched guests</div><div class="p">${r.label}</div></div>
+    <div class="s"><div class="n">${covers.toLocaleString()}</div><div class="l">Covers</div><div class="p">completed reservations</div></div>`;
+}
+
+function renderVolume(ctx, labels, rows) {
+  const returning = rows.map(r => Math.max(0,+r.total_matched-+r.new_guests));
+  const news      = rows.map(r => +r.new_guests);
+  chart = new Chart(ctx, {
+    type:'bar', plugins:[shadePlugin(rows), migPlugin(rows)],
+    data:{ labels, datasets:[
+      { label:'Returning guests', data:returning, backgroundColor:cssv('--s12'), stack:'v', borderRadius:2, maxBarThickness:14 },
+      { label:'New guests', data:news, backgroundColor:cssv('--sNew'), stack:'v', borderRadius:2, maxBarThickness:14 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:true, labels:{font:{size:11},color:'#646c68',usePointStyle:true,pointStyleWidth:10}}, tooltip:tooltipCfg('count') },
+      scales:{
+        x:{ stacked:true, ticks:{maxTicksLimit:14,maxRotation:45,font:{size:11},color:'#646c68'}, grid:{display:false} },
+        y:{ stacked:true, min:0, ticks:{font:{size:11},color:'#646c68'}, grid:{color:'rgba(29,62,59,0.06)'} },
+      } }
+  });
+}
+
+function tooltipCfg(force) {
+  return {
+    backgroundColor:'rgba(29,62,59,0.94)', titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12},
+    padding:11, cornerRadius:8, usePointStyle:true,
+    callbacks:{
+      title: items => items[0].label,
+      label: item => {
+        const v = item.parsed.y;
+        if (v == null) return '  ' + item.dataset.label + ': n/a';
+        const isCount = force==='count' || (!force && item.dataset.yAxisID==='yCount');
+        return '  ' + item.dataset.label + ': ' + (isCount ? Math.round(v).toLocaleString() : v.toFixed(1)+'%');
+      }
+    }
+  };
+}
+
+$('seg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('seg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); view = b.dataset.view; render(cache[venue.slug]);
+});
+
+$('footnote').textContent =
+  'Return rate = share of completed reservations where the guest’s mobile had appeared in a prior completed reservation. New guest = first-ever appearance of that mobile. Shaded bands = COVID closures; dashed line marks the SevenRooms migration (Aug 2023), where applicable. Return-rate and volume views hide months with fewer than 100 matched guests to avoid noise; new-vs-returning totals include every month in the chosen period.';
+
+(async () => { if (await gate()) { buildVenueSwitcher(); load(); } })();
+</script>
+</body>
+</html>
 <!-- placeholder: replaced by upload -->
