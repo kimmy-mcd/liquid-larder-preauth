@@ -1,1 +1,375 @@
-placeholder — full page content lands in the next commit
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quality Audits — Liquid &amp; Larder Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
+<style>
+  :root { --page-w:1144px; }
+  .hidden { display:none !important; }
+  .vgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; margin-bottom:26px; }
+  .vcard { padding:22px 24px; margin-bottom:0; }
+  .vhead { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .vname { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .vmeta { color:var(--dim); font-size:11px; margin-top:4px; }
+  .scoreRow { display:flex; align-items:baseline; gap:10px; margin:8px 0 2px; }
+  .bigScore { font-size:34px; font-weight:600; color:var(--green); font-family:'Gilda Display',serif; }
+  .bigScore span { font-size:16px; color:var(--dim); }
+  .delta { font-size:11px; font-weight:600; }
+  .delta.up { color:var(--ok); } .delta.down { color:var(--err); }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+  .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.pass { background:rgba(66,112,74,.12); color:var(--ok); }
+  .chip.fail { background:rgba(164,78,51,.12); color:var(--err); }
+  svg.spark { display:block; width:100%; height:60px; margin:8px 0 10px; }
+  .comp { display:flex; align-items:center; gap:9px; font-size:11.5px; margin-top:6px; }
+  .comp .lbl { width:116px; color:var(--dim); font-weight:600; flex:none; }
+  .comp .track { flex:1; height:6px; border-radius:4px; background:rgba(29,62,59,.08); overflow:hidden; }
+  .comp .fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--green-hi),var(--green)); }
+  .comp .pct { width:46px; text-align:right; font-weight:600; color:var(--green); flex:none; }
+  .comp.low .fill { background:linear-gradient(90deg,#c08a6e,var(--err)); }
+  .comp.low .pct { color:var(--err); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; }
+  table.items { width:100%; border-collapse:collapse; font-size:13px; margin:6px 0 12px; }
+  table.items th { padding:8px; }
+  table.items td { padding:6px 6px; border-bottom:1px solid var(--hairline); }
+  table.items input { padding:8px 9px; font-size:13px; }
+  td.num { width:84px; }
+  input.err { border-color:var(--err); box-shadow:0 0 0 3px rgba(164,78,51,.15); }
+  .totLine { display:flex; justify-content:flex-end; gap:22px; font-size:13.5px; font-weight:600; color:var(--green); padding:6px 6px 14px; }
+  .totLine .pctv { color:var(--dim); }
+  textarea { width:100%; padding:11px 13px; background:#fbfaf7; color:var(--ink); border:1px solid #e6dfd2;
+    border-radius:var(--r-input); font-size:13.5px; font-family:'Montserrat',sans-serif; resize:vertical; }
+  textarea:focus { outline:none; border-color:var(--green); box-shadow:var(--ring); background:#fff; }
+  .setGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:14px; max-width:640px; }
+  .sumNote { font-size:12px; font-weight:600; margin:10px 0 16px; }
+  .sumNote.ok { color:var(--ok); } .sumNote.err { color:var(--err); }
+  .foot { color:var(--dim); font-size:11px; line-height:1.7; margin-top:6px; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../" style="color:inherit">&larr; Hub</a> &nbsp;·&nbsp; Quality Audits</div></div>
+    <button class="ghost" id="refresh">Refresh</button>
+  </div>
+</header>
+<div class="wrap">
+  <div class="msg" id="pageMsg"></div>
+
+  <div id="cards" class="vgrid"></div>
+
+  <!-- RECORD AUDIT (admin + management) -->
+  <div class="card hidden" id="entryCard">
+    <div class="cardTitle">Record an audit</div>
+    <div class="grid" style="margin-bottom:16px">
+      <div><label>Venue</label><select id="fVenue"></select></div>
+      <div><label>Audit type</label>
+        <select id="fType">
+          <option value="hoq">Head of Quality visit</option>
+          <option value="wt">Walkthrough</option>
+          <option value="ms">Mystery shopper</option>
+          <option value="or">Online reviews (monthly)</option>
+        </select></div>
+      <div><label>Date</label><input type="date" id="fDate"></div>
+      <div><label>Auditor initials</label><input id="fWho" maxlength="10" placeholder="e.g. SL"></div>
+    </div>
+    <div id="typeForm"></div>
+    <div><label>General notes</label><textarea id="fNotes" rows="2" placeholder="Optional summary notes"></textarea></div>
+    <div style="margin-top:18px"><button id="saveAudit">Save audit</button></div>
+    <div class="msg" id="fMsg"></div>
+  </div>
+
+  <!-- SETTINGS (admin only) -->
+  <div class="card hidden" id="setCard">
+    <div class="cardTitle">Scoring settings</div>
+    <div class="setGrid">
+      <div><label>Head of Quality</label><input type="number" id="wHoq" min="0" max="100"></div>
+      <div><label>Walkthrough</label><input type="number" id="wWt" min="0" max="100"></div>
+      <div><label>Mystery shopper</label><input type="number" id="wMs" min="0" max="100"></div>
+      <div><label>Online reviews</label><input type="number" id="wOr" min="0" max="100"></div>
+      <div><label>Pass mark %</label><input type="number" id="passIn" min="0" max="100" step="0.5"></div>
+    </div>
+    <div class="sumNote" id="wSum"></div>
+    <button id="saveSet">Apply settings</button>
+    <div class="msg" id="setMsg"></div>
+  </div>
+
+  <div class="foot">
+    Component percentages are earned &divide; available from each audit's own line items — no fixed scaling factors.
+    Online reviews are the monthly average out of 100. The walkthrough weight splits equally across a venue's areas.
+    Trend lines show the monthly score against the pass mark (dashed); history before July 2026 was migrated from the 2026 spreadsheet.
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const FN = SUPABASE_URL + '/functions/v1/quality-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TYPE_LABEL = { hoq:'Head of Quality', ms:'Mystery shopper', or:'Online reviews' };
+const HOQ_TMPL = [
+  {s:'Bar',i:'Food',m:5},{s:'Bar',i:'Drinks',m:10},{s:'Bar',i:'Service — Sequence',m:5},{s:'Bar',i:'Service — Tone of voice',m:5},
+  {s:'Restaurant',i:'Food',m:10},{s:'Restaurant',i:'Drinks',m:5},{s:'Restaurant',i:'Service — Sequence',m:5},{s:'Restaurant',i:'Service — Tone of voice',m:5},
+  {s:'Venue',i:'Atmosphere',m:10},
+];
+let DASH = null; // dashboard payload
+
+// Must be signed in via the hub — session is shared across the site origin
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../'; return; }
+  load();
+})();
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+const pct = (e, a) => a > 0 ? Math.min(e / a, 1) : 0;
+
+function wtPct(a) {
+  if (a && Array.isArray(a.items) && a.items.length) {
+    return a.items.reduce((s, it) => s + pct(Number(it.score) || 0, Number(it.max) || 0), 0) / a.items.length;
+  }
+  return a ? pct(Number(a.earned), Number(a.available)) : null;
+}
+
+// Mirrors quality-staff computeScore: weighted latest components, missing ones renormalised.
+function venueScore(venue) {
+  const w = DASH.settings.weights, latest = DASH.latest[venue] || {};
+  const parts = [];
+  for (const t of ['hoq','wt','ms','or']) {
+    const a = latest[t];
+    if (!a) continue;
+    const p = t === 'wt' ? wtPct(a) : pct(Number(a.earned), Number(a.available));
+    parts.push({ weight: Number(w[t]) || 0, p });
+  }
+  const tw = parts.reduce((s, x) => s + x.weight, 0);
+  if (tw <= 0) return null;
+  return parts.reduce((s, x) => s + x.weight * x.p, 0) / tw * 100;
+}
+
+function spark(hist) {
+  if (hist.length < 2) return '<div class="dim" style="margin:10px 0">Not enough history for a trend yet.</div>';
+  const w = 300, h = 60, p = 4;
+  const all = hist.flatMap(r => [Number(r.score), Number(r.pass_mark)]);
+  const lo = Math.min(...all) - 1.5, hi = Math.max(...all) + 1.5;
+  const X = i => p + i * (w - 2 * p) / (hist.length - 1);
+  const Y = v => h - p - (v - lo) * (h - 2 * p) / (hi - lo);
+  const line = f => hist.map((r, i) => `${X(i).toFixed(1)},${Y(Number(f(r))).toFixed(1)}`).join(' ');
+  const lx = X(hist.length - 1), ly = Y(Number(hist[hist.length - 1].score));
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Monthly trend">
+    <polyline points="${line(r => r.pass_mark)}" fill="none" stroke="rgba(164,78,51,.5)" stroke-width="1.3" stroke-dasharray="4 4"/>
+    <polyline points="${line(r => r.score)}" fill="none" stroke="#1d3e3b" stroke-width="2" stroke-linejoin="round"/>
+    <circle cx="${lx}" cy="${ly}" r="3" fill="#1d3e3b"/></svg>`;
+}
+
+function compRow(label, p) {
+  if (p === null) return '';
+  const c = Math.round(p * 1000) / 10;
+  return `<div class="comp ${p < 0.85 ? 'low' : ''}"><span class="lbl">${esc(label)}</span>
+    <span class="track"><span class="fill" style="width:${Math.min(c,100)}%"></span></span>
+    <span class="pct">${c.toFixed(1)}%</span></div>`;
+}
+
+function fmtD(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' }); }
+
+function renderCards() {
+  const el = $('cards'); el.innerHTML = '';
+  const passNow = Number(DASH.settings.pass_mark);
+  for (const v of DASH.venues) {
+    const hist = DASH.monthly.filter(m => m.venue === v.name);
+    const latest = DASH.latest[v.name] || {};
+    const s = venueScore(v.name);
+    let delta = '';
+    if (hist.length >= 2) {
+      const d = Number(hist[hist.length - 1].score) - Number(hist[hist.length - 2].score);
+      delta = `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(2)} last month</span>`;
+    }
+    let comps = '';
+    if (latest.hoq) comps += compRow('Head of Quality', pct(Number(latest.hoq.earned), Number(latest.hoq.available)));
+    if (latest.wt && Array.isArray(latest.wt.items)) {
+      for (const it of latest.wt.items) comps += compRow('WT — ' + it.item, pct(Number(it.score), Number(it.max)));
+    }
+    if (latest.ms) comps += compRow('Mystery shopper', pct(Number(latest.ms.earned), Number(latest.ms.available)));
+    if (latest.or) comps += compRow('Online reviews', pct(Number(latest.or.earned), Number(latest.or.available)));
+    const dates = ['hoq','wt','ms','or'].map(t => latest[t]?.audit_date).filter(Boolean).sort();
+    const lastD = dates.length ? fmtD(dates[dates.length - 1]) : '—';
+    el.insertAdjacentHTML('beforeend', `<div class="card vcard">
+      <div class="vhead"><div><div class="vname">${esc(v.name)}</div><div class="vmeta">Most recent audit: ${esc(lastD)}</div></div>
+        ${s === null ? '' : `<span class="chip ${s >= passNow ? 'pass' : 'fail'}">${s >= passNow ? 'Pass' : 'Below pass'}</span>`}</div>
+      <div class="scoreRow">${s === null ? '<span class="dim">No audits yet</span>' : `<span class="bigScore">${s.toFixed(1)}<span>%</span></span>`} ${delta}</div>
+      ${spark(hist)}${comps}</div>`);
+  }
+}
+
+// ---- entry form ----
+function itemRow(s, i, m) {
+  return `<tr>
+    <td><input class="rs" value="${esc(s)}"></td>
+    <td><input class="ri" value="${esc(i)}"></td>
+    <td class="num"><input class="rm" type="number" min="0" value="${m}"></td>
+    <td class="num"><input class="re" type="number" min="0" placeholder="0"></td>
+    <td><input class="rn" placeholder="Notes"></td></tr>`;
+}
+function renderTypeForm() {
+  const t = $('fType').value, box = $('typeForm');
+  const venue = DASH.venues.find(v => v.name === $('fVenue').value) || DASH.venues[0];
+  if (t === 'hoq' || t === 'wt') {
+    const rows = t === 'hoq'
+      ? HOQ_TMPL.map(r => itemRow(r.s, r.i, r.m)).join('')
+      : venue.walkthrough_areas.map(a => itemRow('Walkthrough', a, 15)).join('');
+    box.innerHTML = `<div style="overflow-x:auto"><table class="items">
+      <thead><tr><th>Section</th><th>Item</th><th>Max</th><th>Score</th><th>Notes</th></tr></thead>
+      <tbody id="rows">${rows}</tbody></table></div>
+      ${t === 'hoq' ? '<button class="ghost" id="addRow" type="button">+ Add line</button>' : ''}
+      <div class="totLine"><span class="pctv" id="tPct"></span><span id="tTot"></span></div>`;
+    if (t === 'hoq') $('addRow').onclick = () => { $('rows').insertAdjacentHTML('beforeend', itemRow('', '', 5)); wireTotals(); totals(); };
+  } else if (t === 'ms') {
+    box.innerHTML = `<div class="grid" style="margin-bottom:12px">
+      <div><label>Points available</label><input id="msA" type="number" min="1"></div>
+      <div><label>Points earned</label><input id="msE" type="number" min="0"></div></div>
+      <div class="totLine"><span class="pctv" id="tPct"></span><span id="tTot"></span></div>`;
+  } else {
+    box.innerHTML = `<div class="grid" style="margin-bottom:12px">
+      <div><label>Average review score (0–100)</label><input id="orV" type="number" min="0" max="100"></div>
+      <div><label>Source</label><input id="orS" placeholder="e.g. Google + TripAdvisor average"></div></div>
+      <div class="totLine"><span class="pctv" id="tPct"></span><span id="tTot"></span></div>`;
+  }
+  wireTotals(); totals();
+}
+function wireTotals() {
+  document.querySelectorAll('#typeForm input').forEach(inp => inp.oninput = totals);
+}
+function readRows() {
+  return [...document.querySelectorAll('#rows tr')].map(tr => ({
+    section: tr.querySelector('.rs').value, item: tr.querySelector('.ri').value,
+    max: +tr.querySelector('.rm').value || 0,
+    score: tr.querySelector('.re').value === '' ? null : +tr.querySelector('.re').value,
+    notes: tr.querySelector('.rn').value, elE: tr.querySelector('.re'),
+  }));
+}
+function totals() {
+  const t = $('fType').value, tTot = $('tTot'), tPct = $('tPct');
+  if (!tTot) return { ok: false };
+  let e = 0, a = 0, valid = true;
+  if (t === 'hoq' || t === 'wt') {
+    for (const r of readRows()) {
+      const over = r.score !== null && r.score > r.max;
+      r.elE.classList.toggle('err', over); if (over) valid = false;
+      a += r.max; e += r.score || 0;
+    }
+  } else if (t === 'ms') {
+    a = +$('msA').value || 0; e = +$('msE').value || 0;
+    const over = e > a && a > 0; $('msE').classList.toggle('err', over); if (over) valid = false;
+  } else {
+    a = 100; e = +$('orV').value || 0;
+    const over = e > 100; $('orV').classList.toggle('err', over); if (over) valid = false;
+  }
+  tTot.textContent = `Total ${e} / ${a}`;
+  tPct.textContent = a > 0 ? (Math.min(e / a, 1) * 100).toFixed(1) + '%' : '';
+  return { ok: valid && a > 0, e, a };
+}
+
+async function saveAudit() {
+  const m = $('fMsg'); m.textContent = ''; m.className = 'msg';
+  const t = $('fType').value, r = totals();
+  if (!$('fDate').value || !$('fWho').value.trim()) { m.textContent = 'Date and auditor initials are required.'; m.className = 'msg err'; return; }
+  if (!r.ok) { m.textContent = 'Fix the highlighted scores — a score cannot exceed its maximum.'; m.className = 'msg err'; return; }
+  const payload = {
+    action: 'save_audit', venue: $('fVenue').value, audit_type: t,
+    audit_date: $('fDate').value, auditor: $('fWho').value.trim(), notes: $('fNotes').value.trim(),
+  };
+  if (t === 'hoq' || t === 'wt') payload.items = readRows().map(({ section, item, max, score, notes }) => ({ section, item, max, score: score || 0, notes }));
+  else if (t === 'ms') { payload.earned = +$('msE').value || 0; payload.available = +$('msA').value || 0; }
+  else {
+    payload.earned = +$('orV').value || 0;
+    const src = $('orS').value.trim();
+    if (src) payload.notes = (payload.notes ? payload.notes + ' — ' : '') + 'Source: ' + src;
+  }
+  try {
+    $('saveAudit').disabled = true;
+    const res = await api(payload);
+    m.textContent = `Saved — ${payload.venue} is now ${res.venue_score}%`; m.className = 'msg ok';
+    $('fNotes').value = ''; renderTypeForm();
+    await load(false);
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('saveAudit').disabled = false; }
+}
+
+// ---- settings ----
+function sumCheck() {
+  const s = (+$('wHoq').value || 0) + (+$('wWt').value || 0) + (+$('wMs').value || 0) + (+$('wOr').value || 0);
+  $('wSum').textContent = `Weights total: ${s}${s === 100 ? ' ✓' : ' — must equal 100'}`;
+  $('wSum').className = 'sumNote ' + (s === 100 ? 'ok' : 'err');
+  return s === 100;
+}
+async function saveSettings() {
+  const m = $('setMsg'); m.textContent = ''; m.className = 'msg';
+  if (!sumCheck()) { m.textContent = 'Weights must total 100.'; m.className = 'msg err'; return; }
+  try {
+    $('saveSet').disabled = true;
+    await api({ action: 'save_settings',
+      weights: { hoq: +$('wHoq').value, wt: +$('wWt').value, ms: +$('wMs').value, or: +$('wOr').value },
+      pass_mark: +$('passIn').value });
+    m.textContent = 'Settings applied — scores recalculated.'; m.className = 'msg ok';
+    await load(false);
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('saveSet').disabled = false; }
+}
+
+// ---- load ----
+async function load(first = true) {
+  const pm = $('pageMsg'); pm.textContent = ''; pm.className = 'msg';
+  try {
+    DASH = await api({ action: 'dashboard' });
+    renderCards();
+    if (DASH.can_write) {
+      $('entryCard').classList.remove('hidden');
+      if (first || !$('fVenue').options.length) {
+        $('fVenue').innerHTML = DASH.venues.map(v => `<option>${esc(v.name)}</option>`).join('');
+        $('fDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
+        $('fVenue').onchange = renderTypeForm; $('fType').onchange = renderTypeForm;
+        $('saveAudit').onclick = saveAudit;
+        renderTypeForm();
+      }
+    }
+    if (DASH.role === 'admin') {
+      $('setCard').classList.remove('hidden');
+      $('wHoq').value = DASH.settings.weights.hoq; $('wWt').value = DASH.settings.weights.wt;
+      $('wMs').value = DASH.settings.weights.ms; $('wOr').value = DASH.settings.weights.or;
+      $('passIn').value = DASH.settings.pass_mark;
+      ['wHoq','wWt','wMs','wOr'].forEach(id => $(id).oninput = sumCheck);
+      sumCheck();
+      $('saveSet').onclick = saveSettings;
+    }
+  } catch (e) {
+    pm.textContent = e.message; pm.className = 'msg err';
+  }
+}
+$('refresh').onclick = () => load(false);
+</script>
+</body>
+</html>
