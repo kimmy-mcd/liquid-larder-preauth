@@ -87,7 +87,7 @@
         <div><label>Role</label><select id="invRole">
           <option value="staff">Staff</option><option value="reservations">Reservations</option>
           <option value="manager">Manager</option><option value="finance">Finance</option>
-          <option value="admin">Admin</option>
+          <option value="management">Management</option><option value="admin">Admin</option>
         </select></div>
       </div>
       <button id="invite">Send invite</button>
@@ -108,7 +108,7 @@ const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ROLES = ['staff','reservations','manager','finance','admin'];
+const ROLES = ['staff','reservations','manager','finance','management','admin'];
 let myProfile = null;
 
 // Invite/recovery links arrive with a hash like #access_token=...&type=invite
