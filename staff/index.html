@@ -447,7 +447,7 @@ async function loadPreauthStats() {
       live.length + (live.length === 1 ? ' hold live' : ' holds live') + ' · ' + sent + (sent === 1 ? ' link out' : ' links out'));
     renderKpis();
     setFoot('Pre-Authorisations',
-      `<span class="dot ${need ? 'warn' : 'ok'}"></span><b>${need ? need + ' need' + (need === 1 ? 's' : '') + ' attention' : 'All clear'}</b>&nbsp;· ${live.length} holds live`);
+      `<span class="dot ${need ? 'warn' : 'ok'}"></span><b>${need ? need + ' need' + (need === 1 ? 's' : '') + ' attention' : 'All clear'}</b>&nbsp;· ${live.length} ${live.length === 1 ? 'hold' : 'holds'} live`);
     const nc = $('navCount');
     if (nc && need) { nc.textContent = need; nc.classList.remove('hidden'); }
   } catch (_) { /* card simply not shown */ }
