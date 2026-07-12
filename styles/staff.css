@@ -33,3 +33,7 @@ tbody tr { transition:background .12s; }
 tbody tr:hover { background:#faf7f0; }
 tbody tr:last-child td { border-bottom:none; }
 .dim { color:var(--dim); font-size:11px; }
+
+/* v4: shared prominent back-link pill, used across app pages (quality, preauth, finance, metrics) */
+a.back { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; letter-spacing:.04em; transition:background .15s; }
+a.back:hover { background:#eae2cf; }
