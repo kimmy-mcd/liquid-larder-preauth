@@ -13,75 +13,226 @@
 <link rel="stylesheet" href="/styles/core.css?v=3">
 <link rel="stylesheet" href="/styles/staff.css?v=3">
 <style>
-  body { min-height:100vh; }
-  .hidden { display:none; }
-  .login { max-width:400px; margin:60px auto; padding:34px 30px; border-radius:20px; }
-  .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px; }
-  .sectionTitle { color:var(--dim); font-size:10.5px; letter-spacing:.28em; text-transform:uppercase; margin:36px 0 16px; font-weight:600; }
-  .sectionTitle:first-child { margin-top:0; }
-  a.tile { position:relative; display:block; background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:26px 28px; color:var(--ink); text-decoration:none; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-  a.tile::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg, var(--sand), rgba(220,209,192,0)); opacity:.9; }
-  a.tile:hover { transform:translateY(-3px); border-color:rgba(29,62,59,.22); box-shadow:0 4px 8px rgba(29,62,59,.06), 0 20px 48px -10px rgba(29,62,59,.16); }
-  a.tile .name { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:8px; color:var(--green); padding-right:26px; }
-  a.tile .desc { color:var(--dim); font-size:12.5px; line-height:1.65; }
-  a.tile .go { position:absolute; top:22px; right:22px; width:26px; height:26px; border-radius:50%; background:var(--sand-soft); color:var(--green); display:flex; align-items:center; justify-content:center; font-size:13px; opacity:0; transform:translate(-4px,4px); transition:opacity .18s, transform .18s; }
+  /* v4 home shell — sidebar app layout. Shared stylesheets untouched; all overrides live here. */
+  body { min-height:100vh; padding:0; }
+  .hidden { display:none !important; }
+
+  /* ---------- auth (login / set password) ---------- */
+  .authWrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
+  .login { width:100%; max-width:410px; padding:44px 40px 36px; border-radius:22px; margin:0; animation:rise .55s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  .wordmark { width:196px; height:23px; background:var(--green);
+    -webkit-mask:url(/assets/wordmark.svg) no-repeat left center / contain;
+    mask:url(/assets/wordmark.svg) no-repeat left center / contain; }
+  .loginBrand { display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
+  .loginBrand .sub { color:var(--dim); font-size:10px; letter-spacing:.30em; text-transform:uppercase; font-weight:600; margin:0; }
+  .login h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:24px; color:var(--green); margin-bottom:6px; }
+  .login .lead { color:var(--dim); font-size:12.5px; line-height:1.7; margin-bottom:24px; }
+  .login .field { margin-bottom:16px; }
+  .login button:not(.ghost) { width:100%; margin-top:6px; }
+  .forgotRow { text-align:center; margin-top:16px; }
+  .loginFoot { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:24px; color:var(--dim); font-size:11px; }
+  .loginFoot svg { width:12px; height:12px; stroke:var(--dim); fill:none; stroke-width:1.8; }
+
+  /* ---------- shell ---------- */
+  #homeView { display:flex; min-height:100vh; }
+  aside.side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; padding:26px 18px 20px;
+    border-right:1px solid var(--hairline); background:rgba(250,248,244,.6); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .sideBrand { display:flex; align-items:center; gap:12px; padding:0 8px 24px; }
+  .monogram { width:38px; height:38px; border-radius:11px; flex:0 0 38px;
+    background:linear-gradient(150deg, var(--green-hi), var(--green)); color:#e9dfce;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Gilda Display',serif; font-size:15px;
+    box-shadow:0 2px 8px rgba(29,62,59,.25), inset 0 1px 0 rgba(255,255,255,.14); }
+  .sideBrand .t { line-height:1.25; }
+  .sideBrand .t .n { font-family:'Gilda Display',serif; font-size:15px; color:var(--green); }
+  .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  nav.sideNav { flex:1; overflow-y:auto; }
+  .navGroup { margin-bottom:22px; }
+  .navGroup .g { font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); font-weight:600; padding:0 10px; margin-bottom:8px; }
+  a.navItem { display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:10px;
+    color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
+  a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
+  a.navItem:hover { background:rgba(29,62,59,.07); }
+  a.navItem.active { background:var(--green); color:#faf8f4; box-shadow:0 2px 8px rgba(29,62,59,.28); }
+  a.navItem.active svg { stroke:#dcd1c0; }
+  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:#9a6b2f;
+    background:rgba(154,107,47,.12); border-radius:999px; padding:2px 8px; }
+  .sideUser { border-top:1px solid var(--hairline); padding-top:16px; display:flex; align-items:center; gap:11px; }
+  .avatar { width:36px; height:36px; border-radius:50%; flex:0 0 36px;
+    background:linear-gradient(135deg, var(--green-hi), var(--green)); color:#faf8f4;
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .sideUser .meta { line-height:1.3; min-width:0; }
+  .sideUser .meta .n { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sideUser .meta .r { font-size:9.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em; font-weight:600; }
+  button.iconBtn { margin-left:auto; background:none; box-shadow:none; padding:7px; border-radius:8px; color:var(--dim); }
+  button.iconBtn:hover { background:rgba(29,62,59,.07); color:var(--green); transform:none; filter:none; }
+  button.iconBtn svg { width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; display:block; }
+
+  main.content { flex:1; min-width:0; padding:34px 44px 70px; max-width:1180px; }
+  .mobileBar { display:none; }
+
+  /* ---------- page header ---------- */
+  .pageHead { margin-bottom:26px; animation:rise .5s ease both; }
+  .pageHead .hello { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); }
+  .pageHead .date { color:var(--dim); font-size:12.5px; margin-top:6px; }
+
+  /* ---------- KPI strip ---------- */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:36px; animation:rise .5s .05s ease both; }
+  .kpi { padding:18px 20px 16px; margin-bottom:0; position:relative; overflow:hidden; }
+  .kpi .k { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:9px; }
+  .kpi .v { font-family:'Gilda Display',serif; font-size:27px; color:var(--ink); line-height:1; }
+  .kpi .v small { font-family:'Montserrat',sans-serif; font-size:12px; color:var(--dim); margin-left:2px; }
+  .kpi .d { font-size:11px; margin-top:8px; font-weight:600; }
+  .kpi .d.up { color:var(--ok); } .kpi .d.down { color:var(--err); } .kpi .d.flat { color:var(--dim); font-weight:500; }
+  .kpi::after { content:''; position:absolute; left:20px; right:20px; bottom:0; height:2px;
+    background:linear-gradient(90deg, var(--sand), rgba(220,209,192,0)); }
+
+  /* ---------- sections + tiles ---------- */
+  .sectionRow { display:flex; align-items:center; gap:14px; margin:34px 0 16px; }
+  .sectionRow:first-child { margin-top:0; }
+  .sectionRow .t { font-size:10.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap; }
+  .sectionRow .rule { flex:1; height:1px; background:linear-gradient(90deg, var(--hairline), rgba(29,62,59,0)); }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:18px; }
+  a.tile { position:relative; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--hairline);
+    border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px 20px; color:var(--ink);
+    text-decoration:none; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  a.tile:hover { transform:translateY(-3px); border-color:rgba(29,62,59,.22);
+    box-shadow:0 4px 10px rgba(29,62,59,.07), 0 24px 56px -12px rgba(29,62,59,.18); }
+  a.tile .top { display:flex; align-items:flex-start; gap:14px; margin-bottom:13px; }
+  .appIcon { width:42px; height:42px; border-radius:12px; flex:0 0 42px; display:flex; align-items:center; justify-content:center;
+    background:var(--sand-soft); border:1px solid rgba(220,209,192,.7); }
+  .appIcon svg { width:19px; height:19px; stroke:var(--green); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  a.tile .name { font-family:'Gilda Display',serif; font-size:18.5px; color:var(--green); line-height:1.2; padding-top:2px; padding-right:22px; }
+  a.tile .desc { color:var(--dim); font-size:12.5px; line-height:1.65; flex:1; }
+  a.tile .foot { display:flex; align-items:center; gap:8px; margin-top:16px; padding-top:14px;
+    border-top:1px solid var(--hairline); font-size:11.5px; color:var(--dim); min-height:37px; }
+  a.tile .foot b { color:var(--ink); font-weight:600; }
+  .dot { width:7px; height:7px; border-radius:50%; flex:0 0 7px; }
+  .dot.warn { background:#9a6b2f; box-shadow:0 0 0 3px rgba(154,107,47,.15); }
+  .dot.ok { background:var(--ok); box-shadow:0 0 0 3px rgba(66,112,74,.15); }
+  .spark { margin-left:auto; }
+  a.tile .go { position:absolute; top:20px; right:20px; width:26px; height:26px; border-radius:50%;
+    background:var(--sand-soft); color:var(--green); display:flex; align-items:center; justify-content:center;
+    font-size:13px; opacity:0; transform:translate(-4px,4px); transition:opacity .18s, transform .18s; }
   a.tile:hover .go { opacity:1; transform:none; }
-  td { padding:12px 10px; }
-  .roleTag { text-transform:capitalize; }
-  .grid3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; }
-  .who { display:flex; align-items:center; gap:12px; }
-  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green)); color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
-  .who .meta { text-align:right; line-height:1.35; }
-  .who .meta .n { font-size:12.5px; font-weight:600; }
-  .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
-  @media (max-width:700px) { .who .meta { display:none; } }
+  a.tile.soon { border-style:dashed; background:rgba(255,255,255,.55); box-shadow:none; cursor:default; }
+  a.tile.soon:hover { transform:none; box-shadow:none; border-color:var(--hairline); }
+  a.tile.soon .name, a.tile.soon .desc, a.tile.soon .appIcon { opacity:.55; }
+  .soonTag { margin-left:auto; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+    color:var(--dim); background:var(--sand-soft); border-radius:999px; padding:3px 10px; }
+
+  /* ---------- admin ---------- */
+  .adminCard { margin-top:40px; padding:28px; }
+  .adminHead { margin-bottom:22px; }
+  .adminHead .t { font-family:'Gilda Display',serif; font-size:19px; color:var(--green); }
+  .adminHead .sub2 { color:var(--dim); font-size:12px; margin-top:4px; }
+  .inviteRow { display:grid; grid-template-columns:1.4fr 1.2fr .9fr auto; gap:12px; align-items:end; }
+  .inviteRow button { padding:12px 22px; }
+  td { padding:11px 10px; }
+  .userCell { display:flex; align-items:center; gap:11px; }
+  .userCell .av { width:30px; height:30px; border-radius:50%; flex:0 0 30px; background:var(--sand-soft);
+    color:var(--green); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; }
+  .userCell .n { font-weight:600; font-size:12.5px; }
+  .userCell .e { color:var(--dim); font-size:11px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; border-radius:999px; padding:4px 11px; }
+  .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.active { color:var(--ok); background:rgba(66,112,74,.10); }
+  .chip.disabled { color:var(--err); background:rgba(164,78,51,.10); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:920px) {
+    aside.side { display:none; }
+    main.content { padding:22px 20px 70px; }
+    .mobileBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    .inviteRow { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
-<header class="topbar">
-  <div class="bar">
-    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Staff Hub</div></div>
-    <div class="who">
-      <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
-      <div class="avatar hidden" id="avatar"></div>
-      <button class="ghost hidden" id="logout">Sign out</button>
-    </div>
-  </div>
-</header>
-<div class="wrap">
+
+<!-- AUTH — signed out / arriving via invite -->
+<div id="authView" class="authWrap hidden">
 
   <!-- SET PASSWORD (arriving via invite / reset link) -->
   <div class="card login hidden" id="setPwCard">
-    <div class="cardTitle">Welcome — set your password</div>
-    <label>New password</label>
-    <input id="newPw" type="password" style="margin-bottom:14px">
-    <label>Confirm password</label>
-    <input id="newPw2" type="password" style="margin-bottom:18px">
+    <div class="loginBrand">
+      <div class="wordmark" role="img" aria-label="Liquid &amp; Larder"></div>
+      <div class="sub">Staff Hub</div>
+    </div>
+    <h2>Welcome — set your password</h2>
+    <div class="lead">Choose a password to finish setting up your hub account.</div>
+    <div class="field"><label>New password</label><input id="newPw" type="password"></div>
+    <div class="field"><label>Confirm password</label><input id="newPw2" type="password"></div>
     <button id="savePw">Save &amp; enter hub</button>
     <div class="msg" id="pwMsg"></div>
   </div>
 
   <!-- LOGIN -->
   <div class="card login hidden" id="loginCard">
-    <div class="cardTitle">Staff sign in</div>
-    <label>Email</label>
-    <input id="email" type="email" placeholder="you@liquidandlarder.com.au" style="margin-bottom:14px">
-    <label>Password</label>
-    <input id="password" type="password" style="margin-bottom:18px">
+    <div class="loginBrand">
+      <div class="wordmark" role="img" aria-label="Liquid &amp; Larder"></div>
+      <div class="sub">Staff Hub</div>
+    </div>
+    <h2>Welcome back</h2>
+    <div class="lead">Sign in to reach your dashboards, pre-authorisations and company metrics.</div>
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@liquidandlarder.com.au"></div>
+    <div class="field"><label>Password</label><input id="password" type="password"></div>
     <button id="signin">Sign in</button>
-    <button class="ghost" id="forgot" style="margin-left:8px">Forgot password</button>
+    <div class="forgotRow"><button class="ghost" id="forgot">Forgot password</button></div>
     <div class="msg" id="loginMsg"></div>
+    <div class="loginFoot">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      Access is by invitation only
+    </div>
   </div>
+</div>
 
-  <!-- APP TILES -->
-  <div id="appArea" class="hidden">
+<!-- SIGNED-IN HOME -->
+<div id="homeView" class="hidden">
+  <aside class="side">
+    <div class="sideBrand">
+      <div class="monogram">L&amp;L</div>
+      <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Staff Hub</div></div>
+    </div>
+    <nav class="sideNav" id="sideNav"></nav>
+    <div class="sideUser">
+      <div class="avatar" id="avatar"></div>
+      <div class="meta" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <button class="iconBtn" id="logout" title="Sign out" aria-label="Sign out">
+        <svg viewBox="0 0 24 24"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="mobileBar">
+      <div class="sideBrand" style="padding:0">
+        <div class="monogram">L&amp;L</div>
+        <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Staff Hub</div></div>
+      </div>
+      <button class="ghost" id="logoutM">Sign out</button>
+    </div>
+
+    <div class="pageHead">
+      <div class="hello" id="hello"></div>
+      <div class="date" id="dateLine"></div>
+    </div>
+
+    <div class="kpis hidden" id="kpiStrip"></div>
+
     <div id="tiles"></div>
     <div class="msg" id="tilesMsg"></div>
 
     <!-- ADMIN -->
-    <div class="card hidden" id="adminCard" style="margin-top:30px">
-      <div class="cardTitle">User management</div>
-      <div class="grid3" style="margin-bottom:16px">
+    <div class="card adminCard hidden" id="adminCard">
+      <div class="adminHead">
+        <div class="t">User management</div>
+        <div class="sub2">Invite staff and control hub roles. Access is invitation-only.</div>
+      </div>
+      <div class="inviteRow">
         <div><label>Email</label><input id="invEmail" type="email" placeholder="new@liquidandlarder.com.au"></div>
         <div><label>Full name</label><input id="invName" placeholder="optional"></div>
         <div><label>Role</label><select id="invRole">
@@ -89,15 +240,15 @@
           <option value="manager">Manager</option><option value="finance">Finance</option>
           <option value="management">Management</option><option value="admin">Admin</option>
         </select></div>
+        <div><button id="invite">Send invite</button></div>
       </div>
-      <button id="invite">Send invite</button>
       <div class="msg" id="invMsg"></div>
-      <div style="overflow-x:auto;margin-top:22px"><table>
-        <thead><tr><th>Email</th><th>Name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+      <div style="overflow-x:auto;margin-top:8px"><table>
+        <thead><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr></thead>
         <tbody id="userRows"></tbody>
       </table></div>
     </div>
-  </div>
+  </main>
 </div>
 
 <script>
@@ -105,10 +256,15 @@ const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
 
+// Reporting project (return-rate RPCs) — same read-only anon access as the metrics page.
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ROLES = ['staff','reservations','manager','finance','management','admin'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 let myProfile = null;
 
 // Invite/recovery links arrive with a hash like #access_token=...&type=invite
@@ -128,8 +284,24 @@ async function adminApi(payload) {
 }
 
 function showOnly(...ids) {
-  ['setPwCard','loginCard','appArea'].forEach(id => $(id).classList.toggle('hidden', !ids.includes(id)));
+  const auth = ids.includes('setPwCard') || ids.includes('loginCard');
+  $('authView').classList.toggle('hidden', !auth);
+  $('setPwCard').classList.toggle('hidden', !ids.includes('setPwCard'));
+  $('loginCard').classList.toggle('hidden', !ids.includes('loginCard'));
+  $('homeView').classList.toggle('hidden', !ids.includes('appArea'));
 }
+
+// ---- app icons (by app name; sensible fallback for future tiles) ----
+const ICONS = {
+  'Pre-Authorisations': '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>',
+  'Return Rate': '<svg viewBox="0 0 24 24"><path d="M4 19 9 13l4 3 7-9"/><path d="M15 7h5v5"/></svg>',
+  'Quality Audits': '<svg viewBox="0 0 24 24"><path d="M9 5h6a2 2 0 0 1 2 2v13H7V7a2 2 0 0 1 2-2Z"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><path d="m9.5 13 2 2 3.5-4"/></svg>',
+  'Gift Cards': '<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M3 12h18"/><path d="M12 8c-2.5 0-4.5-1.3-4.5-3S9.5 3 12 8c2.5-5 4.5-4.7 4.5-3S14.5 8 12 8Z"/></svg>',
+  _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
+  _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+};
+const iconFor = name => ICONS[name] || ICONS._default;
 
 async function main() {
   // Give supabase-js a moment to consume the URL hash session on invite links
@@ -155,8 +327,15 @@ async function enter() {
   $('whoName').textContent = displayName;
   $('whoRole').textContent = profile.role;
   $('avatar').textContent = (displayName.match(/\b[a-zA-Z]/g) || [displayName[0] || '?']).slice(0, 2).join('').toUpperCase();
-  ['whoMeta', 'avatar', 'logout'].forEach(id => $(id).classList.remove('hidden'));
   showOnly('appArea');
+
+  // Greeting — Sydney time of day
+  const hr = +new Intl.DateTimeFormat('en-AU', { timeZone:'Australia/Sydney', hour:'numeric', hour12:false }).format(new Date());
+  const part = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+  const first = (profile.full_name || '').trim().split(/\s+/)[0];
+  $('hello').textContent = 'Good ' + part + (first ? ', ' + first : '');
+  $('dateLine').textContent = new Date().toLocaleDateString('en-AU',
+    { timeZone:'Australia/Sydney', weekday:'long', day:'numeric', month:'long', year:'numeric' }) + ' · Sydney';
 
   const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
   if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
@@ -167,17 +346,167 @@ async function enter() {
     const ia = SECTION_ORDER.indexOf(a), ib = SECTION_ORDER.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
   });
+
+  // ---- sidebar nav ----
+  const navItem = a => `
+    <a class="navItem" href="${esc(a.url)}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
+      ${iconFor(a.name)}${esc(a.name)}${a.name === 'Pre-Authorisations' ? '<span class="count hidden" id="navCount"></span>' : ''}
+    </a>`;
+  $('sideNav').innerHTML =
+    `<div class="navGroup"><a class="navItem active" href="./">${ICONS._home}Home</a></div>` +
+    sections.map(s => `<div class="navGroup"><div class="g">${esc(s)}</div>${groups[s].map(navItem).join('')}</div>`).join('') +
+    (profile.role === 'admin'
+      ? `<div class="navGroup"><div class="g">Admin</div><a class="navItem" href="#adminCard">${ICONS._users}User management</a></div>`
+      : '');
+
+  // ---- tiles ----
   const tile = a => `
     <a class="tile" href="${esc(a.url)}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
       <span class="go" aria-hidden="true">&#8599;</span>
-      <div class="name">${esc(a.name)}</div>
+      <div class="top"><div class="appIcon">${iconFor(a.name)}</div><div class="name">${esc(a.name)}</div></div>
       <div class="desc">${esc(a.description || '')}</div>
+      <div class="foot hidden" data-foot="${esc(a.name)}"></div>
+    </a>`;
+  const giftTile = `
+    <a class="tile soon" tabindex="-1" aria-disabled="true">
+      <div class="top"><div class="appIcon">${ICONS['Gift Cards']}</div><div class="name">Gift Cards</div></div>
+      <div class="desc">Sales, redemptions and outstanding balances from the reporting database.</div>
+      <div class="foot"><span class="soonTag">Coming soon</span></div>
     </a>`;
   $('tiles').innerHTML = sections.map(s =>
-    `<div class="sectionTitle">${esc(s)}</div><div class="tiles">` + groups[s].map(tile).join('') + '</div>'
+    `<div class="sectionRow"><div class="t">${esc(s)}</div><div class="rule"></div></div><div class="tiles">`
+    + groups[s].map(tile).join('') + (s === 'Accounts' ? giftTile : '') + '</div>'
   ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
 
   if (profile.role === 'admin') { $('adminCard').classList.remove('hidden'); loadUsers(); }
+
+  loadLiveData(apps || []);
+}
+
+// ============================================================
+// Live KPI strip + tile footers. Every loader is best-effort:
+// a failure just leaves that card/footer out.
+// ============================================================
+const kpiParts = {};
+function renderKpis() {
+  const html = ['attention', 'onhold', 'rr', 'quality'].map(k => kpiParts[k] || '').join('');
+  $('kpiStrip').innerHTML = html;
+  $('kpiStrip').classList.toggle('hidden', !html);
+}
+const kpiCard = (label, value, deltaCls, deltaText) =>
+  `<div class="kpi card"><div class="k">${label}</div><div class="v">${value}</div>` +
+  (deltaText ? `<div class="d ${deltaCls}">${deltaText}</div>` : '') + '</div>';
+
+function setFoot(app, html) {
+  const el = document.querySelector(`[data-foot="${CSS.escape(app)}"]`);
+  if (el) { el.innerHTML = html; el.classList.remove('hidden'); }
+}
+
+function sparkline(vals) {
+  if (vals.length < 2) return '';
+  const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+  const pts = vals.map((v, i) => [2 + i * (82 / (vals.length - 1)), 21 - ((v - min) / span) * 15]);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  return `<svg class="spark" width="86" height="26" viewBox="0 0 86 26" fill="none" aria-hidden="true">
+    <path d="${path}" stroke="#42704a" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="${path} L 84 26 L 2 26 Z" fill="rgba(66,112,74,.09)"/></svg>`;
+}
+
+function loadLiveData(apps) {
+  const has = n => apps.some(a => a.name === n);
+  if (has('Pre-Authorisations')) loadPreauthStats();
+  if (has('Return Rate')) loadReturnRateStats();
+  if (has('Quality Audits')) loadQualityStats();
+}
+
+async function loadPreauthStats() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/preauth-staff', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action: 'list', limit: 1000 }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'load failed');
+    const rows = data.requests || [];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date());
+    const sent = rows.filter(r => r.status === 'sent').length;
+    const failed = rows.filter(r => r.status === 'hold_failed').length;
+    const live = rows.filter(r => r.status === 'hold_placed');
+    const toCharge = live.filter(r => r.booking_date < today).length;
+    const need = failed + toCharge;
+    const held = live.reduce((s, r) => s + (r.max_amount_cents || 0), 0);
+    const money = new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD', maximumFractionDigits:0 }).format(held / 100);
+    const bits = [];
+    if (failed) bits.push(failed + (failed === 1 ? ' hold failed' : ' holds failed'));
+    if (toCharge) bits.push(toCharge + ' to charge');
+    kpiParts.attention = kpiCard('Pre-auths · needs attention', need + '<small>' + (need === 1 ? 'item' : 'items') + '</small>',
+      need ? 'down' : 'up', need ? esc(bits.join(' · ')) : 'Nothing outstanding');
+    kpiParts.onhold = kpiCard('On hold', money, 'flat',
+      live.length + (live.length === 1 ? ' hold live' : ' holds live') + ' · ' + sent + (sent === 1 ? ' link out' : ' links out'));
+    renderKpis();
+    setFoot('Pre-Authorisations',
+      `<span class="dot ${need ? 'warn' : 'ok'}"></span><b>${need ? need + ' need' + (need === 1 ? 's' : '') + ' attention' : 'All clear'}</b>&nbsp;· ${live.length} holds live`);
+    const nc = $('navCount');
+    if (nc && need) { nc.textContent = need; nc.classList.remove('hidden'); }
+  } catch (_) { /* card simply not shown */ }
+}
+
+async function loadReturnRateStats() {
+  try {
+    const dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth: { persistSession:false, autoRefreshToken:false } });
+    const fns = ['get_gidley_return_rate', 'get_bistecca_return_rate', 'get_alfies_return_rate'];
+    const results = await Promise.all(fns.map(f => dataSb.rpc(f)));
+    const cur = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date()).slice(0, 7);
+    const map = {};
+    results.forEach(({ data }) => (data || []).forEach(r => {
+      if (r.month < cur && +r.total_matched >= 50) (map[r.month] = map[r.month] || []).push(+r.pct_12m);
+    }));
+    const months = Object.keys(map).sort();
+    if (!months.length) return;
+    const avg = m => map[m].reduce((s, x) => s + x, 0) / map[m].length;
+    const latest = months[months.length - 1];
+    const v = avg(latest);
+    const prev = months.length > 1 ? avg(months[months.length - 2]) : null;
+    const d = prev === null ? null : v - prev;
+    const cls = d === null || Math.abs(d) < 0.1 ? 'flat' : d > 0 ? 'up' : 'down';
+    const dTxt = d === null ? 'average of all venues'
+      : (d > 0 ? '▲ +' : d < -0.05 ? '▼ ' : '') + d.toFixed(1) + ' pts vs prior month';
+    kpiParts.rr = kpiCard('Group return rate · 12m', v.toFixed(1) + '<small>%</small>', cls, dTxt);
+    renderKpis();
+    setFoot('Return Rate',
+      `<span class="dot ok"></span><b>${v.toFixed(1)}%</b>&nbsp;12-month` + sparkline(months.slice(-12).map(avg)));
+  } catch (_) { /* card simply not shown */ }
+}
+
+async function loadQualityStats() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/quality-staff', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action: 'dashboard' }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'load failed');
+    const monthly = data.monthly || [];
+    if (!monthly.length) return;
+    const latestMonth = monthly.map(m => m.month).sort().pop();
+    const rows = monthly.filter(m => m.month === latestMonth);
+    const avgScore = rows.reduce((s, r) => s + +r.score, 0) / rows.length;
+    const pass = +(data.settings?.pass_mark ?? 90);
+    const below = rows.filter(r => +r.score < pass).length;
+    const mLabel = MONTHS[+latestMonth.slice(5, 7) - 1];
+    kpiParts.quality = kpiCard('Quality score · ' + esc(mLabel), avgScore.toFixed(1) + '<small>%</small>',
+      below ? 'down' : 'up',
+      below ? '▼ ' + below + (below === 1 ? ' venue' : ' venues') + ' below ' + pass : 'All venues at or above ' + pass);
+    renderKpis();
+    setFoot('Quality Audits',
+      below
+        ? `<span class="dot warn"></span><b>${below} ${below === 1 ? 'venue' : 'venues'}</b>&nbsp;below the ${pass} pass mark`
+        : `<span class="dot ok"></span><b>All venues</b>&nbsp;at or above ${pass}`);
+  } catch (_) { /* card simply not shown */ }
 }
 
 // ---- auth actions ----
@@ -203,7 +532,9 @@ $('savePw').onclick = async () => {
   history.replaceState(null, '', location.pathname);
   enter();
 };
-$('logout').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+const doLogout = async () => { await sb.auth.signOut(); location.reload(); };
+$('logout').onclick = doLogout;
+$('logoutM').onclick = doLogout;
 
 // ---- admin ----
 $('invite').onclick = async () => {
@@ -227,15 +558,17 @@ $('invite').onclick = async () => {
 async function loadUsers() {
   const { data: users, error } = await sb.from('portal_profiles').select('*').order('created_at');
   if (error) return;
+  const initials = u => ((u.full_name || u.email).match(/\b[a-zA-Z]/g) || ['?']).slice(0, 2).join('').toUpperCase();
   $('userRows').innerHTML = (users || []).map(u => `
     <tr>
-      <td>${esc(u.email)}</td>
-      <td>${u.full_name ? esc(u.full_name) : '<span class="dim">—</span>'}</td>
+      <td><div class="userCell"><div class="av">${initials(u)}</div>
+        <div><div class="n">${u.full_name ? esc(u.full_name) : esc(u.email)}</div>
+        ${u.full_name ? `<div class="e">${esc(u.email)}</div>` : ''}</div></div></td>
       <td><select class="roleSel" data-id="${u.id}" style="width:auto;padding:6px 8px;font-size:12px" ${u.id === myProfile.id ? 'disabled' : ''}>
         ${ROLES.map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
       </select></td>
-      <td>${u.active ? '<span style="color:var(--ok)">active</span>' : '<span style="color:var(--err)">disabled</span>'}</td>
-      <td style="white-space:nowrap">
+      <td><span class="chip ${u.active ? 'active' : 'disabled'}">${u.active ? 'Active' : 'Disabled'}</span></td>
+      <td style="white-space:nowrap;text-align:right">
         ${u.id !== myProfile.id ? `
           <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active})">${u.active ? 'Disable' : 'Enable'}</button>
           <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}')">Remove</button>` : '<span class="dim">you</span>'}
