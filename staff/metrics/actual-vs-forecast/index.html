@@ -93,7 +93,7 @@
   <div class="pageHead">
     <div>
       <h2>Covers &middot; actual vs forecast</h2>
-      <p>Actual guests on completed reservations vs weekly forecast &middot; trading week ending Sunday &middot; live from Supabase</p>
+      <p>Actual guests on completed reservations vs forecast &middot; trading week ending Sunday &middot; live from Supabase</p>
     </div>
     <div class="venueSeg" id="venueSeg"></div>
   </div>
@@ -102,19 +102,15 @@
 
   <div class="panel">
     <div class="panelHead">
-      <div class="t" id="viewTitle">Weekly covers</div>
-      <div class="seg" id="seg">
-        <button data-view="weekly" class="on">Weekly</button>
-        <button data-view="variance">Variance</button>
-        <button data-view="cumulative">Cumulative</button>
-      </div>
+      <div class="t" id="viewTitle">Covers</div>
+      <div class="seg" id="seg"></div>
     </div>
 
+    <div class="tfbar" id="tfBar"></div>
     <div class="chips" id="chips">
       <span class="chip"><span class="dot" style="background:var(--ac)"></span>Actual</span>
       <span class="chip"><span class="dot" style="background:var(--fc)"></span>Forecast</span>
     </div>
-    <div class="tfbar" id="tfBar"></div>
 
     <div id="loading" class="loading">Loading&hellip;</div>
     <div id="error" class="error" style="display:none;"></div>
@@ -138,6 +134,7 @@ const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSe
 const $ = id => document.getElementById(id);
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const VENUES = [
   { slug:'gidley',   name:'The Gidley' },
@@ -145,21 +142,32 @@ const VENUES = [
   { slug:'alfies',   name:"Alfie's"    },
 ];
 
-let venue = VENUES[0], view = 'weekly', chart = null, tf = 'todate';
-const cache = {};
+let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null;
+const cache = {};   // slug -> { weekly:[], daily:[] }
 
-// ── date helpers (parse YYYY-MM-DD as local, no tz drift) ─────────────────
+// ── date helpers ──────────────────────────────────────────────────────────
 const parseD = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
-const fmtWk  = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
-const fmtWkY = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
-function currentWeekEnding() {                       // Sunday ending the current trading week
-  const n = new Date(); n.setHours(0,0,0,0);
-  const dow = (n.getDay() + 6) % 7;                  // Mon=0 … Sun=6
-  n.setDate(n.getDate() + (6 - dow));
-  return n;
-}
-const fyEndOf = d => (d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear()); // AU FY Jul–Jun
+const isoD   = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const fmtDM  = d => d.getDate() + ' ' + MONTHS[d.getMonth()];
+const fmtDMY = d => d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay()+6)%7; x.setDate(x.getDate()-dow); return x; }
+const fyEndOf = d => (d.getMonth() >= 6 ? d.getFullYear()+1 : d.getFullYear());   // AU FY Jul–Jun
 const fyLabel = fe => `FY${fe-1}/${String(fe).slice(2)}`;
+const today = () => { const n = new Date(); n.setHours(0,0,0,0); return n; };
+
+// window {start, end, grain, label} for the current period
+function windowFor(p) {
+  const n = today();
+  if (p === 'thisweek') { const s = mondayOf(n); return { start:s, end:addDays(s,6), grain:'daily', label:'This week' }; }
+  if (p === 'lastweek') { const s = addDays(mondayOf(n),-7); return { start:s, end:addDays(s,6), grain:'daily', label:'Last week' }; }
+  if (p === 'thisquarter') { const q = Math.floor(n.getMonth()/3); const s = new Date(n.getFullYear(), q*3, 1); return { start:s, end:new Date(n.getFullYear(), q*3+3, 0), grain:'weekly', label:`Q${q+1} ${n.getFullYear()}` }; }
+  if (p === 'lastquarter') { const q = Math.floor(n.getMonth()/3); const cs = new Date(n.getFullYear(), q*3, 1); const s = new Date(cs.getFullYear(), cs.getMonth()-3, 1); const e = new Date(cs.getFullYear(), cs.getMonth(), 0); return { start:s, end:e, grain:'weekly', label:`Q${(Math.floor(s.getMonth()/3))+1} ${s.getFullYear()}` }; }
+  if (p === 'thisfy') { const fe = fyEndOf(n); return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
+  if (p === 'lastfy') { const fe = fyEndOf(n)-1; return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
+  if (p === 'choose') { const fe = chooseFy || fyEndOf(n); return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
+  const fe = fyEndOf(n); return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) };
+}
 
 // ── login gate ────────────────────────────────────────────────────────────
 async function gate() {
@@ -192,198 +200,240 @@ function buildVenueSwitcher() {
 
 async function load() {
   $('error').style.display = 'none';
-  if (cache[venue.slug]) return draw(cache[venue.slug]);
+  if (cache[venue.slug]) return draw();
   $('chartWrap').style.display = 'none';
   const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading ' + venue.name + '…';
   try {
-    const { data, error } = await dataClient.rpc('get_actual_vs_forecast', { p_venue: venue.name });
-    if (error) throw new Error(error.message);
-    if (!data || !data.length) throw new Error('No data returned');
-    const rows = data.slice()
+    const [wRes, dRes] = await Promise.all([
+      dataClient.rpc('get_actual_vs_forecast', { p_venue: venue.name }),
+      dataClient.rpc('get_covers_daily',       { p_venue: venue.name }),
+    ]);
+    if (wRes.error) throw new Error(wRes.error.message);
+    if (dRes.error) throw new Error(dRes.error.message);
+    const weekly = (wRes.data||[])
       .filter(r => r.covers_forecast != null || r.covers_actual != null)
-      .sort((a,b) => a.week_ending.localeCompare(b.week_ending))
-      .map(r => ({
-        wk: r.week_ending,
-        fc: r.covers_forecast == null ? null : +r.covers_forecast,
-        ac: r.covers_actual   == null ? null : +r.covers_actual,
-        vp: r.variance_pct    == null ? null : +r.variance_pct,
-        note: r.notes || null,
-      }));
-    cache[venue.slug] = rows;
-    draw(rows);
+      .map(r => ({ wk:r.week_ending, fc:r.covers_forecast==null?null:+r.covers_forecast,
+        ac:r.covers_actual==null?null:+r.covers_actual, vp:r.variance_pct==null?null:+r.variance_pct, note:r.notes||null }))
+      .sort((a,b)=>a.wk.localeCompare(b.wk));
+    const daily = (dRes.data||[]).map(r => ({ day:r.day, ac:+r.covers_actual })).sort((a,b)=>a.day.localeCompare(b.day));
+    cache[venue.slug] = { weekly, daily };
+    draw();
   } catch (err) {
     $('loading').style.display = 'none';
     const e = $('error'); e.style.display = 'flex'; e.textContent = 'Could not load data: ' + err.message;
   }
 }
 
-function draw(rows) {
+function draw() {
   $('loading').style.display = 'none';
   $('chartWrap').style.display = 'block';
-  buildTfBar(rows);
-  renderKpis(rows);
-  render(rows);
+  buildPeriodBar();
+  const win = windowFor(period);
+  buildSeg(win.grain);
+  renderKpis(win);
+  render(win);
 }
 
-// completed weeks = have an actual and ended before the current (partial) week
-function completedRows(rows) {
-  const cur = currentWeekEnding();
-  return rows.filter(r => r.ac != null && parseD(r.wk) < cur);
+// ── period selector ──────────────────────────────────────────────────────
+function availFys() {
+  const d = cache[venue.slug];
+  const set = new Set();
+  d.weekly.forEach(r => set.add(fyEndOf(parseD(r.wk))));
+  d.daily.forEach(r => set.add(fyEndOf(parseD(r.day))));
+  return [...set].sort((a,b)=>b-a);
+}
+function buildPeriodBar() {
+  const bar = $('tfBar');
+  const fys = availFys();
+  if (chooseFy === null) chooseFy = fys[0];
+  const opt = (v,l,sel) => `<option value="${v}" ${sel?'selected':''}>${l}</option>`;
+  bar.innerHTML = `
+    <span class="lead">Period</span>
+    <select id="pSelect">
+      ${opt('thisweek','This week',period==='thisweek')}
+      ${opt('lastweek','Last week',period==='lastweek')}
+      ${opt('thisquarter','This quarter',period==='thisquarter')}
+      ${opt('lastquarter','Last quarter',period==='lastquarter')}
+      ${opt('thisfy','This financial year',period==='thisfy')}
+      ${opt('lastfy','Last financial year',period==='lastfy')}
+      ${opt('choose','Choose financial year…',period==='choose')}
+    </select>
+    <select id="pFy" style="display:${period==='choose'?'inline-block':'none'}">${fys.map(f=>opt(f,fyLabel(f),f===chooseFy)).join('')}</select>`;
+  $('pSelect').onchange = e => { period = e.target.value; draw(); };
+  const f = $('pFy'); if (f) f.onchange = e => { chooseFy = +e.target.value; draw(); };
 }
 
-function renderKpis(rows) {
+function buildSeg(grain) {
+  const opts = grain === 'daily'
+    ? [['daily','By day'],['cumulative','Cumulative']]
+    : [['weekly','By week'],['variance','Variance'],['cumulative','Cumulative']];
+  if (!opts.some(o => o[0] === view)) view = opts[0][0];
+  const el = $('seg');
+  el.innerHTML = opts.map(o => `<button data-view="${o[0]}" class="${o[0]===view?'on':''}">${o[1]}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    view = b.dataset.view;
+    el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.view===view));
+    render(windowFor(period));
+  });
+}
+
+// slice helpers
+function weeklyIn(win) { return cache[venue.slug].weekly.filter(r => { const d = parseD(r.wk); return d >= win.start && d <= win.end; }); }
+function dailyIn(win)  { return cache[venue.slug].daily.filter(r => { const d = parseD(r.day); return d >= win.start && d <= win.end; }); }
+function dayList(win)  { const out = []; for (let d = new Date(win.start); d <= win.end; d = addDays(d,1)) out.push(new Date(d)); return out; }
+
+// ── KPIs ────────────────────────────────────────────────────────────
+function renderKpis(win) {
   const box = $('kpis');
-  const done = completedRows(rows);
-  if (!done.length) { box.innerHTML = '<div class="kpi"><div class="lab">No completed weeks yet</div></div>'; return; }
-  const latest = done[done.length-1];
-  const dv = (a, f) => (f && f !== 0) ? (a - f) / f * 100 : null;
+  const dRows = dailyIn(win);
+  const wRows = weeklyIn(win);
+  const dayMap = Object.fromEntries(dRows.map(r => [r.day, r.ac]));
+  const actual = dRows.reduce((s,r)=>s + r.ac, 0);
+  const forecast = wRows.filter(r=>r.fc!=null).reduce((s,r)=>s + r.fc, 0);
+  const dv = (forecast && forecast!==0) ? (actual-forecast)/forecast*100 : null;
+  const tradingDays = dRows.filter(r => r.ac > 0).length;
+  const avg = tradingDays ? Math.round(actual/tradingDays) : null;
+  let busy = null; dRows.forEach(r => { if (r.ac > 0 && (!busy || r.ac > busy.ac)) busy = r; });
+  const partial = period === 'thisweek' || period === 'thisquarter' || period === 'thisfy';
   const tag = d => {
     if (d === null) return '';
     const cls = Math.abs(d) < 0.5 ? 'flat' : (d > 0 ? 'up' : 'down');
     return `<span class="delta ${cls}">${d>0?'+':''}${d.toFixed(1)}% vs forecast</span>`;
   };
-  const fe = fyEndOf(currentWeekEnding());
-  const fyStart = new Date(fe-1, 6, 1);
-  const fyDone = done.filter(r => { const d = parseD(r.wk); return d >= fyStart && r.fc != null; });
-  const sumA = fyDone.reduce((s,r)=>s + r.ac, 0);
-  const sumF = fyDone.reduce((s,r)=>s + r.fc, 0);
-  const fyDelta = dv(sumA, sumF);
-  const latestDelta = dv(latest.ac, latest.fc);
   box.innerHTML = `
-    <div class="kpi"><div class="lab">Latest week &middot; ${fmtWkY(latest.wk).toUpperCase()}</div>
-      <div class="val">${latest.ac.toLocaleString()}</div>${tag(latestDelta)}
-      <div class="subnote">forecast ${latest.fc!=null?latest.fc.toLocaleString():'–'} covers</div></div>
-    <div class="kpi"><div class="lab">Variance &middot; latest week</div>
-      <div class="val">${latest.fc!=null?(latest.ac-latest.fc>0?'+':'')+(latest.ac-latest.fc).toLocaleString():'–'}</div>
-      <div class="subnote">covers vs forecast</div></div>
-    <div class="kpi"><div class="lab">${fyLabel(fe)} to date &middot; actual</div>
-      <div class="val">${sumA.toLocaleString()}</div>${tag(fyDelta)}
-      <div class="subnote">${fyDone.length} completed week${fyDone.length===1?'':'s'}</div></div>
-    <div class="kpi"><div class="lab">${fyLabel(fe)} to date &middot; forecast</div>
-      <div class="val">${sumF.toLocaleString()}</div><div class="subnote">covers</div></div>`;
+    <div class="kpi"><div class="lab">${win.label} &middot; actual covers</div>
+      <div class="val">${actual.toLocaleString()}</div>${tag(dv)}
+      <div class="subnote">${partial?'period in progress':'&nbsp;'}</div></div>
+    <div class="kpi"><div class="lab">${win.label} &middot; forecast covers</div>
+      <div class="val">${forecast?forecast.toLocaleString():'–'}</div>
+      <div class="subnote">${wRows.filter(r=>r.fc!=null).length} week${wRows.filter(r=>r.fc!=null).length===1?'':'s'} forecast</div></div>
+    <div class="kpi"><div class="lab">Avg covers / trading day</div>
+      <div class="val">${avg!=null?avg.toLocaleString():'–'}</div>
+      <div class="subnote">${tradingDays} trading day${tradingDays===1?'':'s'}</div></div>
+    <div class="kpi"><div class="lab">Busiest day</div>
+      <div class="val">${busy?busy.ac.toLocaleString():'–'}</div>
+      <div class="subnote">${busy?fmtDMY(parseD(busy.day)):'&nbsp;'}</div></div>`;
 }
 
-function buildTfBar(rows) {
-  const bar = $('tfBar');
-  const fys = [...new Set(rows.map(r => fyEndOf(parseD(r.wk))))].sort((a,b)=>b-a);
-  const opt = (v,l,sel) => `<option value="${v}" ${sel?'selected':''}>${l}</option>`;
-  bar.innerHTML = `
-    <span class="lead">Show</span>
-    <select id="tfSelect">
-      ${opt('todate','Season to date',tf==='todate')}
-      ${opt('l12','Last 12 weeks',tf==='l12')}
-      ${opt('l26','Last 26 weeks',tf==='l26')}
-      ${opt('fytd','Financial year to date',tf==='fytd')}
-      ${opt('ahead','Next 12 weeks (plan)',tf==='ahead')}
-      ${opt('fy','Choose financial year…',tf==='fy')}
-      ${opt('all','All weeks',tf==='all')}
-    </select>
-    <select id="tfFy" style="display:${tf==='fy'?'inline-block':'none'}">${fys.map(f=>opt(f,fyLabel(f),f===tfFy)).join('')}</select>`;
-  $('tfSelect').onchange = e => { tf = e.target.value; if (tf==='fy' && !tfFy) tfFy = fys[0]; buildTfBar(rows); render(rows); };
-  const f = $('tfFy'); if (f) f.onchange = e => { tfFy = +e.target.value; render(rows); };
-}
-let tfFy = null;
-
-function inFrame(rows) {
-  const cur = currentWeekEnding();
-  const ms = 7*24*3600*1000;
-  if (tf === 'l12')  { const lim = new Date(cur - 12*ms); return rows.filter(r => parseD(r.wk) > lim && parseD(r.wk) <= cur); }
-  if (tf === 'l26')  { const lim = new Date(cur - 26*ms); return rows.filter(r => parseD(r.wk) > lim && parseD(r.wk) <= cur); }
-  if (tf === 'todate') return rows.filter(r => parseD(r.wk) <= cur);
-  if (tf === 'ahead') { const hi = new Date(cur.getTime() + 12*ms); return rows.filter(r => parseD(r.wk) > new Date(cur-ms) && parseD(r.wk) <= hi); }
-  if (tf === 'fytd') { const fe = fyEndOf(cur); const s = new Date(fe-1,6,1); return rows.filter(r => { const d=parseD(r.wk); return d>=s && d<=cur; }); }
-  if (tf === 'fy')   { const fe = tfFy || fyEndOf(cur); const s = new Date(fe-1,6,1), e = new Date(fe,5,30); return rows.filter(r => { const d=parseD(r.wk); return d>=s && d<=e; }); }
-  return rows;
-}
-
-function render(rows) {
+// ── rendering ────────────────────────────────────────────────────────────
+function render(win) {
   if (chart) { chart.destroy(); chart = null; }
-  const data = inFrame(rows);
-  const labels = data.map(r => fmtWk(r.wk));
-  const ctx = $('chart');
-  if (view === 'weekly')     { $('viewTitle').textContent = 'Weekly covers'; return renderWeekly(ctx, labels, data); }
-  if (view === 'variance')   { $('viewTitle').textContent = 'Weekly variance vs forecast'; return renderVariance(ctx, labels, data); }
-  $('viewTitle').textContent = 'Cumulative covers'; return renderCumulative(ctx, labels, data);
+  if (win.grain === 'daily') {
+    if (view === 'cumulative') return renderDailyCumulative(win);
+    return renderDaily(win);
+  }
+  if (view === 'variance')   return renderVariance(win);
+  if (view === 'cumulative') return renderWeeklyCumulative(win);
+  return renderWeekly(win);
 }
 
 function baseX() { return { ticks:{ maxTicksLimit:16, maxRotation:45, font:{size:11}, color:'#646c68' }, grid:{ display:false } }; }
 function niceMax(v, step) { return Math.max(step, Math.ceil(v*1.12/step)*step); }
+function yAxis(max, step) { return { min:0, max:niceMax(max,step), ticks:{font:{size:11},color:'#646c68',callback:v=>v.toLocaleString()}, grid:{color:'rgba(29,62,59,0.06)'} }; }
 
-function renderWeekly(ctx, labels, data) {
-  const maxv = Math.max(1, ...data.map(r => Math.max(r.fc||0, r.ac||0)));
-  chart = new Chart(ctx, {
-    type:'bar',
-    data:{ labels, datasets:[
-      { type:'bar',  label:'Forecast', data:data.map(r=>r.fc), backgroundColor:cssv('--fc')+'55',
-        borderColor:cssv('--fc'), borderWidth:1, borderRadius:2, maxBarThickness:22, order:2 },
-      { type:'line', label:'Actual', data:data.map(r=>r.ac), borderColor:cssv('--ac'), backgroundColor:cssv('--ac'),
-        borderWidth:2.4, pointRadius:2.4, pointHoverRadius:5, tension:.28, spanGaps:false, order:1 },
-    ]},
-    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:false}, tooltip:tip(data, false) },
-      scales:{ x:baseX(), y:{ min:0, max:niceMax(maxv,100), ticks:{font:{size:11},color:'#646c68'}, grid:{color:'rgba(29,62,59,0.06)'} } } }
-  });
-}
-
-function renderVariance(ctx, labels, data) {
-  const vals = data.map(r => (r.ac!=null && r.fc!=null && r.fc!==0) ? r.vp : null);
-  chart = new Chart(ctx, {
-    type:'bar',
-    data:{ labels, datasets:[{ label:'Variance %', data:vals,
-      backgroundColor:vals.map(v => v==null ? '#ccc' : (v>=0 ? cssv('--ok') : cssv('--err'))),
-      borderRadius:2, maxBarThickness:22 }] },
+// DAILY — actual covers per day + even-pace forecast line (weekly forecast ÷ 7)
+function renderDaily(win) {
+  $('viewTitle').textContent = 'Covers by day · ' + win.label;
+  const days = dayList(win);
+  const dm = Object.fromEntries(dailyIn(win).map(r => [r.day, r.ac]));
+  const labels = days.map(d => DOW[d.getDay()] + ' ' + d.getDate());
+  const acData = days.map(d => dm[isoD(d)] ?? 0);
+  const wk = weeklyIn(win).find(r => r.fc != null);
+  const pace = wk ? wk.fc/7 : null;
+  const paceData = days.map(() => pace);
+  const maxv = Math.max(1, ...acData, pace||0);
+  const ds = [{ type:'bar', label:'Actual', data:acData, backgroundColor:cssv('--ac')+'d9', borderRadius:3, maxBarThickness:46, order:2 }];
+  if (pace != null) ds.push({ type:'line', label:'Forecast pace', data:paceData, borderColor:cssv('--fc'), borderWidth:2, borderDash:[6,4], pointRadius:0, order:1 });
+  chart = new Chart($('chart'), {
+    data:{ labels, datasets:ds },
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
       plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
-        callbacks:{ title:i=>i[0].label, label:i => '  ' + (i.parsed.y>0?'+':'') + i.parsed.y.toFixed(1) + '% vs forecast' } } },
-      scales:{ x:baseX(), y:{ ticks:{ callback:v=>(v>0?'+':'')+v+'%', font:{size:11}, color:'#646c68' }, grid:{color:'rgba(29,62,59,0.06)'} } } }
+        callbacks:{ title:i=>{ const d=days[i[0].dataIndex]; return DOW[d.getDay()]+' '+fmtDM(d); },
+          label:i => '  ' + i.dataset.label + ': ' + Math.round(i.parsed.y).toLocaleString() + (i.dataset.label==='Actual'?' covers':' /day') } } },
+      scales:{ x:baseX(), y:yAxis(maxv,50) } }
   });
 }
 
-function renderCumulative(ctx, labels, data) {
-  let ca = 0, cf = 0; const aArr = [], fArr = [];
-  data.forEach(r => {
-    if (r.ac != null) { ca += r.ac; aArr.push(ca); } else { aArr.push(null); }
-    if (r.fc != null) { cf += r.fc; fArr.push(cf); } else { fArr.push(fArr.length ? fArr[fArr.length-1] : null); }
-  });
+function renderDailyCumulative(win) {
+  $('viewTitle').textContent = 'Cumulative covers · ' + win.label;
+  const days = dayList(win);
+  const dm = Object.fromEntries(dailyIn(win).map(r => [r.day, r.ac]));
+  const labels = days.map(d => DOW[d.getDay()] + ' ' + d.getDate());
+  const wk = weeklyIn(win).find(r => r.fc != null);
+  const pace = wk ? wk.fc/7 : null;
+  const nowIso = isoD(today());
+  let ca = 0; const aArr = days.map(d => { const k=isoD(d); if (k > nowIso) return null; ca += (dm[k]||0); return ca; });
+  let cf = 0; const fArr = days.map(() => pace!=null ? (cf += pace) : null);
   const maxv = Math.max(1, ca, cf);
-  chart = new Chart(ctx, {
-    type:'line',
+  const ds = [];
+  if (pace != null) ds.push({ label:'Forecast pace', data:fArr, borderColor:cssv('--fc'), backgroundColor:cssv('--fc')+'18', borderWidth:2, borderDash:[5,4], pointRadius:0, pointHoverRadius:4, tension:.2, fill:true, order:2 });
+  ds.push({ label:'Actual', data:aArr, borderColor:cssv('--ac'), backgroundColor:cssv('--ac')+'14', borderWidth:2.4, pointRadius:0, pointHoverRadius:4, tension:.2, spanGaps:false, fill:true, order:1 });
+  chart = new Chart($('chart'), { type:'line', data:{ labels, datasets:ds },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:cumTip(days) }, scales:{ x:baseX(), y:yAxis(maxv,100) } } });
+}
+
+// WEEKLY — forecast bars + actual line
+function renderWeekly(win) {
+  $('viewTitle').textContent = 'Covers by week · ' + win.label;
+  const rows = weeklyIn(win);
+  const labels = rows.map(r => fmtDM(parseD(r.wk)));
+  const maxv = Math.max(1, ...rows.map(r => Math.max(r.fc||0, r.ac||0)));
+  chart = new Chart($('chart'), {
     data:{ labels, datasets:[
-      { label:'Forecast', data:fArr, borderColor:cssv('--fc'), backgroundColor:cssv('--fc')+'18',
-        borderWidth:2, borderDash:[5,4], pointRadius:0, pointHoverRadius:4, tension:.2, fill:true, order:2 },
-      { label:'Actual', data:aArr, borderColor:cssv('--ac'), backgroundColor:cssv('--ac')+'14',
-        borderWidth:2.4, pointRadius:0, pointHoverRadius:4, tension:.2, spanGaps:false, fill:true, order:1 },
+      { type:'bar', label:'Forecast', data:rows.map(r=>r.fc), backgroundColor:cssv('--fc')+'55', borderColor:cssv('--fc'), borderWidth:1, borderRadius:2, maxBarThickness:22, order:2 },
+      { type:'line', label:'Actual', data:rows.map(r=>r.ac), borderColor:cssv('--ac'), backgroundColor:cssv('--ac'), borderWidth:2.4, pointRadius:2.4, pointHoverRadius:5, tension:.28, spanGaps:false, order:1 },
     ]},
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:false}, tooltip:tip(data, true) },
-      scales:{ x:baseX(), y:{ min:0, max:niceMax(maxv,500), ticks:{font:{size:11},color:'#646c68',callback:v=>v.toLocaleString()}, grid:{color:'rgba(29,62,59,0.06)'} } } }
+      plugins:{ legend:{display:false}, tooltip:weekTip(rows,false) }, scales:{ x:baseX(), y:yAxis(maxv,100) } }
   });
 }
 
-function tip(data, cumulative) {
-  return { backgroundColor:'rgba(29,62,59,0.94)', titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12},
-    padding:11, cornerRadius:8, usePointStyle:true,
-    callbacks:{
-      title: items => { const r = data[items[0].dataIndex]; return 'Week ending ' + fmtWkY(r.wk); },
-      label: item => { const v = item.parsed.y; return v==null ? '  ' + item.dataset.label + ': n/a'
-        : '  ' + item.dataset.label + ': ' + Math.round(v).toLocaleString() + ' covers'; },
-      afterBody: items => {
-        const r = data[items[0].dataIndex]; const out = [];
-        if (!cumulative && r.ac!=null && r.fc!=null && r.fc!==0)
-          out.push('  Variance: ' + (r.vp>0?'+':'') + r.vp.toFixed(1) + '%');
-        if (r.note) out.push('  ' + r.note);
-        return out;
-      }
-    } };
+function renderWeeklyCumulative(win) {
+  $('viewTitle').textContent = 'Cumulative covers · ' + win.label;
+  const rows = weeklyIn(win);
+  const labels = rows.map(r => fmtDM(parseD(r.wk)));
+  let ca=0, cf=0; const aArr=[], fArr=[];
+  rows.forEach(r => { if (r.ac!=null){ca+=r.ac; aArr.push(ca);} else aArr.push(null); if (r.fc!=null){cf+=r.fc; fArr.push(cf);} else fArr.push(fArr.length?fArr[fArr.length-1]:null); });
+  const maxv = Math.max(1, ca, cf);
+  chart = new Chart($('chart'), { type:'line', data:{ labels, datasets:[
+      { label:'Forecast', data:fArr, borderColor:cssv('--fc'), backgroundColor:cssv('--fc')+'18', borderWidth:2, borderDash:[5,4], pointRadius:0, pointHoverRadius:4, tension:.2, fill:true, order:2 },
+      { label:'Actual', data:aArr, borderColor:cssv('--ac'), backgroundColor:cssv('--ac')+'14', borderWidth:2.4, pointRadius:0, pointHoverRadius:4, tension:.2, spanGaps:false, fill:true, order:1 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:weekTip(rows,true) }, scales:{ x:baseX(), y:yAxis(maxv,500) } } });
 }
 
-$('seg').querySelectorAll('button').forEach(b => b.onclick = () => {
-  $('seg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on'); view = b.dataset.view; render(cache[venue.slug]);
-});
+function renderVariance(win) {
+  $('viewTitle').textContent = 'Weekly variance · ' + win.label;
+  const rows = weeklyIn(win);
+  const labels = rows.map(r => fmtDM(parseD(r.wk)));
+  const vals = rows.map(r => (r.ac!=null && r.fc!=null && r.fc!==0) ? r.vp : null);
+  chart = new Chart($('chart'), { type:'bar', data:{ labels, datasets:[{ label:'Variance %', data:vals,
+      backgroundColor:vals.map(v => v==null?'#ccc':(v>=0?cssv('--ok'):cssv('--err'))), borderRadius:2, maxBarThickness:22 }] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8,
+        callbacks:{ title:i=>'Week ending '+fmtDMY(parseD(rows[i[0].dataIndex].wk)), label:i => '  ' + (i.parsed.y>0?'+':'') + i.parsed.y.toFixed(1) + '% vs forecast' } } },
+      scales:{ x:baseX(), y:{ ticks:{ callback:v=>(v>0?'+':'')+v+'%', font:{size:11}, color:'#646c68' }, grid:{color:'rgba(29,62,59,0.06)'} } } } });
+}
+
+function weekTip(rows, cumulative) {
+  return { backgroundColor:'rgba(29,62,59,0.94)', titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12}, padding:11, cornerRadius:8, usePointStyle:true,
+    callbacks:{
+      title: i => 'Week ending ' + fmtDMY(parseD(rows[i[0].dataIndex].wk)),
+      label: i => { const v = i.parsed.y; return v==null ? '  '+i.dataset.label+': n/a' : '  '+i.dataset.label+': '+Math.round(v).toLocaleString()+' covers'; },
+      afterBody: i => { const r = rows[i[0].dataIndex]; const o = [];
+        if (!cumulative && r.ac!=null && r.fc!=null && r.fc!==0) o.push('  Variance: '+(r.vp>0?'+':'')+r.vp.toFixed(1)+'%');
+        if (r.note) o.push('  '+r.note); return o; } } };
+}
+function cumTip(days) {
+  return { backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
+    callbacks:{ title:i=>{ const d=days[i[0].dataIndex]; return DOW[d.getDay()]+' '+fmtDM(d); },
+      label:i => i.parsed.y==null ? '  '+i.dataset.label+': —' : '  '+i.dataset.label+': '+Math.round(i.parsed.y).toLocaleString()+' covers' } };
+}
 
 $('footnote').textContent =
-  'Actual covers = guests on completed SevenRooms reservations, bucketed to the trading week (Monday–Sunday). Forecast covers come from the Liquid & Larder Forecast sheet and are synced daily. The current (in-progress) week has no actual yet. Walk-ins not entered as reservations are not counted.';
+  'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Current periods are still in progress. Walk-ins not entered as reservations are not counted.';
 
 (async () => { if (await gate()) { buildVenueSwitcher(); load(); } })();
 </script>
