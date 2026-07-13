@@ -61,6 +61,7 @@
   .room .nm { font-size:12.5px; font-weight:600; color:var(--ink); }
   .room .ct { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
   .room .ct b { color:var(--green); font-weight:600; font-size:13px; }
+  .room .rmeta { font-size:10.5px; color:var(--dim); margin-top:2px; font-variant-numeric:tabular-nums; }
   .track { height:8px; background:#f0ece3; border-radius:999px; overflow:hidden; }
   .track > span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--green-hi),var(--green)); }
 
@@ -265,18 +266,28 @@ function render() {
       <div class="d">${DOW[x.isodow-1]}</div>
     </div>`).join('');
 
-  // rooms
+  // rooms — full detail per individual private room
   const rooms = (data.by_room || []).map(x => ({
     room:x.room,
     n: statusBucket==='completed' ? x.completed : statusBucket==='upcoming' ? x.upcoming : x.bookings,
-    covers:x.covers
+    bookings:x.bookings, completed:x.completed, upcoming:x.upcoming,
+    covers:x.covers, adv:x.avg_days_advance
   })).filter(x => x.n > 0).sort((a,b)=>b.n-a.n);
   const maxN = Math.max(1, ...rooms.map(x=>x.n));
   $('roomsSub').textContent = rooms.length ? rooms.length + ' room' + (rooms.length>1?'s':'') : '';
-  $('rooms').innerHTML = rooms.length ? rooms.map(x => `
-    <div class="room"><div class="top"><span class="nm">${esc(x.room)}</span>
+  $('rooms').innerHTML = rooms.length ? rooms.map(x => {
+    const party = x.bookings ? (x.covers/x.bookings) : null;
+    const meta = [
+      num(x.covers) + ' covers',
+      party!=null ? 'avg party ' + party.toFixed(1) : null,
+      x.adv!=null ? 'books ' + (+x.adv).toFixed(0) + ' days ahead' : null,
+      (statusBucket==='total' && x.upcoming>0) ? x.completed+' done · '+x.upcoming+' upcoming' : null
+    ].filter(Boolean).join(' · ');
+    return `<div class="room"><div class="top"><span class="nm">${esc(x.room)}</span>
       <span class="ct"><b>${num(x.n)}</b> bookings</span></div>
-      <div class="track"><span style="width:${Math.max(3, x.n/maxN*100)}%"></span></div></div>`).join('')
+      <div class="track"><span style="width:${Math.max(3, x.n/maxN*100)}%"></span></div>
+      <div class="rmeta">${meta}</div></div>`;
+  }).join('')
     : '<div style="color:var(--dim);font-size:12.5px;">No bookings in this period.</div>';
 
   // guests
