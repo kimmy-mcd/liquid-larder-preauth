@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Covers — Actual vs Forecast · Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { --page-w:1144px; --fc:#b08968; --ac:#1d3e3b; }
+  .hidden { display:none; }
+  .who { display:flex; align-items:center; gap:12px; }
+  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
+    padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+  .who .back:hover { background:#eae2cf; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
+    color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .who .meta { text-align:right; line-height:1.35; }
+  .who .meta .n { font-size:12.5px; font-weight:600; }
+  .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
+  @media (max-width:700px) { .who .meta { display:none; } }
+
+  .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; }
+
+  .venueSeg { display:inline-flex; background:var(--card); border:1px solid var(--hairline); box-shadow:var(--shadow-card);
+    border-radius:999px; padding:5px; gap:3px; }
+  .venueSeg button { border:none; background:transparent; color:var(--dim); font-family:'Gilda Display',serif;
+    font-size:14px; padding:9px 20px; border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; letter-spacing:.01em;
+    text-transform:none; font-weight:400; }
+  .venueSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:26px; }
+  .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
+  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgba(220,209,192,0)); }
+  .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
+  .kpi .val .u { font-size:18px; color:var(--dim); font-family:'Montserrat',sans-serif; }
+  .kpi .delta { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
+  .kpi .delta.up { background:rgba(66,112,74,.12); color:var(--ok); }
+  .kpi .delta.down { background:rgba(164,78,51,.12); color:var(--err); }
+  .kpi .delta.flat { background:var(--sand-soft); color:var(--dim); }
+  .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:8px; }
+
+  .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px; }
+  .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:18px; }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+
+  .seg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; }
+  .seg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif;
+    font-weight:600; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:8px 15px;
+    border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
+  .seg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+
+  .chips { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:16px; }
+  .chip { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:500; color:var(--ink);
+    background:#fbfaf7; border:1px solid #e6dfd2; padding:7px 13px; border-radius:999px; user-select:none; }
+  .chip .dot { width:11px; height:11px; border-radius:50%; flex:none; }
+
+  .tfbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:18px; }
+  .tfbar .lead { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-right:2px; }
+  .tfbar select { width:auto; padding:9px 13px; border-radius:999px; font-size:12.5px; }
+
+  .chart-wrap { position:relative; width:100%; height:420px; }
+  .loading, .error { display:flex; align-items:center; justify-content:center; height:420px; font-size:13.5px; color:var(--dim); }
+  .error { color:var(--err); }
+
+  .footnote { font-size:11px; color:var(--dim); margin-top:16px; line-height:1.6; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Company metrics</div></div>
+    <div class="who">
+      <a class="back" href="/staff/">&larr; Hub</a>
+      <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <div class="avatar hidden" id="avatar"></div>
+      <button class="ghost hidden" id="logout">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="wrap" style="display:none;">
+  <div class="pageHead">
+    <div>
+      <h2>Covers &middot; actual vs forecast</h2>
+      <p>Actual guests on completed reservations vs weekly forecast &middot; trading week ending Sunday &middot; live from Supabase</p>
+    </div>
+    <div class="venueSeg" id="venueSeg"></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="panel">
+    <div class="panelHead">
+      <div class="t" id="viewTitle">Weekly covers</div>
+      <div class="seg" id="seg">
+        <button data-view="weekly" class="on">Weekly</button>
+        <button data-view="variance">Variance</button>
+        <button data-view="cumulative">Cumulative</button>
+      </div>
+    </div>
+
+    <div class="chips" id="chips">
+      <span class="chip"><span class="dot" style="background:var(--ac)"></span>Actual</span>
+      <span class="chip"><span class="dot" style="background:var(--fc)"></span>Forecast</span>
+    </div>
+    <div class="tfbar" id="tfBar"></div>
+
+    <div id="loading" class="loading">Loading&hellip;</div>
+    <div id="error" class="error" style="display:none;"></div>
+    <div class="chart-wrap" id="chartWrap" style="display:none;"><canvas id="chart"></canvas></div>
+
+    <p class="footnote" id="footnote"></p>
+  </div>
+</div>
+
+<script>
+// ── auth (accounts project) ───────────────────────────────────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const authSb = supabase.createClient(AUTH_URL, AUTH_ANON);
+
+// ── data (reporting project) ──────────────────────────────────────────────
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
+const $ = id => document.getElementById(id);
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const VENUES = [
+  { slug:'gidley',   name:'The Gidley' },
+  { slug:'bistecca', name:'Bistecca'   },
+  { slug:'alfies',   name:"Alfie's"    },
+];
+
+let venue = VENUES[0], view = 'weekly', chart = null, tf = 'todate';
+const cache = {};
+
+// ── date helpers (parse YYYY-MM-DD as local, no tz drift) ─────────────────
+const parseD = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const fmtWk  = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()]; };
+const fmtWkY = s => { const d = parseD(s); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); };
+function currentWeekEnding() {                       // Sunday ending the current trading week
+  const n = new Date(); n.setHours(0,0,0,0);
+  const dow = (n.getDay() + 6) % 7;                  // Mon=0 … Sun=6
+  n.setDate(n.getDate() + (6 - dow));
+  return n;
+}
+const fyEndOf = d => (d.getMonth() >= 6 ? d.getFullYear() + 1 : d.getFullYear()); // AU FY Jul–Jun
+const fyLabel = fe => `FY${fe-1}/${String(fe).slice(2)}`;
+
+// ── login gate ────────────────────────────────────────────────────────────
+async function gate() {
+  const { data:{ session } } = await authSb.auth.getSession();
+  if (!session) { location.replace('/staff/'); return false; }
+  const { data:{ user } } = await authSb.auth.getUser();
+  const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) { location.replace('/staff/'); return false; }
+  const name = profile.full_name || profile.email;
+  $('whoName').textContent = name;
+  $('whoRole').textContent = profile.role;
+  $('avatar').textContent = (name.match(/\b[a-zA-Z]/g) || [name[0] || '?']).slice(0,2).join('').toUpperCase();
+  ['whoMeta','avatar','logout'].forEach(id => $(id).classList.remove('hidden'));
+  $('wrap').style.display = 'block';
+  return true;
+}
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href = '/staff/'; };
+
+// ── venue switcher ────────────────────────────────────────────────────────
+function buildVenueSwitcher() {
+  const el = $('venueSeg');
+  el.innerHTML = VENUES.map(v => `<button data-slug="${v.slug}" class="${v.slug===venue.slug?'on':''}">${v.name}</button>`).join('');
+  el.querySelectorAll('button').forEach(b => b.onclick = () => {
+    if (b.dataset.slug === venue.slug) return;
+    venue = VENUES.find(v => v.slug === b.dataset.slug);
+    el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.slug===venue.slug));
+    load();
+  });
+}
+
+async function load() {
+  $('error').style.display = 'none';
+  if (cache[venue.slug]) return draw(cache[venue.slug]);
+  $('chartWrap').style.display = 'none';
+  const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading ' + venue.name + '…';
+  try {
+    const { data, error } = await dataClient.rpc('get_actual_vs_forecast', { p_venue: venue.name });
+    if (error) throw new Error(error.message);
+    if (!data || !data.length) throw new Error('No data returned');
+    const rows = data.slice()
+      .filter(r => r.covers_forecast != null || r.covers_actual != null)
+      .sort((a,b) => a.week_ending.localeCompare(b.week_ending))
+      .map(r => ({
+        wk: r.week_ending,
+        fc: r.covers_forecast == null ? null : +r.covers_forecast,
+        ac: r.covers_actual   == null ? null : +r.covers_actual,
+        vp: r.variance_pct    == null ? null : +r.variance_pct,
+        note: r.notes || null,
+      }));
+    cache[venue.slug] = rows;
+    draw(rows);
+  } catch (err) {
+    $('loading').style.display = 'none';
+    const e = $('error'); e.style.display = 'flex'; e.textContent = 'Could not load data: ' + err.message;
+  }
+}
+
+function draw(rows) {
+  $('loading').style.display = 'none';
+  $('chartWrap').style.display = 'block';
+  buildTfBar(rows);
+  renderKpis(rows);
+  render(rows);
+}
+
+// completed weeks = have an actual and ended before the current (partial) week
+function completedRows(rows) {
+  const cur = currentWeekEnding();
+  return rows.filter(r => r.ac != null && parseD(r.wk) < cur);
+}
+
+function renderKpis(rows) {
+  const box = $('kpis');
+  const done = completedRows(rows);
+  if (!done.length) { box.innerHTML = '<div class="kpi"><div class="lab">No completed weeks yet</div></div>'; return; }
+  const latest = done[done.length-1];
+  const dv = (a, f) => (f && f !== 0) ? (a - f) / f * 100 : null;
+  const tag = d => {
+    if (d === null) return '';
+    const cls = Math.abs(d) < 0.5 ? 'flat' : (d > 0 ? 'up' : 'down');
+    return `<span class="delta ${cls}">${d>0?'+':''}${d.toFixed(1)}% vs forecast</span>`;
+  };
+  const fe = fyEndOf(currentWeekEnding());
+  const fyStart = new Date(fe-1, 6, 1);
+  const fyDone = done.filter(r => { const d = parseD(r.wk); return d >= fyStart && r.fc != null; });
+  const sumA = fyDone.reduce((s,r)=>s + r.ac, 0);
+  const sumF = fyDone.reduce((s,r)=>s + r.fc, 0);
+  const fyDelta = dv(sumA, sumF);
+  const latestDelta = dv(latest.ac, latest.fc);
+  box.innerHTML = `
+    <div class="kpi"><div class="lab">Latest week &middot; ${fmtWkY(latest.wk).toUpperCase()}</div>
+      <div class="val">${latest.ac.toLocaleString()}</div>${tag(latestDelta)}
+      <div class="subnote">forecast ${latest.fc!=null?latest.fc.toLocaleString():'–'} covers</div></div>
+    <div class="kpi"><div class="lab">Variance &middot; latest week</div>
+      <div class="val">${latest.fc!=null?(latest.ac-latest.fc>0?'+':'')+(latest.ac-latest.fc).toLocaleString():'–'}</div>
+      <div class="subnote">covers vs forecast</div></div>
+    <div class="kpi"><div class="lab">${fyLabel(fe)} to date &middot; actual</div>
+      <div class="val">${sumA.toLocaleString()}</div>${tag(fyDelta)}
+      <div class="subnote">${fyDone.length} completed week${fyDone.length===1?'':'s'}</div></div>
+    <div class="kpi"><div class="lab">${fyLabel(fe)} to date &middot; forecast</div>
+      <div class="val">${sumF.toLocaleString()}</div><div class="subnote">covers</div></div>`;
+}
+
+function buildTfBar(rows) {
+  const bar = $('tfBar');
+  const fys = [...new Set(rows.map(r => fyEndOf(parseD(r.wk))))].sort((a,b)=>b-a);
+  const opt = (v,l,sel) => `<option value="${v}" ${sel?'selected':''}>${l}</option>`;
+  bar.innerHTML = `
+    <span class="lead">Show</span>
+    <select id="tfSelect">
+      ${opt('todate','Season to date',tf==='todate')}
+      ${opt('l12','Last 12 weeks',tf==='l12')}
+      ${opt('l26','Last 26 weeks',tf==='l26')}
+      ${opt('fytd','Financial year to date',tf==='fytd')}
+      ${opt('ahead','Next 12 weeks (plan)',tf==='ahead')}
+      ${opt('fy','Choose financial year…',tf==='fy')}
+      ${opt('all','All weeks',tf==='all')}
+    </select>
+    <select id="tfFy" style="display:${tf==='fy'?'inline-block':'none'}">${fys.map(f=>opt(f,fyLabel(f),f===tfFy)).join('')}</select>`;
+  $('tfSelect').onchange = e => { tf = e.target.value; if (tf==='fy' && !tfFy) tfFy = fys[0]; buildTfBar(rows); render(rows); };
+  const f = $('tfFy'); if (f) f.onchange = e => { tfFy = +e.target.value; render(rows); };
+}
+let tfFy = null;
+
+function inFrame(rows) {
+  const cur = currentWeekEnding();
+  const ms = 7*24*3600*1000;
+  if (tf === 'l12')  { const lim = new Date(cur - 12*ms); return rows.filter(r => parseD(r.wk) > lim && parseD(r.wk) <= cur); }
+  if (tf === 'l26')  { const lim = new Date(cur - 26*ms); return rows.filter(r => parseD(r.wk) > lim && parseD(r.wk) <= cur); }
+  if (tf === 'todate') return rows.filter(r => parseD(r.wk) <= cur);
+  if (tf === 'ahead') { const hi = new Date(cur.getTime() + 12*ms); return rows.filter(r => parseD(r.wk) > new Date(cur-ms) && parseD(r.wk) <= hi); }
+  if (tf === 'fytd') { const fe = fyEndOf(cur); const s = new Date(fe-1,6,1); return rows.filter(r => { const d=parseD(r.wk); return d>=s && d<=cur; }); }
+  if (tf === 'fy')   { const fe = tfFy || fyEndOf(cur); const s = new Date(fe-1,6,1), e = new Date(fe,5,30); return rows.filter(r => { const d=parseD(r.wk); return d>=s && d<=e; }); }
+  return rows;
+}
+
+function render(rows) {
+  if (chart) { chart.destroy(); chart = null; }
+  const data = inFrame(rows);
+  const labels = data.map(r => fmtWk(r.wk));
+  const ctx = $('chart');
+  if (view === 'weekly')     { $('viewTitle').textContent = 'Weekly covers'; return renderWeekly(ctx, labels, data); }
+  if (view === 'variance')   { $('viewTitle').textContent = 'Weekly variance vs forecast'; return renderVariance(ctx, labels, data); }
+  $('viewTitle').textContent = 'Cumulative covers'; return renderCumulative(ctx, labels, data);
+}
+
+function baseX() { return { ticks:{ maxTicksLimit:16, maxRotation:45, font:{size:11}, color:'#646c68' }, grid:{ display:false } }; }
+function niceMax(v, step) { return Math.max(step, Math.ceil(v*1.12/step)*step); }
+
+function renderWeekly(ctx, labels, data) {
+  const maxv = Math.max(1, ...data.map(r => Math.max(r.fc||0, r.ac||0)));
+  chart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[
+      { type:'bar',  label:'Forecast', data:data.map(r=>r.fc), backgroundColor:cssv('--fc')+'55',
+        borderColor:cssv('--fc'), borderWidth:1, borderRadius:2, maxBarThickness:22, order:2 },
+      { type:'line', label:'Actual', data:data.map(r=>r.ac), borderColor:cssv('--ac'), backgroundColor:cssv('--ac'),
+        borderWidth:2.4, pointRadius:2.4, pointHoverRadius:5, tension:.28, spanGaps:false, order:1 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:tip(data, false) },
+      scales:{ x:baseX(), y:{ min:0, max:niceMax(maxv,100), ticks:{font:{size:11},color:'#646c68'}, grid:{color:'rgba(29,62,59,0.06)'} } } }
+  });
+}
+
+function renderVariance(ctx, labels, data) {
+  const vals = data.map(r => (r.ac!=null && r.fc!=null && r.fc!==0) ? r.vp : null);
+  chart = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Variance %', data:vals,
+      backgroundColor:vals.map(v => v==null ? '#ccc' : (v>=0 ? cssv('--ok') : cssv('--err'))),
+      borderRadius:2, maxBarThickness:22 }] },
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
+        callbacks:{ title:i=>i[0].label, label:i => '  ' + (i.parsed.y>0?'+':'') + i.parsed.y.toFixed(1) + '% vs forecast' } } },
+      scales:{ x:baseX(), y:{ ticks:{ callback:v=>(v>0?'+':'')+v+'%', font:{size:11}, color:'#646c68' }, grid:{color:'rgba(29,62,59,0.06)'} } } }
+  });
+}
+
+function renderCumulative(ctx, labels, data) {
+  let ca = 0, cf = 0; const aArr = [], fArr = [];
+  data.forEach(r => {
+    if (r.ac != null) { ca += r.ac; aArr.push(ca); } else { aArr.push(null); }
+    if (r.fc != null) { cf += r.fc; fArr.push(cf); } else { fArr.push(fArr.length ? fArr[fArr.length-1] : null); }
+  });
+  const maxv = Math.max(1, ca, cf);
+  chart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets:[
+      { label:'Forecast', data:fArr, borderColor:cssv('--fc'), backgroundColor:cssv('--fc')+'18',
+        borderWidth:2, borderDash:[5,4], pointRadius:0, pointHoverRadius:4, tension:.2, fill:true, order:2 },
+      { label:'Actual', data:aArr, borderColor:cssv('--ac'), backgroundColor:cssv('--ac')+'14',
+        borderWidth:2.4, pointRadius:0, pointHoverRadius:4, tension:.2, spanGaps:false, fill:true, order:1 },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
+      plugins:{ legend:{display:false}, tooltip:tip(data, true) },
+      scales:{ x:baseX(), y:{ min:0, max:niceMax(maxv,500), ticks:{font:{size:11},color:'#646c68',callback:v=>v.toLocaleString()}, grid:{color:'rgba(29,62,59,0.06)'} } } }
+  });
+}
+
+function tip(data, cumulative) {
+  return { backgroundColor:'rgba(29,62,59,0.94)', titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12},
+    padding:11, cornerRadius:8, usePointStyle:true,
+    callbacks:{
+      title: items => { const r = data[items[0].dataIndex]; return 'Week ending ' + fmtWkY(r.wk); },
+      label: item => { const v = item.parsed.y; return v==null ? '  ' + item.dataset.label + ': n/a'
+        : '  ' + item.dataset.label + ': ' + Math.round(v).toLocaleString() + ' covers'; },
+      afterBody: items => {
+        const r = data[items[0].dataIndex]; const out = [];
+        if (!cumulative && r.ac!=null && r.fc!=null && r.fc!==0)
+          out.push('  Variance: ' + (r.vp>0?'+':'') + r.vp.toFixed(1) + '%');
+        if (r.note) out.push('  ' + r.note);
+        return out;
+      }
+    } };
+}
+
+$('seg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('seg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); view = b.dataset.view; render(cache[venue.slug]);
+});
+
+$('footnote').textContent =
+  'Actual covers = guests on completed SevenRooms reservations, bucketed to the trading week (Monday–Sunday). Forecast covers come from the Liquid & Larder Forecast sheet and are synced daily. The current (in-progress) week has no actual yet. Walk-ins not entered as reservations are not counted.';
+
+(async () => { if (await gate()) { buildVenueSwitcher(); load(); } })();
+</script>
+</body>
+</html>
