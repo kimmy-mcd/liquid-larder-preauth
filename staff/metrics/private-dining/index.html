@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Private Dining Rooms — Company Metrics · Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=3">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { --page-w:1144px; --barA:#1d3e3b; --barB:#42704a; --barC:#3e6a8a; --barD:#b08968; --barE:#a44e33; --barF:#9a8f7a; }
+  .hidden { display:none; }
+  .who { display:flex; align-items:center; gap:12px; }
+  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
+    padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+  .who .back:hover { background:#eae2cf; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
+    color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .who .meta { text-align:right; line-height:1.35; }
+  .who .meta .n { font-size:12.5px; font-weight:600; }
+  .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
+  @media (max-width:700px) { .who .meta { display:none; } }
+
+  .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; max-width:640px; }
+
+  .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:24px; }
+  .seg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; }
+  .seg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif;
+    font-weight:600; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; padding:9px 16px;
+    border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
+  .seg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+  .tfbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .tfbar .lead { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-right:2px; }
+  .tfbar select, .tfbar input[type=date] { width:auto; padding:9px 13px; border-radius:999px; font-size:12.5px; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:26px; }
+  .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
+  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgba(220,209,192,0)); }
+  .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
+  .kpi .val .u { font-size:17px; color:var(--dim); font-family:'Montserrat',sans-serif; margin-left:2px; }
+  .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:9px; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  @media (max-width:900px) { .grid2 { grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px; }
+  .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:20px; }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .panelHead .sub { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
+
+  .rooms { display:flex; flex-direction:column; gap:14px; }
+  .room { display:grid; grid-template-columns:1fr; gap:6px; }
+  .room .top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .room .nm { font-size:12.5px; font-weight:600; color:var(--ink); }
+  .room .ct { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .room .ct b { color:var(--green); font-weight:600; font-size:13px; }
+  .track { height:8px; background:#f0ece3; border-radius:999px; overflow:hidden; }
+  .track > span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--green-hi),var(--green)); }
+
+  .dow { display:grid; grid-template-columns:repeat(7,1fr); gap:12px; }
+  .dow .col { text-align:center; }
+  .dow .n { font-size:12.5px; font-weight:600; color:var(--green); margin-bottom:7px; font-variant-numeric:tabular-nums; }
+  .dow .barbox { height:150px; display:flex; align-items:flex-end; }
+  .dow .bar { width:100%; background:linear-gradient(180deg,var(--green-hi),var(--green)); border-radius:6px 6px 0 0; min-height:3px; transition:height .2s; }
+  .dow .col.weekend .bar { background:linear-gradient(180deg,var(--barD),#9a7350); }
+  .dow .d { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-top:9px; }
+
+  table.guests { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.guests th { text-align:left; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding:0 10px 11px; border-bottom:1px solid var(--hairline); }
+  table.guests th.num, table.guests td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  table.guests td { padding:11px 10px; border-bottom:1px solid #f0ece3; vertical-align:top; }
+  table.guests tr:last-child td { border-bottom:none; }
+  table.guests .rk { color:var(--dim); font-variant-numeric:tabular-nums; width:22px; }
+  table.guests .gn { font-weight:600; color:var(--ink); }
+  table.guests .gc { font-size:10.5px; color:var(--dim); margin-top:2px; }
+  table.guests td.num b { color:var(--green); font-weight:600; }
+
+  .loading, .error { display:flex; align-items:center; justify-content:center; min-height:180px; font-size:13.5px; color:var(--dim); }
+  .error { color:var(--err); }
+  .footnote { font-size:11px; color:var(--dim); margin-top:22px; line-height:1.7; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Company metrics</div></div>
+    <div class="who">
+      <a class="back" href="/staff/">&larr; Hub</a>
+      <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <div class="avatar hidden" id="avatar"></div>
+      <button class="ghost hidden" id="logout">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="wrap" style="display:none;">
+  <div class="pageHead">
+    <div>
+      <h2>Private dining rooms</h2>
+      <p>Group-wide private dining across The Gidley, Bistecca and Alfie&rsquo;s &middot; live from the reporting database</p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="tfbar" id="tfBar">
+      <span class="lead">Period</span>
+      <select id="tfSelect">
+        <option value="tmonth">This month</option>
+        <option value="lmonth">Last month</option>
+        <option value="tquarter">This quarter</option>
+        <option value="lquarter">Last quarter</option>
+        <option value="tfy" selected>This financial year</option>
+        <option value="lfy">Last financial year</option>
+        <option value="all">All time</option>
+        <option value="custom">Choose date range…</option>
+      </select>
+      <input type="date" id="tfFrom" style="display:none;">
+      <input type="date" id="tfTo" style="display:none;">
+    </div>
+    <div class="seg" id="statusSeg">
+      <button data-b="total" class="on">Total</button>
+      <button data-b="completed">Completed</button>
+      <button data-b="upcoming">Confirmed + upcoming</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">Loading…</div>
+  <div id="error" class="error" style="display:none;"></div>
+
+  <div id="content" style="display:none;">
+    <div class="kpis" id="kpis"></div>
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panelHead"><div class="t">Bookings by day of the week</div><div class="sub" id="dowSub"></div></div>
+      <div class="dow" id="dow"></div>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <div class="panelHead"><div class="t">Bookings by room</div><div class="sub" id="roomsSub"></div></div>
+        <div class="rooms" id="rooms"></div>
+      </div>
+      <div class="panel">
+        <div class="panelHead"><div class="t">Guests with the most bookings</div><div class="sub" id="guestsSub"></div></div>
+        <table class="guests"><thead>
+          <tr><th class="rk"></th><th>Guest</th><th class="num">Bookings</th><th class="num">Covers</th><th class="num">Last booking</th></tr>
+        </thead><tbody id="guestsBody"></tbody></table>
+      </div>
+    </div>
+    <p class="footnote" id="footnote"></p>
+  </div>
+</div>
+
+<script>
+// ── auth (accounts project) ───────────────────────────────────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const authSb = supabase.createClient(AUTH_URL, AUTH_ANON);
+
+// ── data (reporting project) ──────────────────────────────────────────────
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
+const $ = id => document.getElementById(id);
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtDate = s => { if(!s) return '–'; const [y,m,d]=s.split('-'); return `${+d} ${MONTHS[+m-1]} ${y.slice(2)}`; };
+const num = n => (n==null?0:+n).toLocaleString();
+
+let statusBucket = 'total', current = null;
+
+// ── period ranges (Australian financial year, Jul–Jun) ────────────────────
+function range(kind) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth(); // m 0-indexed
+  const fyStart = m >= 6 ? y : y-1; // FY starts July
+  const first = (yy,mm) => new Date(yy,mm,1);
+  const last  = (yy,mm) => new Date(yy,mm+1,0);
+  switch (kind) {
+    case 'tmonth':   return { start:iso(first(y,m)),          end:iso(last(y,m)),          label:`${MONTHS[m]} ${y}` };
+    case 'lmonth':   { const d=first(y,m-1); return { start:iso(first(d.getFullYear(),d.getMonth())), end:iso(last(d.getFullYear(),d.getMonth())), label:`${MONTHS[d.getMonth()]} ${d.getFullYear()}` }; }
+    case 'tquarter': { const q=Math.floor(m/3)*3; return { start:iso(first(y,q)), end:iso(last(y,q+2)), label:`Q${q/3+1} ${y}` }; }
+    case 'lquarter': { let q=Math.floor(m/3)*3-3, yy=y; if(q<0){q+=12;yy--;} return { start:iso(first(yy,q)), end:iso(last(yy,q+2)), label:`Q${q/3+1} ${yy}` }; }
+    case 'tfy':      return { start:`${fyStart}-07-01`,   end:`${fyStart+1}-06-30`, label:`FY${String(fyStart).slice(2)}/${String(fyStart+1).slice(2)}` };
+    case 'lfy':      return { start:`${fyStart-1}-07-01`, end:`${fyStart}-06-30`,   label:`FY${String(fyStart-1).slice(2)}/${String(fyStart).slice(2)}` };
+    case 'custom':   { const f=$('tfFrom').value, t=$('tfTo').value; return { start:f||null, end:t||null, label:(f?fmtDate(f):'start')+' – '+(t?fmtDate(t):'today'), custom:true }; }
+    default:         return { start:null, end:null, label:'All time' };
+  }
+}
+
+// ── login gate ────────────────────────────────────────────────────────────
+async function gate() {
+  const { data:{ session } } = await authSb.auth.getSession();
+  if (!session) { location.replace('/staff/'); return false; }
+  const { data:{ user } } = await authSb.auth.getUser();
+  const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) { location.replace('/staff/'); return false; }
+  const name = profile.full_name || profile.email;
+  $('whoName').textContent = name;
+  $('whoRole').textContent = profile.role;
+  $('avatar').textContent = (name.match(/\b[a-zA-Z]/g) || [name[0] || '?']).slice(0,2).join('').toUpperCase();
+  ['whoMeta','avatar','logout'].forEach(id => $(id).classList.remove('hidden'));
+  $('wrap').style.display = 'block';
+  return true;
+}
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href = '/staff/'; };
+
+// ── load ──────────────────────────────────────────────────────────────────
+async function load() {
+  const kind = $('tfSelect').value;
+  const r = range(kind);
+  $('error').style.display = 'none';
+  $('content').style.display = 'none';
+  const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading…';
+  try {
+    const { data, error } = await dataClient.rpc('get_pdr_metrics', { p_start:r.start, p_end:r.end });
+    if (error) throw new Error(error.message);
+    current = { data, range:r };
+    L.style.display = 'none';
+    $('content').style.display = 'block';
+    render();
+  } catch (err) {
+    L.style.display = 'none';
+    const e = $('error'); e.style.display = 'flex'; e.textContent = 'Could not load data: ' + err.message;
+  }
+}
+
+function render() {
+  if (!current) return;
+  const { data, range:r } = current;
+  const s = data.summary[statusBucket] || { bookings:0, covers:0, avg_days_advance:null };
+  const avgParty = s.bookings ? (s.covers / s.bookings) : null;
+  const adv = s.avg_days_advance;
+
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="lab">Total bookings</div>
+      <div class="val">${num(s.bookings)}</div><div class="subnote">${r.label}</div></div>
+    <div class="kpi"><div class="lab">Days booked in advance</div>
+      <div class="val">${adv==null?'–':(+adv).toFixed(1)}<span class="u">days avg</span></div><div class="subnote">from booking made to event date</div></div>
+    <div class="kpi"><div class="lab">Total covers</div>
+      <div class="val">${num(s.covers)}</div><div class="subnote">${avgParty==null?'':'avg party '+avgParty.toFixed(1)}</div></div>
+    <div class="kpi"><div class="lab">Booking status</div>
+      <div class="val" style="font-size:24px;line-height:1.2;padding-top:6px;">${statusLabel(statusBucket)}</div>
+      <div class="subnote">${statusHint(statusBucket)}</div></div>`;
+
+  // by day of week
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const wk = (data.by_weekday || []).slice().sort((a,b)=>a.isodow-b.isodow)
+    .map(x => ({ isodow:x.isodow, n: statusBucket==='completed' ? x.completed : statusBucket==='upcoming' ? x.upcoming : x.total }));
+  const wkTotal = wk.reduce((s,x)=>s+x.n,0);
+  const wkMax = Math.max(1, ...wk.map(x=>x.n));
+  const busiest = wkTotal ? wk.slice().sort((a,b)=>b.n-a.n)[0] : null;
+  $('dowSub').textContent = busiest ? `Busiest: ${DOW[busiest.isodow-1]}` : '';
+  $('dow').innerHTML = wk.map(x => `
+    <div class="col ${x.isodow>=6?'weekend':''}">
+      <div class="n">${num(x.n)}</div>
+      <div class="barbox"><div class="bar" style="height:${wkTotal? Math.max(2, x.n/wkMax*100):0}%"></div></div>
+      <div class="d">${DOW[x.isodow-1]}</div>
+    </div>`).join('');
+
+  // rooms
+  const rooms = (data.by_room || []).map(x => ({
+    room:x.room,
+    n: statusBucket==='completed' ? x.completed : statusBucket==='upcoming' ? x.upcoming : x.bookings,
+    covers:x.covers
+  })).filter(x => x.n > 0).sort((a,b)=>b.n-a.n);
+  const maxN = Math.max(1, ...rooms.map(x=>x.n));
+  $('roomsSub').textContent = rooms.length ? rooms.length + ' room' + (rooms.length>1?'s':'') : '';
+  $('rooms').innerHTML = rooms.length ? rooms.map(x => `
+    <div class="room"><div class="top"><span class="nm">${esc(x.room)}</span>
+      <span class="ct"><b>${num(x.n)}</b> bookings</span></div>
+      <div class="track"><span style="width:${Math.max(3, x.n/maxN*100)}%"></span></div></div>`).join('')
+    : '<div style="color:var(--dim);font-size:12.5px;">No bookings in this period.</div>';
+
+  // guests
+  const guests = (data.top_guests || []).map(g => ({
+    ...g, n: statusBucket==='completed' ? g.completed : statusBucket==='upcoming' ? g.upcoming : g.total
+  })).filter(g => g.n > 0).sort((a,b)=> b.n-a.n || b.covers-a.covers).slice(0,15);
+  $('guestsSub').textContent = 'Ranked by bookings';
+  $('guestsBody').innerHTML = guests.length ? guests.map((g,i) => `
+    <tr><td class="rk">${i+1}</td>
+      <td><div class="gn">${esc(g.name||'(no name)')}</div>
+          <div class="gc">${esc(g.email||g.phone||'')}</div></td>
+      <td class="num"><b>${num(g.n)}</b></td>
+      <td class="num">${num(g.covers)}</td>
+      <td class="num">${fmtDate(g.last_date)}</td></tr>`).join('')
+    : '<tr><td colspan="5" style="color:var(--dim);padding:16px 10px;">No bookings in this period.</td></tr>';
+
+  $('footnote').textContent =
+    'Private dining rooms: The Gidley — Wine Room, Norfolk Room, Library; Bistecca — Wine Room, Cappelletti Room; ' +
+    'Alfie’s — Communal Table (counted only for parties of 8+, i.e. a whole-table booking). ' +
+    'Completed = reservations marked complete. Confirmed + upcoming = future reservations still on the books (excludes cancellations and no-shows). ' +
+    'Total = completed plus confirmed + upcoming. Days booked in advance = calendar days from when the booking was created to the event date (averaged over bookings with a valid lead time). ' +
+    'Periods filter on the event date; financial year runs July–June. All figures group across the three venues.';
+}
+
+function statusLabel(b){ return b==='completed'?'Completed':b==='upcoming'?'Confirmed + upcoming':'Total'; }
+function statusHint(b){ return b==='completed'?'reservations that took place':b==='upcoming'?'future bookings on the books':'completed + upcoming combined'; }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ── controls ──────────────────────────────────────────────────────────────
+$('tfSelect').onchange = e => {
+  const custom = e.target.value === 'custom';
+  $('tfFrom').style.display = custom ? 'inline-block' : 'none';
+  $('tfTo').style.display   = custom ? 'inline-block' : 'none';
+  if (!custom) load();
+  else if ($('tfFrom').value || $('tfTo').value) load();
+};
+$('tfFrom').onchange = () => load();
+$('tfTo').onchange = () => load();
+$('statusSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
+  $('statusSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); statusBucket = b.dataset.b; render();
+});
+
+(async () => { if (await gate()) load(); })();
+</script>
+</body>
+</html>
