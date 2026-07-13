@@ -282,18 +282,24 @@ function weeklyIn(win) { return cache[venue.slug].weekly.filter(r => { const d =
 function dailyIn(win)  { return cache[venue.slug].daily.filter(r => { const d = parseD(r.day); return d >= win.start && d <= win.end; }); }
 function dayList(win)  { const out = []; for (let d = new Date(win.start); d <= win.end; d = addDays(d,1)) out.push(new Date(d)); return out; }
 
-// ── KPIs ────────────────────────────────────────────────────────────
+// ── KPIs ───────────────────────────────────────────────────────────
 function renderKpis(win) {
   const box = $('kpis');
-  const dRows = dailyIn(win);
+  const cap = today();
+  const dm = Object.fromEntries(dailyIn(win).map(r => [r.day, r.ac]));
   const wRows = weeklyIn(win);
-  const dayMap = Object.fromEntries(dRows.map(r => [r.day, r.ac]));
-  const actual = dRows.reduce((s,r)=>s + r.ac, 0);
-  const forecast = wRows.filter(r=>r.fc!=null).reduce((s,r)=>s + r.fc, 0);
-  const dv = (forecast && forecast!==0) ? (actual-forecast)/forecast*100 : null;
-  const tradingDays = dRows.filter(r => r.ac > 0).length;
+  const fcByWeekEnd = {};
+  cache[venue.slug].weekly.forEach(r => { if (r.fc != null) fcByWeekEnd[r.wk] = r.fc; });
+  const weekEndIso = d => isoD(addDays(mondayOf(d), 6));
+  const elapsed = dayList(win).filter(d => d <= cap);
+  let forecast = 0, havePace = false;
+  elapsed.forEach(d => { const fe = fcByWeekEnd[weekEndIso(d)]; if (fe != null) { forecast += fe/7; havePace = true; } });
+  forecast = Math.round(forecast);
+  const actual = elapsed.reduce((s,d) => s + (dm[isoD(d)] || 0), 0);
+  const dv = (havePace && forecast !== 0) ? (actual-forecast)/forecast*100 : null;
+  const tradingDays = elapsed.filter(d => (dm[isoD(d)] || 0) > 0).length;
   const avg = tradingDays ? Math.round(actual/tradingDays) : null;
-  let busy = null; dRows.forEach(r => { if (r.ac > 0 && (!busy || r.ac > busy.ac)) busy = r; });
+  let busy = null; elapsed.forEach(d => { const v = dm[isoD(d)] || 0; if (v > 0 && (!busy || v > busy.ac)) busy = { day:isoD(d), ac:v }; });
   const partial = period === 'thisweek' || period === 'thisquarter' || period === 'thisfy';
   const tag = d => {
     if (d === null) return '';
@@ -306,7 +312,7 @@ function renderKpis(win) {
       <div class="subnote">${partial?'period in progress':'&nbsp;'}</div></div>
     <div class="kpi"><div class="lab">${win.label} &middot; forecast covers</div>
       <div class="val">${forecast?forecast.toLocaleString():'–'}</div>
-      <div class="subnote">${wRows.filter(r=>r.fc!=null).length} week${wRows.filter(r=>r.fc!=null).length===1?'':'s'} forecast</div></div>
+      <div class="subnote">${partial?'to date':'full period'}</div></div>
     <div class="kpi"><div class="lab">Avg covers / trading day</div>
       <div class="val">${avg!=null?avg.toLocaleString():'–'}</div>
       <div class="subnote">${tradingDays} trading day${tradingDays===1?'':'s'}</div></div>
@@ -433,7 +439,7 @@ function cumTip(days) {
 }
 
 $('footnote').textContent =
-  'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Current periods are still in progress. Walk-ins not entered as reservations are not counted.';
+  'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). KPIs compare like-for-like to date. "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Walk-ins not entered as reservations are not counted.';
 
 (async () => { if (await gate()) { buildVenueSwitcher(); load(); } })();
 </script>
