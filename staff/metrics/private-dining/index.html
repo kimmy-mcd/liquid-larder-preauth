@@ -83,6 +83,35 @@
   table.guests .gn { font-weight:600; color:var(--ink); }
   table.guests .gc { font-size:10.5px; color:var(--dim); margin-top:2px; }
   table.guests td.num b { color:var(--green); font-weight:600; }
+  table.roomstbl td:first-child { font-weight:600; color:var(--ink); }
+  table.roomstbl tr.tot td { border-top:2px solid var(--hairline); border-bottom:none; font-weight:600; color:var(--green); padding-top:13px; }
+  table.roomstbl tr.tot td:first-child { color:var(--dim); font-size:9px; letter-spacing:.13em; text-transform:uppercase; }
+
+  table.roomstbl tbody tr.clk { cursor:pointer; }
+  table.roomstbl tbody tr.clk:hover td { background:#fbfaf7; }
+  table.roomstbl tbody tr.clk td:first-child { color:var(--green); }
+  table.roomstbl tbody tr.clk td:first-child::after { content:' ›'; color:var(--dim); font-weight:400; }
+
+  .modal { position:fixed; inset:0; background:rgba(29,62,59,.30); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
+  .modalCard { background:var(--card); border-radius:var(--r-card); box-shadow:0 14px 44px rgba(0,0,0,.22); width:100%; max-width:860px; padding:24px 26px; }
+  .modalHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
+  .modalHead .mt { font-family:'Gilda Display',serif; font-size:21px; color:var(--green); }
+  .modalHead .ms { font-size:11.5px; color:var(--dim); margin-top:5px; }
+  .modalHead button { border:none; background:var(--sand-soft); width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:17px; line-height:1; color:var(--dim); flex:none; }
+  .modalHead button:hover { background:#eae2cf; }
+  .mScroll { max-height:64vh; overflow:auto; }
+  table.bk { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.bk th { text-align:left; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600;
+    padding:0 10px 11px; border-bottom:1px solid var(--hairline); position:sticky; top:0; background:var(--card); }
+  table.bk th.num, table.bk td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  table.bk td { padding:10px; border-bottom:1px solid #f0ece3; vertical-align:top; }
+  table.bk tr:last-child td { border-bottom:none; }
+  table.bk .bn { font-weight:600; color:var(--ink); }
+  table.bk .bc { font-size:10.5px; color:var(--dim); margin-top:2px; }
+  table.bk td.num b { color:var(--green); font-weight:600; }
+  .pill { display:inline-block; font-size:9px; letter-spacing:.07em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:999px; }
+  .pill.completed { background:rgba(66,112,74,.12); color:var(--ok); }
+  .pill.upcoming { background:rgba(62,106,138,.14); color:#3e6a8a; }
 
   .loading, .error { display:flex; align-items:center; justify-content:center; min-height:180px; font-size:13.5px; color:var(--dim); }
   .error { color:var(--err); }
@@ -139,22 +168,32 @@
   <div id="content" style="display:none;">
     <div class="kpis" id="kpis"></div>
     <div class="panel" style="margin-bottom:20px;">
+      <div class="panelHead"><div class="t">Breakdown by room</div><div class="sub" id="roomsSub"></div></div>
+      <table class="guests roomstbl"><thead>
+        <tr><th>Room</th><th class="num">Bookings</th><th class="num">Days ahead</th><th class="num">Covers</th><th class="num">Avg party</th></tr>
+      </thead><tbody id="roomsBody"></tbody></table>
+    </div>
+    <div class="panel" style="margin-bottom:20px;">
       <div class="panelHead"><div class="t">Bookings by day of the week</div><div class="sub" id="dowSub"></div></div>
       <div class="dow" id="dow"></div>
     </div>
-    <div class="grid2">
-      <div class="panel">
-        <div class="panelHead"><div class="t">Bookings by room</div><div class="sub" id="roomsSub"></div></div>
-        <div class="rooms" id="rooms"></div>
-      </div>
-      <div class="panel">
-        <div class="panelHead"><div class="t">Guests with the most bookings</div><div class="sub" id="guestsSub"></div></div>
-        <table class="guests"><thead>
-          <tr><th class="rk"></th><th>Guest</th><th class="num">Bookings</th><th class="num">Covers</th><th class="num">Last booking</th></tr>
-        </thead><tbody id="guestsBody"></tbody></table>
-      </div>
+    <div class="panel">
+      <div class="panelHead"><div class="t">Guests with the most bookings</div><div class="sub" id="guestsSub"></div></div>
+      <table class="guests"><thead>
+        <tr><th class="rk"></th><th>Guest</th><th class="num">Bookings</th><th class="num">Covers</th><th class="num">Last booking</th></tr>
+      </thead><tbody id="guestsBody"></tbody></table>
     </div>
     <p class="footnote" id="footnote"></p>
+  </div>
+</div>
+
+<div class="modal" id="roomModal" style="display:none;">
+  <div class="modalCard">
+    <div class="modalHead">
+      <div><div class="mt" id="mTitle"></div><div class="ms" id="mSub"></div></div>
+      <button id="mClose" aria-label="Close">&times;</button>
+    </div>
+    <div id="mBody"></div>
   </div>
 </div>
 
@@ -178,19 +217,27 @@ const num = n => (n==null?0:+n).toLocaleString();
 
 let statusBucket = 'total', current = null;
 
-// ── period ranges (Australian financial year, Jul–Jun) ────────────────────
+// ── period ranges (Australian financial year, Jul–Jun; quarters FY-aligned: Q1 Jul–Sep) ──
+const fyLbl = fyStart => `FY${String(fyStart).slice(2)}/${String(fyStart+1).slice(2)}`;
+function fyQuarter(fyStart, qIdx) { // qIdx 0=Q1(Jul–Sep) … 3=Q4(Apr–Jun)
+  const sAbs = 6 + qIdx*3;
+  const start = new Date(fyStart + Math.floor(sAbs/12), sAbs%12, 1);
+  const end   = new Date(start.getFullYear(), start.getMonth()+3, 0);
+  return { start:iso(start), end:iso(end), label:`Q${qIdx+1} ${fyLbl(fyStart)}` };
+}
 function range(kind) {
   const now = new Date(), y = now.getFullYear(), m = now.getMonth(); // m 0-indexed
   const fyStart = m >= 6 ? y : y-1; // FY starts July
+  const qIdxNow = Math.floor((((m-6)+12)%12)/3); // FY-aligned quarter index of today
   const first = (yy,mm) => new Date(yy,mm,1);
   const last  = (yy,mm) => new Date(yy,mm+1,0);
   switch (kind) {
     case 'tmonth':   return { start:iso(first(y,m)),          end:iso(last(y,m)),          label:`${MONTHS[m]} ${y}` };
     case 'lmonth':   { const d=first(y,m-1); return { start:iso(first(d.getFullYear(),d.getMonth())), end:iso(last(d.getFullYear(),d.getMonth())), label:`${MONTHS[d.getMonth()]} ${d.getFullYear()}` }; }
-    case 'tquarter': { const q=Math.floor(m/3)*3; return { start:iso(first(y,q)), end:iso(last(y,q+2)), label:`Q${q/3+1} ${y}` }; }
-    case 'lquarter': { let q=Math.floor(m/3)*3-3, yy=y; if(q<0){q+=12;yy--;} return { start:iso(first(yy,q)), end:iso(last(yy,q+2)), label:`Q${q/3+1} ${yy}` }; }
-    case 'tfy':      return { start:`${fyStart}-07-01`,   end:`${fyStart+1}-06-30`, label:`FY${String(fyStart).slice(2)}/${String(fyStart+1).slice(2)}` };
-    case 'lfy':      return { start:`${fyStart-1}-07-01`, end:`${fyStart}-06-30`,   label:`FY${String(fyStart-1).slice(2)}/${String(fyStart).slice(2)}` };
+    case 'tquarter': return fyQuarter(fyStart, qIdxNow);
+    case 'lquarter': { let qi=qIdxNow-1, fy=fyStart; if(qi<0){qi=3;fy=fyStart-1;} return fyQuarter(fy, qi); }
+    case 'tfy':      return { start:`${fyStart}-07-01`,   end:`${fyStart+1}-06-30`, label:fyLbl(fyStart) };
+    case 'lfy':      return { start:`${fyStart-1}-07-01`, end:`${fyStart}-06-30`,   label:fyLbl(fyStart-1) };
     case 'custom':   { const f=$('tfFrom').value, t=$('tfTo').value; return { start:f||null, end:t||null, label:(f?fmtDate(f):'start')+' – '+(t?fmtDate(t):'today'), custom:true }; }
     default:         return { start:null, end:null, label:'All time' };
   }
@@ -266,29 +313,31 @@ function render() {
       <div class="d">${DOW[x.isodow-1]}</div>
     </div>`).join('');
 
-  // rooms — full detail per individual private room
-  const rooms = (data.by_room || []).map(x => ({
-    room:x.room,
-    n: statusBucket==='completed' ? x.completed : statusBucket==='upcoming' ? x.upcoming : x.bookings,
-    bookings:x.bookings, completed:x.completed, upcoming:x.upcoming,
-    covers:x.covers, adv:x.avg_days_advance
-  })).filter(x => x.n > 0).sort((a,b)=>b.n-a.n);
-  const maxN = Math.max(1, ...rooms.map(x=>x.n));
-  $('roomsSub').textContent = rooms.length ? rooms.length + ' room' + (rooms.length>1?'s':'') : '';
-  $('rooms').innerHTML = rooms.length ? rooms.map(x => {
-    const party = x.bookings ? (x.covers/x.bookings) : null;
-    const meta = [
-      num(x.covers) + ' covers',
-      party!=null ? 'avg party ' + party.toFixed(1) : null,
-      x.adv!=null ? 'books ' + (+x.adv).toFixed(0) + ' days ahead' : null,
-      (statusBucket==='total' && x.upcoming>0) ? x.completed+' done · '+x.upcoming+' upcoming' : null
-    ].filter(Boolean).join(' · ');
-    return `<div class="room"><div class="top"><span class="nm">${esc(x.room)}</span>
-      <span class="ct"><b>${num(x.n)}</b> bookings</span></div>
-      <div class="track"><span style="width:${Math.max(3, x.n/maxN*100)}%"></span></div>
-      <div class="rmeta">${meta}</div></div>`;
-  }).join('')
-    : '<div style="color:var(--dim);font-size:12.5px;">No bookings in this period.</div>';
+  // rooms — full metric breakdown per individual private room (status-aware, same metrics as the KPI cards)
+  const pickRoom = x => ({
+    room: x.room,
+    n:      statusBucket==='completed' ? x.completed        : statusBucket==='upcoming' ? x.upcoming        : x.bookings,
+    covers: statusBucket==='completed' ? x.covers_completed : statusBucket==='upcoming' ? x.covers_upcoming : x.covers,
+    adv:    statusBucket==='completed' ? x.avg_days_completed : statusBucket==='upcoming' ? x.avg_days_upcoming : x.avg_days_advance
+  });
+  const rooms = (data.by_room || []).map(pickRoom).filter(x => x.n > 0).sort((a,b)=>b.n-a.n);
+  $('roomsSub').textContent = rooms.length ? rooms.length + ' room' + (rooms.length>1?'s':'') + ' · ' + statusLabel(statusBucket).toLowerCase() + ' · click a room for its bookings' : '';
+  const cell = (x) => {
+    const party = x.n ? (x.covers/x.n) : null;
+    return `<tr class="clk" data-room="${esc(x.room)}"><td>${esc(x.room)}</td>
+      <td class="num"><b>${num(x.n)}</b></td>
+      <td class="num">${x.adv==null?'–':(+x.adv).toFixed(1)}</td>
+      <td class="num">${num(x.covers)}</td>
+      <td class="num">${party==null?'–':party.toFixed(1)}</td></tr>`;
+  };
+  if (rooms.length) {
+    const tB = rooms.reduce((s,x)=>s+x.n,0), tC = rooms.reduce((s,x)=>s+x.covers,0);
+    const totParty = tB ? (tC/tB) : null;
+    $('roomsBody').innerHTML = rooms.map(cell).join('') +
+      `<tr class="tot"><td>All rooms</td><td class="num"><b>${num(tB)}</b></td><td class="num">${s.avg_days_advance==null?'–':(+s.avg_days_advance).toFixed(1)}</td><td class="num">${num(tC)}</td><td class="num">${totParty==null?'–':totParty.toFixed(1)}</td></tr>`;
+  } else {
+    $('roomsBody').innerHTML = '<tr><td colspan="5" style="color:var(--dim);padding:16px 10px;">No bookings in this period.</td></tr>';
+  }
 
   // guests
   const guests = (data.top_guests || []).map(g => ({
@@ -330,6 +379,52 @@ $('statusSeg').querySelectorAll('button').forEach(b => b.onclick = () => {
   $('statusSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); statusBucket = b.dataset.b; render();
 });
+
+// ── room drill-down (individual bookings) ─────────────────────────────────
+async function openRoom(room) {
+  if (!current) return;
+  const r = current.range;
+  $('mTitle').textContent = room;
+  $('mSub').textContent = 'Loading…';
+  $('mBody').innerHTML = '<div class="loading">Loading…</div>';
+  $('roomModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  try {
+    const { data, error } = await dataClient.rpc('get_pdr_room_bookings',
+      { p_room:room, p_start:r.start, p_end:r.end, p_status:statusBucket });
+    if (error) throw new Error(error.message);
+    renderBookings(room, data, r);
+  } catch (err) {
+    $('mSub').textContent = '';
+    $('mBody').innerHTML = '<div class="error" style="min-height:120px;">Could not load bookings: ' + esc(err.message) + '</div>';
+  }
+}
+function renderBookings(room, data, r) {
+  const bk = data.bookings || [];
+  const cnt = data.count || bk.length;
+  const covers = bk.reduce((s,x)=>s + (+x.covers||0), 0);
+  const leads = bk.filter(x=>x.lead_days!=null).map(x=>+x.lead_days);
+  const avgLead = leads.length ? leads.reduce((s,x)=>s+x,0)/leads.length : null;
+  $('mSub').textContent = `${statusLabel(statusBucket)} · ${r.label} · ${num(cnt)} booking${cnt===1?'':'s'}`
+    + (covers ? ` · ${num(covers)} covers` : '')
+    + (avgLead!=null ? ` · avg ${avgLead.toFixed(1)} days ahead` : '')
+    + (cnt>1000 ? ' · showing first 1000' : '');
+  $('mBody').innerHTML = bk.length ? `<div class="mScroll"><table class="bk"><thead>
+    <tr><th>Date</th><th>Guest</th><th class="num">People</th><th class="num">Booked ahead</th><th>Status</th></tr>
+    </thead><tbody>${bk.map(x => `<tr>
+      <td>${fmtDate(x.date)}${x.time?` <span class="bc">${esc(x.time)}</span>`:''}</td>
+      <td><div class="bn">${esc(x.name||'(no name)')}</div><div class="bc">${esc(x.email||x.phone||'')}</div></td>
+      <td class="num"><b>${num(x.covers)}</b></td>
+      <td class="num">${x.lead_days==null?'–':num(x.lead_days)+' day'+(x.lead_days===1?'':'s')}</td>
+      <td><span class="pill ${x.bucket}">${x.bucket==='completed'?'Completed':'Upcoming'}</span></td>
+    </tr>`).join('')}</tbody></table></div>`
+    : '<div class="loading" style="min-height:120px;">No bookings in this period.</div>';
+}
+function closeModal(){ $('roomModal').style.display='none'; document.body.style.overflow=''; }
+$('roomsBody').addEventListener('click', e => { const tr = e.target.closest('tr[data-room]'); if (tr) openRoom(tr.dataset.room); });
+$('mClose').onclick = closeModal;
+$('roomModal').onclick = e => { if (e.target === $('roomModal')) closeModal(); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 (async () => { if (await gate()) load(); })();
 </script>
