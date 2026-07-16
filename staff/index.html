@@ -149,6 +149,29 @@
     .mobileBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
     .inviteRow { grid-template-columns:1fr; }
   }
+
+/* ---------- team admin (hat system, super-admin only) ---------- */
+.taTabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-bottom:20px; }
+.taTab { padding:10px 16px; font-size:12.5px; font-weight:600; color:var(--dim); background:none; box-shadow:none; border-radius:8px 8px 0 0; cursor:pointer; }
+.taTab:hover { color:var(--green); background:rgba(29,62,59,.05); transform:none; filter:none; }
+.taTab.active { color:var(--green); border-bottom:2px solid var(--green); }
+.taPanel { display:none; }
+.taPanel.active { display:block; }
+.taHint { color:var(--dim); font-size:11.5px; margin:0 0 16px; line-height:1.6; }
+.hatRow { display:grid; grid-template-columns:1.5fr 1fr auto; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); }
+.hatRow.retired { opacity:.5; }
+.deptHead { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); font-weight:600; margin:20px 0 6px; }
+.asgChip { display:inline-flex; align-items:center; gap:6px; font-size:11px; background:var(--sand-soft); border-radius:999px; padding:4px 6px 4px 11px; margin:3px 5px 3px 0; }
+.asgChip button { background:none; box-shadow:none; padding:0 4px; color:var(--dim); font-size:14px; line-height:1; }
+.asgChip button:hover { color:var(--err); transform:none; filter:none; }
+.matrixWrap { overflow-x:auto; }
+table.matrix { border-collapse:collapse; font-size:11.5px; }
+table.matrix th, table.matrix td { border:1px solid var(--hairline); padding:6px 8px; text-align:center; }
+table.matrix th.hatCol, table.matrix td.hatCol { text-align:left; position:sticky; left:0; background:var(--card); white-space:nowrap; font-weight:600; }
+table.matrix th.appGroup { background:var(--sand-soft); color:var(--green); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
+.taSelect { padding:6px 8px; font-size:12px; width:auto; }
+.miniBtn { padding:6px 12px; font-size:11.5px; }
 </style>
 </head>
 <body>
@@ -248,7 +271,24 @@
         <tbody id="userRows"></tbody>
       </table></div>
     </div>
-  </main>
+  
+      <!-- TEAM ADMIN (hat-based permissions — super admin only) -->
+      <div class="card adminCard hidden" id="teamAdminCard">
+        <div class="adminHead">
+          <div class="t">Team admin</div>
+          <div class="sub2">Hats, venue assignments and the permission matrix. Changes here take effect once the hub switches to hat-based access.</div>
+        </div>
+        <div class="taTabs">
+          <button class="taTab active" data-tab="users">Users &amp; hats</button>
+          <button class="taTab" data-tab="hats">Hats</button>
+          <button class="taTab" data-tab="perms">Permissions</button>
+        </div>
+        <div class="taPanel active" id="taUsers"></div>
+        <div class="taPanel" id="taHats"></div>
+        <div class="taPanel" id="taPerms"></div>
+        <div class="msg" id="taMsg"></div>
+      </div>
+</main>
 </div>
 
 <script>
@@ -593,6 +633,157 @@ window.removeUser = async (id, email) => {
 sb.auth.onAuthStateChange((event) => {
   if (event === 'SIGNED_IN' && arrivedViaInvite) showOnly('setPwCard');
 });
+// ================= TEAM ADMIN (hat-based permissions) =================
+// Super-admin-only, additive layer. Does NOT affect the live role-based
+// system — grants here take effect only after the Phase 2 cutover.
+let taData = null;
+async function initTeamAdmin() {
+  $('teamAdminCard').classList.remove('hidden');
+  const nav = $('sideNav');
+  if (nav && !document.getElementById('navTeamAdmin')) {
+    nav.insertAdjacentHTML('beforeend',
+      '<div class="navGroup"><div class="g">Team admin</div>' +
+      '<a class="navItem" id="navTeamAdmin" href="#teamAdminCard">' + ICONS._users + 'Hats &amp; permissions</a></div>');
+  }
+  document.querySelectorAll('.taTab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.taTab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.taPanel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('ta' + ({ users:'Users', hats:'Hats', perms:'Perms' }[t.dataset.tab])).classList.add('active');
+  });
+  await reloadTeamAdmin();
+}
+async function reloadTeamAdmin() {
+  try { taData = await adminApi({ action:'hub_data' }); }
+  catch (e) { taErr(e); return; }
+  renderTaUsers(); renderTaHats(); renderTaPerms();
+  $('taMsg').textContent = '';
+}
+function taErr(e) { $('taMsg').textContent = e.message || String(e); $('taMsg').className = 'msg err'; }
+function hatById(id) { return (taData.hats || []).find(h => h.id === id); }
+function venueById(id) { return (taData.venues || []).find(v => v.id === id); }
+function deptGroups() {
+  const g = {}; (taData.hats || []).forEach(h => { (g[h.department || '—'] = g[h.department || '—'] || []).push(h); });
+  return Object.keys(g).sort().map(d => [d, g[d]]);
+}
+
+function renderTaUsers() {
+  const activeHats = (taData.hats || []).filter(h => h.active)
+    .sort((a, b) => (a.department || '').localeCompare(b.department || '') || a.name.localeCompare(b.name));
+  const venues = (taData.venues || []);
+  const hatOpts = activeHats.map(h => '<option value="' + h.id + '">' + esc(h.name) + '</option>').join('');
+  const venOpts = venues.map(v => '<option value="' + v.id + '">' + esc(v.name) + '</option>').join('');
+  $('taUsers').innerHTML =
+    '<p class="taHint">Each assignment is a hat at a venue; a person can hold several. Effective access is the union of all their hats’ granted permissions. Super admins bypass the matrix.</p>' +
+    (taData.users || []).map(u => {
+      const chips = (u.assignments || []).map(a => {
+        const h = hatById(a.hat_id), v = venueById(a.venue_id);
+        return '<span class="asgChip">' + esc(h ? h.name : '?') + ' · ' + esc(v ? v.name : '?') +
+          '<button title="Remove" onclick="taRemoveAssign(\'' + a.id + '\')">×</button></span>';
+      }).join('') || '<span class="dim" style="font-size:11px">No assignments</span>';
+      return '<div style="padding:14px 0;border-bottom:1px solid var(--hairline)">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+          '<div class="userCell"><div><div class="n">' + esc(u.full_name || u.email) + '</div>' +
+          '<div class="e">' + esc(u.email) + '</div></div></div>' +
+          '<label style="margin-left:auto;font-size:11.5px;display:flex;align-items:center;gap:6px">' +
+          '<input type="checkbox" ' + (u.is_super_admin ? 'checked' : '') +
+          ' onchange="taToggleSuper(\'' + u.id + '\',this.checked)"> Super admin</label>' +
+        '</div>' +
+        '<div style="margin:6px 0">' + chips + '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<select class="taSelect" id="hatSel_' + u.id + '">' + hatOpts + '</select>' +
+          '<select class="taSelect" id="venSel_' + u.id + '">' + venOpts + '</select>' +
+          '<button class="ghost miniBtn" onclick="taAddAssign(\'' + u.id + '\')">Add hat</button>' +
+        '</div></div>';
+    }).join('');
+}
+window.taAddAssign = async (uid) => { try {
+  await adminApi({ action:'assignment_add', user_id:uid, hat_id:$('hatSel_' + uid).value, venue_id:$('venSel_' + uid).value });
+  await reloadTeamAdmin();
+} catch (e) { taErr(e); } };
+window.taRemoveAssign = async (id) => { try { await adminApi({ action:'assignment_remove', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
+window.taToggleSuper = async (uid, val) => { try { await adminApi({ action:'set_super_admin', user_id:uid, value:val }); await reloadTeamAdmin(); } catch (e) { taErr(e); await reloadTeamAdmin(); } };
+
+function renderTaHats() {
+  const allHats = (taData.hats || []);
+  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. Reports-to may list more than one parent hat (Ctrl/Cmd-click).</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
+    '<input id="newHatName" placeholder="New hat name" style="max-width:240px">' +
+    '<input id="newHatDept" placeholder="Department (optional)" style="max-width:220px">' +
+    '<button class="miniBtn" onclick="taCreateHat()">Add hat</button></div>';
+  deptGroups().forEach(([dept, hats]) => {
+    html += '<div class="deptHead">' + esc(dept) + '</div>';
+    hats.forEach(h => {
+      const parentOpts = allHats.filter(x => x.id !== h.id)
+        .map(x => '<option value="' + x.id + '" ' + ((h.reports_to || []).includes(x.id) ? 'selected' : '') + '>' + esc(x.name) + '</option>').join('');
+      html += '<div class="hatRow ' + (h.active ? '' : 'retired') + '">' +
+        '<div><input value="' + esc(h.name) + '" onchange="taRenameHat(\'' + h.id + '\',this.value)" style="font-weight:600">' +
+        (h.jd_link ? ' <a href="' + esc(h.jd_link) + '" target="_blank" rel="noopener" style="font-size:11px">JD ↗</a>' : '') + '</div>' +
+        '<div><select multiple size="1" class="taSelect" style="min-width:170px" onchange="taReportsTo(\'' + h.id + '\',this)">' + parentOpts + '</select></div>' +
+        '<div style="text-align:right">' + (h.active
+          ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\')">Retire</button>'
+          : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\')">Restore</button>') + '</div>' +
+      '</div>';
+    });
+  });
+  $('taHats').innerHTML = html;
+}
+window.taCreateHat = async () => { try {
+  const name = $('newHatName').value.trim(); if (!name) return;
+  await adminApi({ action:'hat_create', name, department:$('newHatDept').value.trim() || null });
+  await reloadTeamAdmin();
+} catch (e) { taErr(e); } };
+window.taRenameHat = async (id, name) => { try { await adminApi({ action:'hat_update', id, name:name.trim() }); } catch (e) { taErr(e); } };
+window.taReportsTo = async (id, sel) => { try {
+  const ids = [...sel.selectedOptions].map(o => o.value);
+  await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:ids });
+} catch (e) { taErr(e); } };
+window.taRestoreHat = async (id) => { try { await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
+window.taRetireHat = async (id, name) => {
+  const affected = (taData.users || []).filter(u => (u.assignments || []).some(a => a.hat_id === id)).map(u => u.full_name || u.email);
+  const msg = 'Retire “' + name + '”?\n\n' + (affected.length
+    ? ('These people will lose the access this hat grants:\n• ' + affected.join('\n• '))
+    : 'No one is currently assigned this hat.');
+  if (!confirm(msg)) return;
+  try { await adminApi({ action:'hat_retire', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); }
+};
+
+function renderTaPerms() {
+  const actions = (taData.actions || []).slice().sort((a, b) => a.app_slug.localeCompare(b.app_slug) || a.sort - b.sort);
+  const grantset = new Set((taData.permissions || []).map(p => p.hat_id + '|' + p.action_id));
+  const groups = [];
+  actions.forEach(a => { let g = groups[groups.length - 1]; if (!g || g.slug !== a.app_slug) { g = { slug:a.app_slug, items:[] }; groups.push(g); } g.items.push(a); });
+  const head1 = '<tr><th class="hatCol" rowspan="2">Hat</th>' + groups.map(g => '<th class="appGroup" colspan="' + g.items.length + '">' + esc(g.slug) + '</th>').join('') + '</tr>';
+  const head2 = '<tr>' + actions.map(a => '<th title="' + esc(a.label) + '">' + esc(a.action_key) + '</th>').join('') + '</tr>';
+  let rows = '';
+  deptGroups().forEach(([dept, hats]) => {
+    const live = hats.filter(h => h.active);
+    if (!live.length) return;
+    rows += '<tr><td class="hatCol" style="background:var(--sand-soft)" colspan="' + (actions.length + 1) + '">' + esc(dept) + '</td></tr>';
+    live.forEach(h => {
+      rows += '<tr><td class="hatCol">' + esc(h.name) + '</td>' + actions.map(a => {
+        const on = grantset.has(h.id + '|' + a.id);
+        return '<td><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="taPerm(\'' + h.id + '\',\'' + a.id + '\',this.checked)"></td>';
+      }).join('') + '</tr>';
+    });
+  });
+  $('taPerms').innerHTML = '<p class="taHint">Tick to grant a hat an action. A person sees an app’s tile if any of their hats grants any action in it. Retired hats are hidden.</p>' +
+    '<div class="matrixWrap"><table class="matrix"><thead>' + head1 + head2 + '</thead><tbody>' + rows + '</tbody></table></div>';
+}
+window.taPerm = async (hat_id, action_id, granted) => { try {
+  await adminApi({ action:'perm_set', hat_id, action_id, granted });
+  if (granted) taData.permissions.push({ hat_id, action_id });
+  else taData.permissions = taData.permissions.filter(p => !(p.hat_id === hat_id && p.action_id === action_id));
+} catch (e) { taErr(e); await reloadTeamAdmin(); } };
+
+// Reveal Team admin for super admins after profile loads (wraps enter, additive).
+const _enterOrig = enter;
+enter = async function () {
+  await _enterOrig.apply(this, arguments);
+  try { if (myProfile && myProfile.is_super_admin) await initTeamAdmin(); }
+  catch (e) { console.warn('team admin init failed', e); }
+};
+
 main();
 </script>
 </body>
