@@ -719,7 +719,7 @@ function renderTaHats() {
       html += '<div class="hatRow ' + (h.active ? '' : 'retired') + '">' +
         '<div><input value="' + esc(h.name) + '" onchange="taRenameHat(\'' + h.id + '\',this.value)" style="font-weight:600">' +
         (h.jd_link ? ' <a href="' + esc(h.jd_link) + '" target="_blank" rel="noopener" style="font-size:11px">JD ↗</a>' : '') + '</div>' +
-        '<div><select multiple size="1" class="taSelect" style="min-width:170px" onchange="taReportsTo(\'' + h.id + '\',this)">' + parentOpts + '</select></div>' +
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + (h.reports_to || []).map(function(pid){ var ph = hatById(pid); return '<span class="asgChip">' + esc(ph ? ph.name : '?') + '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\')">\u00d7</button></span>'; }).join('') + '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' + '<option value="">+ reports to\u2026</option>' + allHats.filter(function(x){ return x.id !== h.id && !(h.reports_to || []).includes(x.id); }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
         '<div style="text-align:right">' + (h.active
           ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\')">Retire</button>'
           : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\')">Restore</button>') + '</div>' +
@@ -734,10 +734,8 @@ window.taCreateHat = async () => { try {
   await reloadTeamAdmin();
 } catch (e) { taErr(e); } };
 window.taRenameHat = async (id, name) => { try { await adminApi({ action:'hat_update', id, name:name.trim() }); } catch (e) { taErr(e); } };
-window.taReportsTo = async (id, sel) => { try {
-  const ids = [...sel.selectedOptions].map(o => o.value);
-  await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:ids });
-} catch (e) { taErr(e); } };
+window.taAddParent = async (id, pid) => { if (!pid) return; try { const h = hatById(id); const s = new Set(h.reports_to || []); s.add(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
+window.taRemoveParent = async (id, pid) => { try { const h = hatById(id); const s = new Set(h.reports_to || []); s.delete(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
 window.taRestoreHat = async (id) => { try { await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
 window.taRetireHat = async (id, name) => {
   const affected = (taData.users || []).filter(u => (u.assignments || []).some(a => a.hat_id === id)).map(u => u.full_name || u.email);
