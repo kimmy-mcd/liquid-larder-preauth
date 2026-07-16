@@ -172,6 +172,10 @@ table.matrix th.appGroup { background:var(--sand-soft); color:var(--green); font
 table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
 .taSelect { padding:6px 8px; font-size:12px; width:auto; }
 .miniBtn { padding:6px 12px; font-size:11.5px; }
+
+#teamAdminCard{display:none;}
+main.content.taAdmin>#teamAdminCard{display:block;}
+main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdmin>#tiles,main.content.taAdmin>#tilesMsg,main.content.taAdmin>#adminCard{display:none!important;}
 </style>
 </head>
 <body>
@@ -638,20 +642,32 @@ sb.auth.onAuthStateChange((event) => {
 // system — grants here take effect only after the Phase 2 cutover.
 let taData = null;
 async function initTeamAdmin() {
-  $('teamAdminCard').classList.remove('hidden');
   const nav = $('sideNav');
   if (nav && !document.getElementById('navTeamAdmin')) {
     nav.insertAdjacentHTML('beforeend',
       '<div class="navGroup"><div class="g">Team admin</div>' +
-      '<a class="navItem" id="navTeamAdmin" href="#teamAdminCard">' + ICONS._users + 'Hats &amp; permissions</a></div>');
+      '<a class="navItem" id="navTeamAdmin" href="#">' + ICONS._users + 'Hats &amp; permissions</a></div>');
   }
+  $('teamAdminCard').classList.remove('hidden');
   document.querySelectorAll('.taTab').forEach(t => t.onclick = () => {
     document.querySelectorAll('.taTab').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.taPanel').forEach(x => x.classList.remove('active'));
     t.classList.add('active');
     $('ta' + ({ users:'Users', hats:'Hats', perms:'Perms' }[t.dataset.tab])).classList.add('active');
   });
+  const navA = document.getElementById('navTeamAdmin');
+  if (navA) navA.onclick = (e) => { e.preventDefault(); taShow(true); };
+  const homeA = $('sideNav').querySelector('a.navItem');
+  if (homeA) homeA.onclick = (e) => { e.preventDefault(); taShow(false); };
+  document.querySelectorAll('#sideNav a[href="#adminCard"]').forEach(a => { a.onclick = (e) => { e.preventDefault(); taShow(false); const c = $('adminCard'); if (c) c.scrollIntoView({ behavior:'smooth' }); }; });
   await reloadTeamAdmin();
+  taShow(false);
+}
+function taShow(admin) {
+  const m = document.querySelector('main.content'); if (m) m.classList.toggle('taAdmin', admin);
+  const homeA = $('sideNav').querySelector('a.navItem'); if (homeA) homeA.classList.toggle('active', !admin);
+  const navA = document.getElementById('navTeamAdmin'); if (navA) navA.classList.toggle('active', admin);
+  window.scrollTo(0, 0);
 }
 async function reloadTeamAdmin() {
   try { taData = await adminApi({ action:'hub_data' }); }
