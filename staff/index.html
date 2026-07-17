@@ -129,7 +129,7 @@
   .adminHead { margin-bottom:22px; }
   .adminHead .t { font-family:'Gilda Display',serif; font-size:19px; color:var(--green); }
   .adminHead .sub2 { color:var(--dim); font-size:12px; margin-top:4px; }
-  .inviteRow { display:grid; grid-template-columns:1.4fr 1.2fr .9fr auto; gap:12px; align-items:end; }
+  .inviteRow { display:grid; grid-template-columns:1.4fr 1.2fr auto; gap:12px; align-items:end; }
   .inviteRow button { padding:12px 22px; }
   td { padding:11px 10px; }
   .userCell { display:flex; align-items:center; gap:11px; }
@@ -264,7 +264,16 @@ main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdm
         <div><label>Full name</label><input id="invName" placeholder="optional"></div>
         <div><button id="invite">Send invite</button></div>
       </div>
-      <div class="msg" id="invMsg"></div>
+                <div style="margin-top:16px">
+            <label>Hats &amp; venues <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">— optional; assign now so they land on the right apps at first login</span></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+              <select id="invHat" class="taSelect"></select>
+              <select id="invVenue" class="taSelect"></select>
+              <button class="ghost miniBtn" id="invAddAsg" type="button">Add hat</button>
+            </div>
+            <div id="invAsgChips" style="margin-top:10px"></div>
+          </div>
+          <div class="msg" id="invMsg"></div>
       <div style="overflow-x:auto;margin-top:8px"><table>
         <thead><tr><th>User</th><th>Status</th><th></th></tr></thead>
         <tbody id="userRows"></tbody>
@@ -417,7 +426,7 @@ async function enter() {
     + groups[s].map(tile).join('') + (s === 'Accounts' ? giftTile : '') + '</div>'
   ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
 
-  if (profile.is_super_admin) { $('adminCard').classList.remove('hidden'); loadUsers(); }
+  if (profile.is_super_admin) { $('adminCard').classList.remove('hidden'); loadUsers(); initInviteAssign(); }
 
   loadLiveData(apps || []);
 }
@@ -581,13 +590,13 @@ $('invite').onclick = async () => {
   try {
     $('invite').disabled = true;
     await adminApi({
-      action: 'invite',
+      action: 'invite', assignments: inviteAsg,
       email: $('invEmail').value.trim(),
       full_name: $('invName').value.trim(),
       redirect_to: location.origin + location.pathname,
     });
     m.textContent = 'Invite sent.'; m.className = 'msg ok';
-    $('invEmail').value = ''; $('invName').value = '';
+    $('invEmail').value = ''; $('invName').value = ''; inviteAsg = []; renderInviteAsg();
     loadUsers();
   } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
   finally { $('invite').disabled = false; }
@@ -610,7 +619,39 @@ async function loadUsers() {
       </td>
     </tr>`).join('');
   }
-window.toggleActive = async (id, active) => {
+
+    // ---- invite: optional hat + venue assignment builder (super admin) ----
+    let inviteAsg = [];
+    let inviteMeta = null;
+    async function initInviteAssign() {
+      try {
+        if (!inviteMeta) {
+          const d = await adminApi({ action: 'hub_data' });
+          inviteMeta = { hats: (d.hats || []).filter(function(h){ return h.active; }).sort(function(a,b){ return (a.department||'').localeCompare(b.department||'') || a.name.localeCompare(b.name); }), venues: d.venues || [] };
+        }
+        if ($('invHat')) $('invHat').innerHTML = inviteMeta.hats.map(function(h){ return '<option value="'+h.id+'">'+esc(h.name)+(h.department?' — '+esc(h.department):'')+'</option>'; }).join('');
+        if ($('invVenue')) $('invVenue').innerHTML = inviteMeta.venues.map(function(v){ return '<option value="'+v.id+'">'+esc(v.name)+'</option>'; }).join('');
+      } catch (e) { /* selects stay empty; hats can be added later in Team admin */ }
+      renderInviteAsg();
+      const add = $('invAddAsg');
+      if (add) add.onclick = function(){
+        const hat_id = $('invHat').value, venue_id = $('invVenue').value;
+        if (!hat_id || !venue_id) return;
+        if (inviteAsg.some(function(a){ return a.hat_id === hat_id && a.venue_id === venue_id; })) return;
+        inviteAsg.push({ hat_id: hat_id, venue_id: venue_id });
+        renderInviteAsg();
+      };
+    }
+    function renderInviteAsg() {
+      const box = $('invAsgChips'); if (!box) return;
+      if (!inviteAsg.length) { box.innerHTML = '<span class="dim" style="font-size:11px">No hats yet — they can also be added later in Team admin.</span>'; return; }
+      const hatName = function(id){ return ((inviteMeta && inviteMeta.hats.find(function(h){return h.id===id;})) || {}).name || '?'; };
+      const venName = function(id){ return ((inviteMeta && inviteMeta.venues.find(function(v){return v.id===id;})) || {}).name || '?'; };
+      box.innerHTML = inviteAsg.map(function(a,i){ return '<span class="asgChip">'+esc(hatName(a.hat_id))+' · '+esc(venName(a.venue_id))+'<button title="Remove" onclick="inviteAsgRemove('+i+')">×</button></span>'; }).join('');
+    }
+    window.inviteAsgRemove = function(i){ inviteAsg.splice(i, 1); renderInviteAsg(); };
+
+    window.toggleActive = async (id, active) => {
   await sb.from('portal_profiles').update({ active }).eq('id', id);
   loadUsers();
 };
