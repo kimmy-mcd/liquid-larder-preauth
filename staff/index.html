@@ -262,16 +262,11 @@ main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdm
       <div class="inviteRow">
         <div><label>Email</label><input id="invEmail" type="email" placeholder="new@liquidandlarder.com.au"></div>
         <div><label>Full name</label><input id="invName" placeholder="optional"></div>
-        <div><label>Role</label><select id="invRole">
-          <option value="staff">Staff</option><option value="reservations">Reservations</option>
-          <option value="manager">Manager</option><option value="finance">Finance</option>
-          <option value="management">Management</option><option value="admin">Admin</option>
-        </select></div>
         <div><button id="invite">Send invite</button></div>
       </div>
       <div class="msg" id="invMsg"></div>
       <div style="overflow-x:auto;margin-top:8px"><table>
-        <thead><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <thead><tr><th>User</th><th>Status</th><th></th></tr></thead>
         <tbody id="userRows"></tbody>
       </table></div>
     </div>
@@ -369,7 +364,7 @@ async function enter() {
   myProfile = profile;
   const displayName = profile.full_name || profile.email;
   $('whoName').textContent = displayName;
-  $('whoRole').textContent = profile.role;
+  $('whoRole').textContent = profile.is_super_admin ? 'Super admin' : '';
   $('avatar').textContent = (displayName.match(/\b[a-zA-Z]/g) || [displayName[0] || '?']).slice(0, 2).join('').toUpperCase();
   showOnly('appArea');
 
@@ -399,7 +394,7 @@ async function enter() {
   $('sideNav').innerHTML =
     `<div class="navGroup"><a class="navItem active" href="./">${ICONS._home}Home</a></div>` +
     sections.map(s => `<div class="navGroup"><div class="g">${esc(s)}</div>${groups[s].map(navItem).join('')}</div>`).join('') +
-    (profile.role === 'admin'
+    (profile.is_super_admin
       ? `<div class="navGroup"><div class="g">Admin</div><a class="navItem" href="#adminCard">${ICONS._users}User management</a></div>`
       : '');
 
@@ -422,7 +417,7 @@ async function enter() {
     + groups[s].map(tile).join('') + (s === 'Accounts' ? giftTile : '') + '</div>'
   ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
 
-  if (profile.role === 'admin') { $('adminCard').classList.remove('hidden'); loadUsers(); }
+  if (profile.is_super_admin) { $('adminCard').classList.remove('hidden'); loadUsers(); }
 
   loadLiveData(apps || []);
 }
@@ -589,7 +584,6 @@ $('invite').onclick = async () => {
       action: 'invite',
       email: $('invEmail').value.trim(),
       full_name: $('invName').value.trim(),
-      role: $('invRole').value,
       redirect_to: location.origin + location.pathname,
     });
     m.textContent = 'Invite sent.'; m.className = 'msg ok';
@@ -608,9 +602,6 @@ async function loadUsers() {
       <td><div class="userCell"><div class="av">${initials(u)}</div>
         <div><div class="n">${u.full_name ? esc(u.full_name) : esc(u.email)}</div>
         ${u.full_name ? `<div class="e">${esc(u.email)}</div>` : ''}</div></div></td>
-      <td><select class="roleSel" data-id="${u.id}" style="width:auto;padding:6px 8px;font-size:12px" ${u.id === myProfile.id ? 'disabled' : ''}>
-        ${ROLES.map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>`).join('')}
-      </select></td>
       <td><span class="chip ${u.active ? 'active' : 'disabled'}">${u.active ? 'Active' : 'Disabled'}</span></td>
       <td style="white-space:nowrap;text-align:right">
         ${u.id !== myProfile.id ? `
@@ -618,11 +609,7 @@ async function loadUsers() {
           <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}')">Remove</button>` : '<span class="dim">you</span>'}
       </td>
     </tr>`).join('');
-  document.querySelectorAll('.roleSel').forEach(sel => sel.onchange = async () => {
-    await sb.from('portal_profiles').update({ role: sel.value }).eq('id', sel.dataset.id);
-    loadUsers();
-  });
-}
+  }
 window.toggleActive = async (id, active) => {
   await sb.from('portal_profiles').update({ active }).eq('id', id);
   loadUsers();
