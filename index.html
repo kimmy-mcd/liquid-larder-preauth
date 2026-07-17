@@ -121,7 +121,7 @@ async function init() {
         <li>Anything not charged is released automatically.</li>
       </ul>
     </div>
-    <label class="accept"><input type="checkbox" id="accept"> I confirm I am authorised to use this card and I agree to the <a href="https://www.liquidandlarder.com.au/credit-card-authorisation-terms/" target="_blank" rel="noopener">Card Pre-Authorisation Terms</a>.</label>
+    <label class="accept"><input type="checkbox" id="accept"><span>I confirm I am authorised to use this card and I agree to the <a href="https://www.liquidandlarder.com.au/credit-card-authorisation-terms/" target="_blank" rel="noopener">Card Pre-Authorisation Terms</a>.</span></label>
     <div id="payment-element"></div>
     <button id="submit" disabled>Authorise up to ${fmt(r.max_amount_cents)}</button>
     <div class="msg" id="msg"></div>
