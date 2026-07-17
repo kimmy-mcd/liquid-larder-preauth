@@ -113,14 +113,15 @@ async function init() {
     ${r.purpose ? '<div class="row"><span>For</span><span>' + esc(r.purpose) + '</span></div>' : ''}
     <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + esc(r.booking_time) : ''}</span></div>
     <div class="amountBox"><span class="lbl">Maximum hold</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
-    <p class="terms" id="termsText">${terms ? esc(terms.text) :
-      `By providing your card details you authorise ${esc(r.venue_name)} (Liquid &amp; Larder) to place a temporary hold
-      on your card of up to ${fmt(r.max_amount_cents)} prior to the date of use, and to charge the final account total
-      (up to that maximum) after the date of use. Any unused portion of the hold is released automatically. The amount
-      charged will never exceed the authorised maximum. Your card details are held
-      securely by Stripe and are never visible to venue staff.`}
-    </p>
-    <label class="accept"><input type="checkbox" id="accept"> I have read and accept the terms above and confirm I am the cardholder.</label>
+    <div class="terms" id="termsSummary">
+      <p style="margin:0 0 8px">${esc(r.venue_name)} uses a secure pre-authorisation to hold your card for your booking.</p>
+      <ul style="margin:0; padding-left:18px">
+        <li>A temporary hold of up to <strong>${fmt(r.max_amount_cents)}</strong> may be placed on your card shortly before your date of use. A hold is not a payment.</li>
+        <li>After your visit we may charge the card for what you owe (your bill including any service charge and card payment surcharge, an agreed deposit or minimum spend, any damage, or a cancellation or no-show fee where one applies), never more than <strong>${fmt(r.max_amount_cents)}</strong>.</li>
+        <li>Anything not charged is released automatically.</li>
+      </ul>
+    </div>
+    <label class="accept"><input type="checkbox" id="accept"> I confirm I am authorised to use this card and I agree to the <a href="https://www.liquidandlarder.com.au/credit-card-authorisation-terms/" target="_blank" rel="noopener">Card Pre-Authorisation Terms</a>.</label>
     <div id="payment-element"></div>
     <button id="submit" disabled>Authorise up to ${fmt(r.max_amount_cents)}</button>
     <div class="msg" id="msg"></div>
