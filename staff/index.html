@@ -345,7 +345,8 @@ const ICONS = {
   'Return Rate': '<svg viewBox="0 0 24 24"><path d="M4 19 9 13l4 3 7-9"/><path d="M15 7h5v5"/></svg>',
   'Quality Audits': '<svg viewBox="0 0 24 24"><path d="M9 5h6a2 2 0 0 1 2 2v13H7V7a2 2 0 0 1 2-2Z"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><path d="m9.5 13 2 2 3.5-4"/></svg>',
   'Gift Cards': '<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M3 12h18"/><path d="M12 8c-2.5 0-4.5-1.3-4.5-3S9.5 3 12 8c2.5-5 4.5-4.7 4.5-3S14.5 8 12 8Z"/></svg>',
-  _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  'VIPs': '<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
+    _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
   _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
   _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
 };
@@ -464,7 +465,7 @@ function loadLiveData(apps) {
   const has = n => apps.some(a => a.name === n);
   if (has('Pre-Authorisations')) loadPreauthStats();
   if (has('Return Rate')) loadReturnRateStats();
-  if (has('Quality Audits')) loadQualityStats();
+  if (has('Quality Audits')) loadQualityStats(); if (has('VIPs')) loadVipStats();
 }
 
 async function loadPreauthStats() {
@@ -526,6 +527,17 @@ async function loadReturnRateStats() {
     setFoot('Return Rate',
       `<span class="dot ok"></span><b>${v.toFixed(1)}%</b>&nbsp;12-month` + sparkline(months.slice(-12).map(avg)));
   } catch (_) { /* card simply not shown */ }
+}
+
+async function loadVipStats() {
+  try {
+    var dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+    var res = await dataSb.rpc('get_vip_tile_summary');
+    if (res.error || !res.data) return;
+    var arr = +res.data.arriving_next_7 || 0;
+    var monthly = (res.data.monthly || []).map(function(m){ return +m.bookings; });
+    setFoot('VIPs', '<span class="dot ok"></span><b>' + arr + ' VIP' + (arr===1?'':'s') + '</b>&nbsp;arriving · next 7 days' + sparkline(monthly.slice(-12)));
+  } catch (e) {}
 }
 
 async function loadQualityStats() {
