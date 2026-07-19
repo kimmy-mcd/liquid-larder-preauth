@@ -128,6 +128,39 @@
   .loading, .error { display:flex; align-items:center; justify-content:center; min-height:180px; font-size:13.5px; color:var(--dim); }
   .error { color:var(--err); }
   .footnote { font-size:11px; color:var(--dim); margin-top:22px; line-height:1.7; }
+
+  /* arriving soon */
+  .arrHead { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .arrVenue { margin-bottom:24px; }
+  .arrVenue > .vh { font-family:'Gilda Display',serif; font-size:17px; color:var(--green); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:baseline; }
+  .arrVenue > .vh .c { font-size:10.5px; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+  .acard { display:grid; grid-template-columns:78px 1fr; gap:16px; padding:14px 0; border-bottom:1px solid #f0ece3; }
+  .arrVenue .acard:last-child { border-bottom:none; }
+  .acard .tm .t { font-size:16px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .acard .tm .p { font-size:10.5px; color:var(--dim); margin-top:4px; }
+  .acard .tm .tb { font-size:10.5px; color:var(--green); font-weight:600; margin-top:3px; }
+  .acard .tm .dt { font-size:10px; color:var(--dim); margin-top:3px; }
+  .acard .nm { font-size:14px; font-weight:600; color:var(--ink); }
+  .acard .chipline { margin-top:4px; }
+  .sa { display:inline-block; font-size:9px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:6px; margin:5px 5px 0 0; background:rgba(164,78,51,.12); color:var(--err); border:1px solid rgba(164,78,51,.3); }
+  .msb { display:inline-block; font-size:9px; letter-spacing:.04em; text-transform:uppercase; font-weight:600; padding:3px 8px; border-radius:999px; margin:5px 5px 0 0; background:rgba(154,107,47,.12); color:#8a5a24; border:1px solid rgba(154,107,47,.25); }
+  .acard .anote { font-size:11px; color:var(--dim); line-height:1.55; margin-top:8px; white-space:pre-wrap; }
+  .printBtn { border:1px solid var(--hairline); background:var(--card); color:var(--green); font-size:11px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; }
+  .printBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
+  .printHead { display:none; }
+  .printHead h3 { font-family:'Gilda Display',serif; font-size:21px; color:var(--green); }
+  .printHead .d { font-size:11px; color:var(--dim); margin-top:4px; }
+  @media print {
+    body::before, body::after { display:none; }
+    .topbar, .viewSeg, .arrHead, .footnote, #arrError, #arrLoading { display:none !important; }
+    #viewGuests, #viewBookings { display:none !important; }
+    .wrap { max-width:none; padding:0; margin:0; }
+    .pageHead { display:none; }
+    .printHead { display:block; margin-bottom:18px; }
+    .arrVenue { page-break-inside:avoid; }
+    .acard { break-inside:avoid; border-bottom:1px solid #ccc; }
+    .anote { color:#333 !important; }
+  }
 </style>
 </head>
 <body>
@@ -154,6 +187,7 @@
   <div class="viewSeg" id="viewSeg">
     <button data-v="guests" class="on">Top guests</button>
     <button data-v="bookings">Bookings over time</button>
+    <button data-v="arrivals">Arriving soon</button>
   </div>
 
   <!-- ══════════ SCREEN 1 — TOP GUESTS ══════════ -->
@@ -246,6 +280,22 @@
       </div>
       <p class="footnote" id="bFoot"></p>
     </div>
+  </section>
+
+  <!-- ══════════ SCREEN 3 — ARRIVING SOON ══════════ -->
+  <section id="viewArrivals" style="display:none;">
+    <div class="printHead"><h3>VIP arrivals</h3><div class="d" id="arrPrintSub"></div></div>
+    <div class="arrHead">
+      <div class="seg" id="arrSeg">
+        <button data-d="1" class="on">Tonight</button>
+        <button data-d="7">Next 7 days</button>
+      </div>
+      <button class="printBtn" id="arrPrint">Print briefing</button>
+    </div>
+    <div id="arrLoading" class="loading">Loading…</div>
+    <div id="arrError" class="error" style="display:none;"></div>
+    <div id="arrContent" style="display:none;"></div>
+    <p class="footnote" id="arrFoot"></p>
   </section>
 </div>
 
@@ -583,15 +633,63 @@ $('bStatusSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   b.classList.add('on'); bState.bucket=b.dataset.b; renderBookingsView();
 });
 
+// ══════════ SCREEN 3 — ARRIVING SOON ══════════
+let arrDays=1;
+async function loadArrivals(){
+  const L=$('arrLoading'); L.style.display='flex'; L.textContent='Loading…';
+  $('arrError').style.display='none'; $('arrContent').style.display='none';
+  try {
+    const { data, error } = await dataClient.rpc('get_vip_arrivals', { p_days:arrDays });
+    if(error) throw new Error(error.message);
+    L.style.display='none'; $('arrContent').style.display='block';
+    renderArrivals(data||[]);
+  } catch(err){
+    L.style.display='none'; const e=$('arrError'); e.style.display='flex'; e.textContent='Could not load arrivals: '+err.message;
+  }
+}
+function arrCard(a){
+  const sa=(a.special_attention||[]).map(t=>'<span class="sa">'+esc(t)+'</span>').join('');
+  const ms=[]; const m=a.milestones||{};
+  if(m.birthday_soon) ms.push('<span class="msb">Birthday soon</span>');
+  if(m.anniversary_soon) ms.push('<span class="msb">Anniversary soon</span>');
+  if(m.next_tier && m.visits_to_next_tier!=null) ms.push('<span class="msb">'+num(m.visits_to_next_tier)+' to '+esc(m.next_tier)+'</span>');
+  const tables=(a.table_numbers&&a.table_numbers.length)?'T'+a.table_numbers.map(esc).join(', '):'';
+  const notes=[a.notes,a.res_notes].filter(Boolean).map(s=>String(s).trim()).filter(Boolean).join('\n\n');
+  return '<div class="acard"><div class="tm"><div class="t">'+esc(a.time||'–')+'</div>'+
+    '<div class="p">'+num(a.party)+' guest'+(a.party===1?'':'s')+'</div>'+
+    (tables?'<div class="tb">'+tables+'</div>':'')+
+    (arrDays!==1?'<div class="dt">'+fmtDate(a.date)+'</div>':'')+
+    '</div><div><div class="nm">'+esc(a.name)+'</div>'+
+    '<div class="chipline">'+chipsHtml(a.chips)+sa+ms.join('')+'</div>'+
+    (notes?'<div class="anote">'+esc(notes)+'</div>':'')+
+    '</div></div>';
+}
+function renderArrivals(list){
+  const label=arrDays===1?'tonight':'the next 7 days';
+  const printed=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  $('arrPrintSub').textContent=list.length+' VIP'+(list.length===1?'':'s')+' arriving '+label+' · '+printed;
+  $('arrFoot').textContent='Grouped by venue. Special Attention tags (Take Care, Alert Chef, Alert Manager) and profile notes are shown for the pre-service briefing. Milestones flag a birthday or anniversary within 7 days of the booking, plus visits remaining to the next VIP tier. Use “Print briefing” for a clean printout.';
+  if(!list.length){ $('arrContent').innerHTML='<div class="loading">No VIP arrivals '+label+'.</div>'; return; }
+  const byV={}; list.forEach(a=>{ (byV[a.venue]=byV[a.venue]||[]).push(a); });
+  $('arrContent').innerHTML=Object.keys(byV).sort().map(v=>{
+    const rows=byV[v].slice().sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
+    return '<div class="arrVenue"><div class="vh"><span>'+esc(v)+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(arrCard).join('')+'</div>';
+  }).join('');
+}
+$('arrSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('arrSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); arrDays=+b.dataset.d; loadArrivals(); });
+$('arrPrint').onclick=()=>window.print();
+
 // ── view switch ─────────────────────────────────────────────────────────────
-let bookingsLoaded=false;
+let bookingsLoaded=false, arrivalsLoaded=false;
 $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   $('viewSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
   const v=b.dataset.v;
   $('viewGuests').style.display = v==='guests'?'block':'none';
   $('viewBookings').style.display = v==='bookings'?'block':'none';
+  $('viewArrivals').style.display = v==='arrivals'?'block':'none';
   if(v==='bookings' && !bookingsLoaded){ bookingsLoaded=true; loadBookings(); }
+  if(v==='arrivals' && !arrivalsLoaded){ arrivalsLoaded=true; loadArrivals(); }
 });
 
 // ── boot ────────────────────────────────────────────────────────────────────
