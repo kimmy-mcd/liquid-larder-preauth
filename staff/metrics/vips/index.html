@@ -145,6 +145,9 @@
   .sa { display:inline-block; font-size:9px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:6px; margin:5px 5px 0 0; background:rgba(164,78,51,.12); color:var(--err); border:1px solid rgba(164,78,51,.3); }
   .msb { display:inline-block; font-size:9px; letter-spacing:.04em; text-transform:uppercase; font-weight:600; padding:3px 8px; border-radius:999px; margin:5px 5px 0 0; background:rgba(154,107,47,.12); color:#8a5a24; border:1px solid rgba(154,107,47,.25); }
   .acard .anote { font-size:11px; color:var(--dim); line-height:1.55; margin-top:8px; white-space:pre-wrap; }
+  .acard .bknote { font-size:11.5px; color:var(--ink); line-height:1.55; margin-top:8px; background:rgba(62,106,138,.07); border-left:3px solid var(--info); border-radius:0 8px 8px 0; padding:8px 12px; white-space:pre-wrap; }
+  .acard .bknote .lbl { display:block; font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--info); font-weight:700; margin-bottom:4px; }
+  .acard .anote .lbl { display:block; font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:700; margin-bottom:4px; }
   .printBtn { border:1px solid var(--hairline); background:var(--card); color:var(--green); font-size:11px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; }
   .printBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
   .printHead { display:none; }
@@ -286,9 +289,17 @@
   <section id="viewArrivals" style="display:none;">
     <div class="printHead"><h3>VIP arrivals</h3><div class="d" id="arrPrintSub"></div></div>
     <div class="arrHead">
-      <div class="seg" id="arrSeg">
-        <button data-d="1" class="on">Tonight</button>
-        <button data-d="7">Next 7 days</button>
+      <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+        <div class="seg" id="arrSeg">
+          <button data-d="1" class="on">Tonight</button>
+          <button data-d="7">Next 7 days</button>
+        </div>
+        <div class="chipbar" id="arrVenueBar" style="margin-bottom:0;">
+          <button class="vchip on" data-venue="all">All venues</button>
+          <button class="vchip" data-venue="The Gidley">The Gidley</button>
+          <button class="vchip" data-venue="Bistecca">Bistecca</button>
+          <button class="vchip" data-venue="Alfie's">Alfie's</button>
+        </div>
       </div>
       <button class="printBtn" id="arrPrint">Print briefing</button>
     </div>
@@ -654,29 +665,35 @@ function arrCard(a){
   if(m.anniversary_soon) ms.push('<span class="msb">Anniversary soon</span>');
   if(m.next_tier && m.visits_to_next_tier!=null) ms.push('<span class="msb">'+num(m.visits_to_next_tier)+' to '+esc(m.next_tier)+'</span>');
   const tables=(a.table_numbers&&a.table_numbers.length)?'T'+a.table_numbers.map(esc).join(', '):'';
-  const notes=[a.notes,a.res_notes].filter(Boolean).map(s=>String(s).trim()).filter(Boolean).join('\n\n');
+  const rnote=String(a.res_notes||'').trim(), cnote=String(a.notes||'').trim();
   return '<div class="acard"><div class="tm"><div class="t">'+esc(a.time||'–')+'</div>'+
     '<div class="p">'+num(a.party)+' guest'+(a.party===1?'':'s')+'</div>'+
     (tables?'<div class="tb">'+tables+'</div>':'')+
     (arrDays!==1?'<div class="dt">'+fmtDate(a.date)+'</div>':'')+
     '</div><div><div class="nm">'+esc(a.name)+'</div>'+
     '<div class="chipline">'+chipsHtml(a.chips)+sa+ms.join('')+'</div>'+
-    (notes?'<div class="anote">'+esc(notes)+'</div>':'')+
+    (rnote?'<div class="bknote"><span class="lbl">This booking</span>'+esc(rnote)+'</div>':'')+
+    (cnote?'<div class="anote"><span class="lbl">Profile</span>'+esc(cnote)+'</div>':'')+
     '</div></div>';
 }
+let arrLast=[], arrVenueF='all';
 function renderArrivals(list){
+  arrLast=list;
+  const shown = arrVenueF==='all' ? list : list.filter(a=>a.venue===arrVenueF);
   const label=arrDays===1?'tonight':'the next 7 days';
+  const vlabel = arrVenueF==='all' ? '' : ' · '+arrVenueF;
   const printed=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  $('arrPrintSub').textContent=list.length+' VIP'+(list.length===1?'':'s')+' arriving '+label+' · '+printed;
-  $('arrFoot').textContent='Grouped by venue. Special Attention tags (Take Care, Alert Chef, Alert Manager) and profile notes are shown for the pre-service briefing. Milestones flag a birthday or anniversary within 7 days of the booking, plus visits remaining to the next VIP tier. Use “Print briefing” for a clean printout.';
-  if(!list.length){ $('arrContent').innerHTML='<div class="loading">No VIP arrivals '+label+'.</div>'; return; }
-  const byV={}; list.forEach(a=>{ (byV[a.venue]=byV[a.venue]||[]).push(a); });
+  $('arrPrintSub').textContent=shown.length+' VIP'+(shown.length===1?'':'s')+' arriving '+label+vlabel+' · '+printed;
+  $('arrFoot').textContent='Grouped by venue. “This booking” = notes on this specific reservation; “Profile” = the guest’s standing notes. Special Attention tags (Take Care, Alert Chef, Alert Manager) and milestones (birthday/anniversary within 7 days, visits to next tier) are shown for the pre-service briefing. Use “Print briefing” for a clean printout.';
+  if(!shown.length){ $('arrContent').innerHTML='<div class="loading">No VIP arrivals '+label+vlabel+'.</div>'; return; }
+  const byV={}; shown.forEach(a=>{ (byV[a.venue]=byV[a.venue]||[]).push(a); });
   $('arrContent').innerHTML=Object.keys(byV).sort().map(v=>{
     const rows=byV[v].slice().sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
     return '<div class="arrVenue"><div class="vh"><span>'+esc(v)+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(arrCard).join('')+'</div>';
   }).join('');
 }
 $('arrSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('arrSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); arrDays=+b.dataset.d; loadArrivals(); });
+$('arrVenueBar').addEventListener('click',e=>{ const b=e.target.closest('.vchip'); if(!b) return; arrVenueF=b.dataset.venue; $('arrVenueBar').querySelectorAll('.vchip').forEach(x=>x.classList.toggle('on',x.dataset.venue===arrVenueF)); renderArrivals(arrLast); });
 $('arrPrint').onclick=()=>window.print();
 
 // ── view switch ─────────────────────────────────────────────────────────────
