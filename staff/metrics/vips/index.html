@@ -353,7 +353,7 @@ const G_COLS = [
   { key:'visits_window', label:'Visits', cls:'num', sortable:true },
   { key:'avg_cheque', label:'Avg cheque', cls:'num', sortable:true },
   { key:'avg_spend_head', label:'Avg / head', cls:'num', sortable:true },
-  { key:'pct_cheques_linked', label:'% w/ cheque', cls:'num', sortable:true },
+  { key:'pct_cheques_linked', label:'% cheques linked', cls:'num', sortable:true },
   { key:'last_booked', label:'Last booked', cls:'num', sortable:true },
   { key:'notes', label:'Notes', sortable:false },
 ];
@@ -443,7 +443,7 @@ function renderGuests(){
     </tr>`;
   }).join('') : '<tr><td colspan="8" style="color:var(--dim);padding:18px 10px;">No VIPs match these filters.</td></tr>';
 
-  $('gFoot').textContent = 'Visits = completed reservations in the selected window. Avg cheque = linked POS cheque totals averaged over visits with a cheque; avg / head divides each cheque by the party that arrived. % with cheque = share of visits (since POS data began Nov 2023) that have a linked cheque. Last booked shows the latest reservation including upcoming (↗). Lapsed = no completed visit in 90+ days and nothing upcoming. Spend figures rely on POS cheques being linked to the booking, so they understate guests whose cheques were not matched.';
+  $('gFoot').textContent = 'Visits = completed reservations in the selected window. Avg cheque = linked POS cheque totals averaged over visits with a cheque; avg / head divides each cheque by the party that arrived. % cheques linked = share of visits (since POS data began Nov 2023) that have a linked cheque. Last booked shows the latest reservation including upcoming (↗). Lapsed = no completed visit in 90+ days and nothing upcoming. Spend figures rely on POS cheques being linked to the booking, so they understate guests whose cheques were not matched.';
 }
 
 $('gHead').addEventListener('click', e=>{
