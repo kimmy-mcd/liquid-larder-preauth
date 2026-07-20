@@ -1,4 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "trailingSlash": true
+  "trailingSlash": true,
+  "redirects": [
+    {
+      "source": "/staff/:path*",
+      "has": [{ "type": "host", "value": "pay.liquidandlarder.com.au" }],
+      "destination": "https://hub.liquidandlarder.com.au/staff/:path*",
+      "permanent": false
+    }
+  ]
 }
