@@ -94,7 +94,7 @@
 <script>
 const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
-const PAY_URL = new URL('../..', location.href).href; // customer page at site root
+const PAY_URL = 'https://pay.liquidandlarder.com.au/'; // customer page on the dedicated pay subdomain
 const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
