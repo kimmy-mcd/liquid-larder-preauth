@@ -175,7 +175,7 @@ function success(r, already = false) {
   show(`<div class="center">
     <h2 style="margin-bottom:12px">${already ? 'Already confirmed' : 'Thank you' + (r.guest_first_name ? ', ' + esc(r.guest_first_name) : '')}</h2>
     <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} with ${esc(r.venue_name)}.<br><br>
-    A hold of up to ${fmt(r.max_amount_cents)} will be placed on ${fmtDate(r.booking_date)}, and only the final account total will be charged.</p>
+    A temporary hold of up to ${fmt(r.max_amount_cents)} will be placed on your card shortly before your date of use, and only the final account total is charged.</p>
   </div>`);
 }
 
