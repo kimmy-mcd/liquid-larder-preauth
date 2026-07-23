@@ -143,10 +143,12 @@ const VENUES = [
 ];
 
 let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null, metric = 'dining';
-const ckey = () => venue.slug + '|' + metric;
-const __pick = r => metric==='dining' ? r.dining_covers : (metric==='bar' ? r.bar_covers : r.covers_actual);
+const DINING_VENUES = ['alfies'];
+const em = () => DINING_VENUES.includes(venue.slug) ? metric : 'total';
+const ckey = () => venue.slug + '|' + em();
+const __pick = r => { const m=em(); return m==='dining' ? r.dining_covers : (m==='bar' ? r.bar_covers : r.covers_actual); };
 const __ac = r => { const v=__pick(r); return v==null?null:+v; };
-const __fc = r => (metric==='bar' || r.covers_forecast==null) ? null : +r.covers_forecast;
+const __fc = r => (em()==='bar' || r.covers_forecast==null) ? null : +r.covers_forecast;
 const __vp = r => { const a=__ac(r), f=__fc(r); return (a==null||f==null||f===0)?null:Math.round((a-f)/f*1000)/10; };
 const cache = {};   // slug -> { weekly:[], daily:[] }
 
@@ -199,7 +201,7 @@ function buildVenueSwitcher() {
     if (b.dataset.slug === venue.slug) return;
     venue = VENUES.find(v => v.slug === b.dataset.slug);
     el.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.slug===venue.slug));
-    load();
+    syncMetricUI(); load();
   });
 }
 
@@ -447,7 +449,8 @@ $('footnote').textContent =
   'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). KPIs compare like-for-like to date. "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Walk-ins not entered as reservations are not counted.';
 
 function buildMetricSwitcher(){ let host=document.getElementById('metricSeg'); if(!host){ const row=document.createElement('div'); row.className='metricRow'; row.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 14px;'; row.innerHTML='<span class="lead">Covers</span><div class="seg" id="metricSeg"></div>'; const kp=document.getElementById('kpis'); kp.parentNode.insertBefore(row, kp); host=document.getElementById('metricSeg'); } const opts=[['dining','Dining room'],['total','Total'],['bar','Bar']]; host.innerHTML=opts.map(o=>`<button data-metric="${o[0]}" class="${o[0]===metric?'on':''}">${o[1]}</button>`).join(''); host.querySelectorAll('button').forEach(b=> b.onclick=()=>{ if(b.dataset.metric===metric) return; metric=b.dataset.metric; host.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.metric===metric)); load(); }); }
-(async () => { if (await gate()) { buildVenueSwitcher(); buildMetricSwitcher(); load(); } })();
+function syncMetricUI(){ var row=document.querySelector('.metricRow'); if(row) row.style.display = DINING_VENUES.includes(venue.slug) ? 'flex' : 'none'; }
+(async () => { if (await gate()) { buildVenueSwitcher(); buildMetricSwitcher(); syncMetricUI(); load(); } })();
 </script>
 </body>
 </html>
