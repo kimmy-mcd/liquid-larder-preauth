@@ -143,7 +143,7 @@ const VENUES = [
 ];
 
 let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null, metric = 'dining';
-const DINING_VENUES = ['alfies'];
+const DINING_VENUES = ['gidley','bistecca','alfies'];
 const em = () => DINING_VENUES.includes(venue.slug) ? metric : 'total';
 const ckey = () => venue.slug + '|' + em();
 const __pick = r => { const m=em(); return m==='dining' ? r.dining_covers : (m==='bar' ? r.bar_covers : r.covers_actual); };
