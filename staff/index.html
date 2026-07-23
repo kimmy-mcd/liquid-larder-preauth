@@ -149,6 +149,16 @@
     .mobileBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
     .inviteRow { grid-template-columns:1fr; }
   }
+  @media (max-width:560px) {
+    main.content { padding:20px 16px 60px; }
+    .pageHead .hello { font-size:24px; }
+    .kpis { grid-template-columns:1fr 1fr; gap:12px; }
+    .tiles { grid-template-columns:1fr; }
+    .adminCard, .card.adminCard { padding:22px 18px; }
+  }
+  @media (max-width:380px) {
+    .kpis { grid-template-columns:1fr; }
+  }
 
 /* ---------- team admin (hat system, super-admin only) ---------- */
 .taTabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-bottom:20px; }
