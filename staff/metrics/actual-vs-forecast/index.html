@@ -142,7 +142,12 @@ const VENUES = [
   { slug:'alfies',   name:"Alfie's"    },
 ];
 
-let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null;
+let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null, metric = 'dining';
+const ckey = () => venue.slug + '|' + metric;
+const __pick = r => metric==='dining' ? r.dining_covers : (metric==='bar' ? r.bar_covers : r.covers_actual);
+const __ac = r => { const v=__pick(r); return v==null?null:+v; };
+const __fc = r => (metric==='bar' || r.covers_forecast==null) ? null : +r.covers_forecast;
+const __vp = r => { const a=__ac(r), f=__fc(r); return (a==null||f==null||f===0)?null:Math.round((a-f)/f*1000)/10; };
 const cache = {};   // slug -> { weekly:[], daily:[] }
 
 // ── date helpers ──────────────────────────────────────────────────────────
@@ -200,7 +205,7 @@ function buildVenueSwitcher() {
 
 async function load() {
   $('error').style.display = 'none';
-  if (cache[venue.slug]) return draw();
+  if (cache[ckey()]) return draw();
   $('chartWrap').style.display = 'none';
   const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading ' + venue.name + '…';
   try {
@@ -212,11 +217,11 @@ async function load() {
     if (dRes.error) throw new Error(dRes.error.message);
     const weekly = (wRes.data||[])
       .filter(r => r.covers_forecast != null || r.covers_actual != null)
-      .map(r => ({ wk:r.week_ending, fc:r.covers_forecast==null?null:+r.covers_forecast,
-        ac:r.covers_actual==null?null:+r.covers_actual, vp:r.variance_pct==null?null:+r.variance_pct, note:r.notes||null }))
+      .map(r => ({ wk:r.week_ending, fc:__fc(r),
+        ac:__ac(r), vp:__vp(r), note:r.notes||null }))
       .sort((a,b)=>a.wk.localeCompare(b.wk));
-    const daily = (dRes.data||[]).map(r => ({ day:r.day, ac:+r.covers_actual })).sort((a,b)=>a.day.localeCompare(b.day));
-    cache[venue.slug] = { weekly, daily };
+    const daily = (dRes.data||[]).map(r => ({ day:r.day, ac:__ac(r) })).sort((a,b)=>a.day.localeCompare(b.day));
+    cache[ckey()] = { weekly, daily };
     draw();
   } catch (err) {
     $('loading').style.display = 'none';
@@ -236,7 +241,7 @@ function draw() {
 
 // ── period selector ──────────────────────────────────────────────────────
 function availFys() {
-  const d = cache[venue.slug];
+  const d = cache[ckey()];
   const set = new Set();
   d.weekly.forEach(r => set.add(fyEndOf(parseD(r.wk))));
   d.daily.forEach(r => set.add(fyEndOf(parseD(r.day))));
@@ -278,8 +283,8 @@ function buildSeg(grain) {
 }
 
 // slice helpers
-function weeklyIn(win) { return cache[venue.slug].weekly.filter(r => { const d = parseD(r.wk); return d >= win.start && d <= win.end; }); }
-function dailyIn(win)  { return cache[venue.slug].daily.filter(r => { const d = parseD(r.day); return d >= win.start && d <= win.end; }); }
+function weeklyIn(win) { return cache[ckey()].weekly.filter(r => { const d = parseD(r.wk); return d >= win.start && d <= win.end; }); }
+function dailyIn(win)  { return cache[ckey()].daily.filter(r => { const d = parseD(r.day); return d >= win.start && d <= win.end; }); }
 function dayList(win)  { const out = []; for (let d = new Date(win.start); d <= win.end; d = addDays(d,1)) out.push(new Date(d)); return out; }
 
 // ── KPIs ───────────────────────────────────────────────────────────
@@ -289,7 +294,7 @@ function renderKpis(win) {
   const dm = Object.fromEntries(dailyIn(win).map(r => [r.day, r.ac]));
   const wRows = weeklyIn(win);
   const fcByWeekEnd = {};
-  cache[venue.slug].weekly.forEach(r => { if (r.fc != null) fcByWeekEnd[r.wk] = r.fc; });
+  cache[ckey()].weekly.forEach(r => { if (r.fc != null) fcByWeekEnd[r.wk] = r.fc; });
   const weekEndIso = d => isoD(addDays(mondayOf(d), 6));
   const elapsed = dayList(win).filter(d => d <= cap);
   let forecast = 0, havePace = false;
@@ -441,7 +446,8 @@ function cumTip(days) {
 $('footnote').textContent =
   'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). KPIs compare like-for-like to date. "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Walk-ins not entered as reservations are not counted.';
 
-(async () => { if (await gate()) { buildVenueSwitcher(); load(); } })();
+function buildMetricSwitcher(){ let host=document.getElementById('metricSeg'); if(!host){ const row=document.createElement('div'); row.className='metricRow'; row.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 14px;'; row.innerHTML='<span class="lead">Covers</span><div class="seg" id="metricSeg"></div>'; const kp=document.getElementById('kpis'); kp.parentNode.insertBefore(row, kp); host=document.getElementById('metricSeg'); } const opts=[['dining','Dining room'],['total','Total'],['bar','Bar']]; host.innerHTML=opts.map(o=>`<button data-metric="${o[0]}" class="${o[0]===metric?'on':''}">${o[1]}</button>`).join(''); host.querySelectorAll('button').forEach(b=> b.onclick=()=>{ if(b.dataset.metric===metric) return; metric=b.dataset.metric; host.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.metric===metric)); load(); }); }
+(async () => { if (await gate()) { buildVenueSwitcher(); buildMetricSwitcher(); load(); } })();
 </script>
 </body>
 </html>
