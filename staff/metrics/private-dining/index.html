@@ -169,9 +169,9 @@
     <div class="kpis" id="kpis"></div>
     <div class="panel" style="margin-bottom:20px;">
       <div class="panelHead"><div class="t">Breakdown by room</div><div class="sub" id="roomsSub"></div></div>
-      <table class="guests roomstbl"><thead>
+      <div style="overflow-x:auto"><table class="guests roomstbl"><thead>
         <tr><th>Room</th><th class="num">Bookings</th><th class="num">Days ahead</th><th class="num">Covers</th><th class="num">Avg party</th></tr>
-      </thead><tbody id="roomsBody"></tbody></table>
+      </thead><tbody id="roomsBody"></tbody></table></div>
     </div>
     <div class="panel" style="margin-bottom:20px;">
       <div class="panelHead"><div class="t">Bookings by day of the week</div><div class="sub" id="dowSub"></div></div>
@@ -179,9 +179,9 @@
     </div>
     <div class="panel">
       <div class="panelHead"><div class="t">Guests with the most bookings</div><div class="sub" id="guestsSub"></div></div>
-      <table class="guests"><thead>
+      <div style="overflow-x:auto"><table class="guests"><thead>
         <tr><th class="rk"></th><th>Guest</th><th class="num">Bookings</th><th class="num">Covers</th><th class="num">Last booking</th></tr>
-      </thead><tbody id="guestsBody"></tbody></table>
+      </thead><tbody id="guestsBody"></tbody></table></div>
     </div>
     <p class="footnote" id="footnote"></p>
   </div>
