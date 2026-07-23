@@ -28,3 +28,7 @@ button:disabled { opacity:.4; cursor:not-allowed; transform:none; filter:none; }
 .msg { font-size:13px; line-height:1.6; }
 .msg.err { color:var(--err); }
 .msg.ok { color:var(--ok); }
+/* On phones the ambient corner glows are fixed-position and sit partly beyond the
+   screen edge, so they can't be clipped by body overflow — hide them so the page
+   never extends past the viewport (no horizontal pan / pinch-out reveal). */
+@media (max-width:640px) { body::before, body::after { display:none; } }
