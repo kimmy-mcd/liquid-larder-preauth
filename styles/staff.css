@@ -37,3 +37,20 @@ tbody tr:last-child td { border-bottom:none; }
 /* v4: shared prominent back-link pill, used across app pages (quality, preauth, finance, metrics) */
 a.back { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; letter-spacing:.04em; transition:background .15s; }
 a.back:hover { background:#eae2cf; }
+
+/* v5: shared responsive rules — keep every staff page inside the phone viewport.
+   Wide tables sit in an overflow-x:auto wrapper so they scroll within their card
+   instead of pushing the whole page wider than the screen. */
+table { max-width:100%; }
+@media (max-width:640px) {
+  .topbar { margin-bottom:26px; }
+  .topbar .bar { padding:13px 14px; gap:8px; }
+  .wrap { padding:0 16px; }
+  .card { padding:22px 18px; }
+  /* the wordmark is a fixed-width mask; let it shrink so the header fits narrow phones */
+  h1.logo { width:132px; height:16px; }
+}
+@media (max-width:400px) {
+  h1.logo { width:108px; }
+  .topbar .who .avatar { display:none; }
+}
