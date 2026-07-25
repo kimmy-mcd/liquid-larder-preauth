@@ -8,5 +8,12 @@
       "destination": "https://hub.liquidandlarder.com.au/staff/:path*",
       "permanent": false
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "hub.liquidandlarder.com.au" }],
+      "destination": "/staff/"
+    }
   ]
 }
