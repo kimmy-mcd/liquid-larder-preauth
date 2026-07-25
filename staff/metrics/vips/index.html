@@ -291,8 +291,8 @@
     <div class="arrHead">
       <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
         <div class="seg" id="arrSeg">
-          <button data-d="1" class="on">Tonight</button>
-          <button data-d="7">Next 7 days</button>
+          <button data-d="1">Tonight</button>
+          <button data-d="7" class="on">Next 7 days</button>
         </div>
         <div class="chipbar" id="arrVenueBar" style="margin-bottom:0;">
           <button class="vchip on" data-venue="all">All venues</button>
@@ -645,7 +645,7 @@ $('bStatusSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
 });
 
 // ══════════ SCREEN 3 — ARRIVING SOON ══════════
-let arrDays=1;
+let arrDays=7;
 async function loadArrivals(){
   const L=$('arrLoading'); L.style.display='flex'; L.textContent='Loading…';
   $('arrError').style.display='none'; $('arrContent').style.display='none';
@@ -684,12 +684,12 @@ function renderArrivals(list){
   const vlabel = arrVenueF==='all' ? '' : ' · '+arrVenueF;
   const printed=new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   $('arrPrintSub').textContent=shown.length+' VIP'+(shown.length===1?'':'s')+' arriving '+label+vlabel+' · '+printed;
-  $('arrFoot').textContent='Grouped by venue. “This booking” = notes on this specific reservation; “Profile” = the guest’s standing notes. Special Attention tags (Take Care, Alert Chef, Alert Manager) and milestones (birthday/anniversary within 7 days, visits to next tier) are shown for the pre-service briefing. Use “Print briefing” for a clean printout.';
+  $('arrFoot').textContent='Listed by date. “This booking” = notes on this specific reservation; “Profile” = the guest’s standing notes. Special Attention tags (Take Care, Alert Chef, Alert Manager) and milestones (birthday/anniversary within 7 days, visits to next tier) are shown for the pre-service briefing. Use “Print briefing” for a clean printout.';
   if(!shown.length){ $('arrContent').innerHTML='<div class="loading">No VIP arrivals '+label+vlabel+'.</div>'; return; }
-  const byV={}; shown.forEach(a=>{ (byV[a.venue]=byV[a.venue]||[]).push(a); });
+  const byV={}; shown.forEach(a=>{ (byV[a.date]=byV[a.date]||[]).push(a); });
   $('arrContent').innerHTML=Object.keys(byV).sort().map(v=>{
     const rows=byV[v].slice().sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
-    return '<div class="arrVenue"><div class="vh"><span>'+esc(v)+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(arrCard).join('')+'</div>';
+    return '<div class="arrVenue"><div class="vh"><span>'+esc(fmtDate(v))+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(a=>arrCard(a).replace('<div class="chipline">','<div class="acVenue" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:600;margin:0 0 6px;">'+esc(a.venue||'')+'</div><div class="chipline">')).join('')+'</div>';
   }).join('');
 }
 $('arrSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('arrSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); arrDays=+b.dataset.d; loadArrivals(); });
@@ -710,7 +710,7 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
 });
 
 // ── boot ────────────────────────────────────────────────────────────────────
-(async()=>{ if(await gate()){ buildVenueChips(); loadGuests(); } })();
+(async()=>{ if(await gate()){ buildVenueChips(); document.querySelector('#viewSeg button[data-v="arrivals"]').click(); } })();
 </script>
 <!-- ─── URL state (deep-linking) ───────────────────────────────────────────────
      Additive: reads/writes control state via the DOM only. No existing
