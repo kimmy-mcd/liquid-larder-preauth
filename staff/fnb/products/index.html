@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Products — Liquid &amp; Larder Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=5">
+<style>
+  :root { --page-w:1240px; }
+  .hidden { display:none !important; }
+  .toolbar { display:grid; grid-template-columns:1.4fr 1fr 1fr auto; gap:14px; align-items:end; margin-bottom:20px; }
+  .tableWrap { overflow-x:auto; }
+  table.prods td { padding:9px 10px; }
+  .pname { font-weight:600; color:var(--green); }
+  .psub { color:var(--dim); font-size:11px; margin-top:2px; }
+  .tag { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; background:var(--sand-soft); color:var(--green); white-space:nowrap; }
+  .tag.warn { background:rgba(164,78,51,.12); color:var(--err); }
+  td.num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .formGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:14px; margin-bottom:16px; }
+  .rowBtns { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .hint { color:var(--dim); font-size:11.5px; line-height:1.6; }
+  .foot { color:var(--dim); font-size:11px; line-height:1.7; margin-top:6px; }
+  .banner { background:rgba(164,78,51,.10); color:var(--err); border-radius:var(--r-input);
+    padding:10px 14px; font-size:11.5px; font-weight:600; margin-bottom:18px; }
+  @media (max-width:760px) { .toolbar { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
+      <div class="sub"><a href="../../" class="back">&larr; Hub</a> &nbsp;·&nbsp; Products</div></div>
+    <div class="rowBtns">
+      <button class="ghost hidden" id="importLink">Import prices</button>
+      <button class="ghost" id="refresh">Refresh</button>
+    </div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="banner">Preview build — Stage A of the F&amp;B pipeline. Not yet linked from the hub home.</div>
+  <div class="msg" id="pageMsg"></div>
+
+  <div class="card">
+    <div class="cardTitle">Product catalogue</div>
+    <div class="toolbar">
+      <div><label>Search</label><input id="fSearch" placeholder="Name, supplier or code" autocomplete="off"></div>
+      <div><label>Costs for venue</label><select id="fVenue"></select></div>
+      <div><label>Source</label>
+        <select id="fSource">
+          <option value="">All products</option>
+          <option value="lightyear">From supplier files</option>
+          <option value="manual">Entered manually</option>
+        </select>
+      </div>
+      <div><button id="newBtn" class="hidden">Add product</button></div>
+    </div>
+    <div class="tableWrap"><table class="prods">
+      <thead><tr>
+        <th>Product</th><th>Supplier</th><th>Pack</th><th>Conversion</th>
+        <th class="num costCol">Pack price</th><th class="num costCol">Unit cost</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="foot" id="countFoot"></div>
+  </div>
+
+  <div class="card hidden" id="editCard">
+    <div class="cardTitle" id="editTitle">Add a product</div>
+    <div class="formGrid">
+      <div><label>Name</label><input id="eName" placeholder="Sirloin, grass fed"></div>
+      <div><label>Supplier</label><input id="eSupplier" placeholder="Vic's Meat"></div>
+      <div><label>Supplier code</label><input id="eCode" placeholder="Optional"></div>
+      <div><label>Category</label><input id="eCategory" placeholder="Meat, produce, dry goods…"></div>
+      <div><label>Pack description</label><input id="ePack" placeholder="5kg carton"></div>
+      <div><label>Pack contains</label><input id="eQty" type="number" step="any" min="0" placeholder="5000"></div>
+      <div><label>Base unit</label>
+        <select id="eUnit"><option value="">—</option><option value="g">grams (g)</option>
+          <option value="ml">millilitres (ml)</option><option value="each">each</option></select>
+      </div>
+      <div><label>Pack price (ex GST)</label><input id="ePrice" placeholder="Optional — for the venue above"></div>
+    </div>
+    <div class="hint" id="suggestHint" style="margin-bottom:14px"></div>
+    <div style="margin-bottom:16px"><label>Notes</label><input id="eNotes" placeholder="Optional"></div>
+    <div class="rowBtns">
+      <button id="saveBtn">Save product</button>
+      <button class="ghost" id="cancelBtn">Cancel</button>
+      <span class="hint" id="saveHint"></span>
+    </div>
+  </div>
+
+  <div class="foot">
+    Costs are the latest price recorded for the selected venue; every price change is kept as history.
+    A product entered by hand is upgraded automatically the first time it appears in a supplier file.
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const FN = SUPABASE_URL + '/functions/v1/fnb-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = c => c == null ? '—' : '$' + (c / 100).toFixed(2);
+let CTX = null, PRODUCTS = [], COSTS = {}, EDITING = null, searchTimer = null;
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; return; }
+  boot();
+})();
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function say(text, isError) {
+  $('pageMsg').innerHTML = text ? `<div class="${isError ? 'banner' : 'hint'}">${esc(text)}</div>` : '';
+}
+
+async function boot() {
+  try {
+    CTX = await api({ action: 'bootstrap' });
+    $('fVenue').innerHTML = (CTX.venues || []).filter(v => !v.is_head_office)
+      .map(v => `<option value="${v.id}">${esc(v.name)}</option>`).join('');
+    if (CTX.can_manage) $('newBtn').classList.remove('hidden');
+    if (CTX.can_import) $('importLink').classList.remove('hidden');
+    document.querySelectorAll('.costCol').forEach(el => { if (!CTX.can_costs) el.style.display = 'none'; });
+    await load();
+  } catch (e) { say(e.message, true); }
+}
+
+async function load() {
+  try {
+    const data = await api({
+      action: 'list_products',
+      search: $('fSearch').value.trim() || undefined,
+      source: $('fSource').value || undefined,
+      venue_id: $('fVenue').value || undefined,
+    });
+    PRODUCTS = data.products || []; COSTS = data.costs || {};
+    render();
+  } catch (e) { say(e.message, true); }
+}
+
+function render() {
+  const showCosts = CTX && CTX.can_costs;
+  $('rows').innerHTML = PRODUCTS.map(p => {
+    const c = COSTS[p.id];
+    const conv = p.pack_qty && p.base_unit
+      ? `${p.pack_qty} ${p.base_unit}` + (p.conversion_source === 'ai' && !p.conversion_confirmed_at ? ' <span class="tag warn">check</span>' : '')
+      : '<span class="tag warn">not set</span>';
+    const unit = c && c.unit_cost != null
+      ? '$' + Number(c.unit_cost).toFixed(4) + ' / ' + (c.base_unit || '')
+      : '—';
+    return `<tr>
+      <td><div class="pname">${esc(p.name)}</div>
+        <div class="psub">${esc(p.category || '')}${p.source === 'manual' ? ' · entered manually' : ''}</div></td>
+      <td>${esc(p.supplier || '—')}<div class="psub">${esc(p.supplier_code || '')}</div></td>
+      <td>${esc(p.pack_description || '—')}</td>
+      <td>${conv}</td>
+      ${showCosts ? `<td class="num costCol">${money(c && c.pack_price_cents)}</td>
+      <td class="num costCol">${unit}</td>` : ''}
+      <td class="num">${CTX.can_manage ? `<button class="ghost" data-edit="${p.id}">Edit</button>` : ''}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7" class="dim" style="padding:18px 10px">No products yet.</td></tr>`;
+  $('countFoot').textContent = `${PRODUCTS.length} product${PRODUCTS.length === 1 ? '' : 's'}`;
+  document.querySelectorAll('[data-edit]').forEach(b =>
+    b.addEventListener('click', () => openEdit(PRODUCTS.find(p => p.id === b.dataset.edit))));
+}
+
+function openEdit(p) {
+  EDITING = p || null;
+  $('editTitle').textContent = p ? 'Edit product' : 'Add a product';
+  $('eName').value = p?.name || ''; $('eSupplier').value = p?.supplier || '';
+  $('eCode').value = p?.supplier_code || ''; $('eCategory').value = p?.category || '';
+  $('ePack').value = p?.pack_description || ''; $('eQty').value = p?.pack_qty ?? '';
+  $('eUnit').value = p?.base_unit || ''; $('eNotes').value = p?.notes || ''; $('ePrice').value = '';
+  $('suggestHint').textContent = ''; $('saveHint').textContent = '';
+  $('editCard').classList.remove('hidden');
+  $('editCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Suggest the pack -> unit conversion from the pack text, for a human to confirm.
+async function suggest() {
+  if ($('eQty').value) return;
+  const text = $('ePack').value || $('eName').value;
+  if (!text.trim()) return;
+  try {
+    const { suggestion } = await api({ action: 'suggest_conversion', pack_description: $('ePack').value, name: $('eName').value });
+    if (!suggestion) { $('suggestHint').textContent = 'No conversion could be read from that pack description — set it by hand.'; return; }
+    $('eQty').value = suggestion.pack_qty; $('eUnit').value = suggestion.base_unit;
+    $('suggestHint').textContent = `Suggested from "${suggestion.why}" — check it before saving.`;
+  } catch (_) { /* suggestion is best-effort */ }
+}
+
+async function save() {
+  const btn = $('saveBtn'); btn.disabled = true; $('saveHint').textContent = 'Saving…';
+  try {
+    await api({
+      action: 'save_product', id: EDITING?.id,
+      name: $('eName').value, supplier: $('eSupplier').value, supplier_code: $('eCode').value,
+      category: $('eCategory').value, pack_description: $('ePack').value,
+      pack_qty: $('eQty').value, base_unit: $('eUnit').value, notes: $('eNotes').value,
+      pack_price: $('ePrice').value, venue_id: $('fVenue').value,
+    });
+    $('editCard').classList.add('hidden'); say(''); await load();
+  } catch (e) { $('saveHint').textContent = e.message; }
+  finally { btn.disabled = false; }
+}
+
+$('newBtn').addEventListener('click', () => openEdit(null));
+$('cancelBtn').addEventListener('click', () => $('editCard').classList.add('hidden'));
+$('saveBtn').addEventListener('click', save);
+$('refresh').addEventListener('click', load);
+$('importLink').addEventListener('click', () => location.href = '../import/');
+$('fVenue').addEventListener('change', load);
+$('fSource').addEventListener('change', load);
+$('ePack').addEventListener('blur', suggest);
+$('fSearch').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(load, 250); });
+</script>
+</body>
+</html>
