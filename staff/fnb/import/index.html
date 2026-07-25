@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Import supplier prices — Liquid &amp; Larder Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/staff.css?v=5">
+<style>
+  :root { --page-w:1240px; }
+  .hidden { display:none !important; }
+  .formGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-bottom:16px; }
+  .rowBtns { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .hint { color:var(--dim); font-size:11.5px; line-height:1.6; }
+  .banner { background:rgba(164,78,51,.10); color:var(--err); border-radius:var(--r-input);
+    padding:10px 14px; font-size:11.5px; font-weight:600; margin-bottom:18px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:14px; margin-bottom:18px; }
+  .stat { background:var(--sand-soft); border-radius:var(--r-input); padding:14px 16px; }
+  .stat b { display:block; font-family:'Gilda Display',serif; font-size:26px; color:var(--green); }
+  .stat span { font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .tableWrap { overflow-x:auto; max-height:520px; overflow-y:auto; }
+  table.rows td { padding:8px 10px; }
+  .tag { display:inline-block; font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; background:var(--sand-soft); color:var(--green); white-space:nowrap; }
+  .tag.new { background:rgba(66,112,74,.12); color:var(--ok); }
+  .tag.err { background:rgba(164,78,51,.12); color:var(--err); }
+  td.num { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .drop { border:1.5px dashed #ded5c4; border-radius:var(--r-input); padding:26px; text-align:center;
+    color:var(--dim); font-size:12.5px; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color:var(--green); background:#faf7f0; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
+      <div class="sub"><a href="../products/" class="back">&larr; Products</a> &nbsp;·&nbsp; Import supplier prices</div></div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="banner">Preview build — Stage A of the F&amp;B pipeline. Nothing is written until you confirm an import.</div>
+  <div class="msg" id="pageMsg"></div>
+
+  <div class="card" id="uploadCard">
+    <div class="cardTitle">Upload a price file</div>
+    <div class="formGrid">
+      <div><label>Venue</label><select id="fVenue"></select></div>
+      <div><label>File</label><input type="file" id="fFile" accept=".csv,text/csv"></div>
+    </div>
+    <div class="drop" id="drop">Drop a Lightyear CSV export here, or use the file picker above.</div>
+    <div class="rowBtns" style="margin-top:16px">
+      <button id="previewBtn">Preview import</button>
+      <span class="hint" id="uploadHint">Prices are recorded against today's date for the venue selected.</span>
+    </div>
+  </div>
+
+  <div class="card hidden" id="previewCard">
+    <div class="cardTitle">Preview</div>
+    <div class="stats" id="stats"></div>
+    <div class="hint" id="mapHint" style="margin-bottom:14px"></div>
+    <div class="tableWrap"><table class="rows">
+      <thead><tr><th>#</th><th>Product</th><th>Supplier</th><th>Pack</th><th class="num">Price</th><th>Result</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+    <div class="rowBtns" style="margin-top:18px">
+      <button id="commitBtn">Confirm import</button>
+      <button class="danger" id="discardBtn">Discard</button>
+      <span class="hint" id="commitHint"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardTitle">Recent imports</div>
+    <div class="tableWrap"><table>
+      <thead><tr><th>When</th><th>Venue</th><th>File</th><th class="num">Rows</th><th class="num">New</th>
+        <th class="num">Price changes</th><th>Status</th></tr></thead>
+      <tbody id="history"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const FN = SUPABASE_URL + '/functions/v1/fnb-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = c => c == null ? '—' : '$' + (c / 100).toFixed(2);
+let CTX = null, VENUE_NAMES = {}, CSV_TEXT = '', CSV_NAME = '', IMPORT_ID = null;
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; return; }
+  boot();
+})();
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '../../'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function say(text, isError) {
+  $('pageMsg').innerHTML = text ? `<div class="${isError ? 'banner' : 'hint'}">${esc(text)}</div>` : '';
+}
+
+async function boot() {
+  try {
+    CTX = await api({ action: 'bootstrap' });
+    if (!CTX.can_import) { say('Your hub permissions do not include supplier price imports.', true); $('uploadCard').classList.add('hidden'); return; }
+    const venues = (CTX.venues || []).filter(v => !v.is_head_office);
+    venues.forEach(v => VENUE_NAMES[v.id] = v.name);
+    $('fVenue').innerHTML = venues.map(v => `<option value="${v.id}">${esc(v.name)}</option>`).join('');
+    await history();
+  } catch (e) { say(e.message, true); }
+}
+
+function readFile(file) {
+  if (!file) return;
+  CSV_NAME = file.name;
+  const r = new FileReader();
+  r.onload = () => { CSV_TEXT = r.result; $('uploadHint').textContent = `${CSV_NAME} ready — ${Math.round(CSV_TEXT.length / 1024)} KB.`; };
+  r.readAsText(file);
+}
+
+async function preview() {
+  if (!CSV_TEXT) { say('Choose a CSV file first.', true); return; }
+  const btn = $('previewBtn'); btn.disabled = true; say('Reading the file…');
+  try {
+    const data = await api({ action: 'import_preview', venue_id: $('fVenue').value, csv: CSV_TEXT, filename: CSV_NAME });
+    IMPORT_ID = data.import_id; say('');
+    const s = data.summary;
+    $('stats').innerHTML = [
+      ['Rows', s.rows], ['New products', s.new], ['Price changes', s.price_change],
+      ['Unchanged', s.unchanged], ['Skipped', s.errors],
+    ].map(([l, v]) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
+    const cols = Object.entries(data.mapping).map(([f, i]) => `${f.replace(/_/g, ' ')} → “${esc(data.header[i])}”`).join(' · ');
+    $('mapHint').innerHTML = 'Columns read as: ' + cols;
+    $('rows').innerHTML = data.preview.map(r => {
+      const cls = r.action === 'new' ? 'new' : r.action === 'error' ? 'err' : '';
+      const label = r.action === 'price_change' ? 'price change' : r.action;
+      return `<tr><td class="dim">${r.line_no}</td><td>${esc(r.name || '—')}</td>
+        <td>${esc(r.supplier || '—')}<div class="dim">${esc(r.supplier_code || '')}</div></td>
+        <td>${esc(r.pack_description || '—')}</td><td class="num">${money(r.pack_price_cents)}</td>
+        <td><span class="tag ${cls}">${esc(label)}</span>${r.error ? ` <span class="dim">${esc(r.error)}</span>` : ''}</td></tr>`;
+    }).join('');
+    if (data.summary.rows > data.preview.length) {
+      $('mapHint').innerHTML += `<br>Showing the first ${data.preview.length} of ${data.summary.rows} rows.`;
+    }
+    $('previewCard').classList.remove('hidden');
+    $('previewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) { say(e.message, true); }
+  finally { btn.disabled = false; }
+}
+
+async function commit() {
+  const btn = $('commitBtn'); btn.disabled = true; $('commitHint').textContent = 'Importing…';
+  try {
+    const r = await api({ action: 'import_commit', import_id: IMPORT_ID });
+    $('commitHint').textContent = `Done — ${r.created} new product${r.created === 1 ? '' : 's'}, ${r.priced} price${r.priced === 1 ? '' : 's'} recorded.`;
+    $('previewCard').classList.add('hidden');
+    await history();
+  } catch (e) { $('commitHint').textContent = e.message; }
+  finally { btn.disabled = false; }
+}
+
+async function discard() {
+  try { await api({ action: 'import_discard', import_id: IMPORT_ID }); } catch (_) {}
+  $('previewCard').classList.add('hidden'); await history();
+}
+
+async function history() {
+  try {
+    const { imports } = await api({ action: 'list_imports' });
+    $('history').innerHTML = (imports || []).map(i => `<tr>
+      <td>${new Date(i.uploaded_at).toLocaleString('en-AU', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
+      <td>${esc(VENUE_NAMES[i.venue_id] || '—')}</td><td>${esc(i.filename || '—')}</td>
+      <td class="num">${i.row_count}</td><td class="num">${i.new_count}</td><td class="num">${i.price_change_count}</td>
+      <td><span class="tag ${i.status === 'committed' ? 'new' : i.status === 'discarded' ? 'err' : ''}">${esc(i.status)}</span></td>
+    </tr>`).join('') || `<tr><td colspan="7" class="dim" style="padding:16px 10px">No imports yet.</td></tr>`;
+  } catch (e) { /* history is secondary */ }
+}
+
+$('fFile').addEventListener('change', e => readFile(e.target.files[0]));
+$('previewBtn').addEventListener('click', preview);
+$('commitBtn').addEventListener('click', commit);
+$('discardBtn').addEventListener('click', discard);
+const drop = $('drop');
+drop.addEventListener('click', () => $('fFile').click());
+['dragenter','dragover'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => readFile(e.dataTransfer.files[0]));
+</script>
+</body>
+</html>
