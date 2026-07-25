@@ -712,5 +712,117 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
 // ── boot ────────────────────────────────────────────────────────────────────
 (async()=>{ if(await gate()){ buildVenueChips(); loadGuests(); } })();
 </script>
+<!-- ─── URL state (deep-linking) ───────────────────────────────────────────────
+     Additive: reads/writes control state via the DOM only. No existing
+     handlers are modified. Silent replaceState. Bare URL = unchanged behaviour.
+     Pilot for the shared hub URL-state helper. -->
+<script>
+(function(){
+  var VENUE_SLUG = { 'all':'All venues', 'gidley':'The Gidley', 'bistecca':'Bistecca', 'alfies':"Alfie's" };
+  function slugFromText(txt){
+    txt = (txt||'').trim();
+    for (var k in VENUE_SLUG){ if (VENUE_SLUG[k] === txt) return k; }
+    return 'all';
+  }
+  function $(id){ return document.getElementById(id); }
+  function segOn(id){ var c=$(id); if(!c) return null; var b=c.querySelector('button.on'); return b; }
+  function clickSegByAttr(id, attr, val){
+    var c=$(id); if(!c) return;
+    var btns=c.querySelectorAll('button');
+    for (var i=0;i<btns.length;i++){
+      if (btns[i].dataset[attr] === val){ if(!btns[i].classList.contains('on')) btns[i].click(); return; }
+    }
+  }
+  function clickVenueBySlug(id, slug){
+    var c=$(id); if(!c) return;
+    var want = VENUE_SLUG[slug] || VENUE_SLUG.all;
+    var btns=c.querySelectorAll('button');
+    for (var i=0;i<btns.length;i++){
+      if (btns[i].textContent.trim() === want){ if(!btns[i].classList.contains('on')) btns[i].click(); return; }
+    }
+  }
+  function setSelect(id, val){ var el=$(id); if(!el || el.value===val) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); }
+  function setNum(id, val){ var el=$(id); if(!el || String(el.value)===String(val)) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); el.dispatchEvent(new Event('input',{bubbles:true})); }
+
+  var suppress = false;
+
+  // ── read current state from the DOM ──────────────────────────────────────
+  function currentView(){ var b=segOn('viewSeg'); return b ? b.dataset.v : 'guests'; }
+  function readState(){
+    var view = currentView();
+    var s = { view: view };
+    if (view === 'guests'){
+      if ($('gTf')) s.period = $('gTf').value;
+      var v = segOn('venueBar'); s.venue = v ? slugFromText(v.textContent) : 'all';
+      if ($('minVisits')) s.min = $('minVisits').value || '0';
+      var l = segOn('limitSeg'); if (l) s.limit = l.dataset.l;
+      if (s.period === 'custom'){ if($('gFrom')) s.from=$('gFrom').value; if($('gTo')) s.to=$('gTo').value; }
+    } else if (view === 'bookings'){
+      if ($('bTf')) s.period = $('bTf').value;
+      var st = segOn('bStatusSeg'); if (st) s.status = st.dataset.b;
+      if (s.period === 'custom'){ if($('bFrom')) s.from=$('bFrom').value; if($('bTo')) s.to=$('bTo').value; }
+    } else if (view === 'arrivals'){
+      var d = segOn('arrSeg'); if (d) s.days = d.dataset.d;
+      var av = segOn('arrVenueBar'); s.venue = av ? slugFromText(av.textContent) : 'all';
+    }
+    return s;
+  }
+
+  // ── write state → URL (silent replaceState) ──────────────────────────────
+  function writeState(){
+    if (suppress) return;
+    var s = readState();
+    var p = new URLSearchParams();
+    Object.keys(s).forEach(function(k){ if (s[k] !== undefined && s[k] !== null && s[k] !== '') p.set(k, s[k]); });
+    var qs = p.toString();
+    var url = location.pathname + (qs ? '?' + qs : '') + location.hash;
+    history.replaceState(null, '', url);
+  }
+
+  // ── apply URL → controls on load ─────────────────────────────────────────
+  function applyState(){
+    var p = new URLSearchParams(location.search);
+    if (![].concat.apply([], [...p.keys()]).length) return false; // no params → leave defaults
+    suppress = true;
+
+    var view = p.get('view');
+    if (view && ['guests','bookings','arrivals'].indexOf(view) >= 0) clickSegByAttr('viewSeg','v',view);
+    view = currentView();
+
+    if (view === 'guests'){
+      if (p.has('period')) setSelect('gTf', p.get('period'));
+      if (p.get('period') === 'custom'){ if(p.has('from')) setNum('gFrom',p.get('from')); if(p.has('to')) setNum('gTo',p.get('to')); }
+      if (p.has('venue')) clickVenueBySlug('venueBar', p.get('venue'));
+      if (p.has('min')) setNum('minVisits', p.get('min'));
+      if (p.has('limit')) clickSegByAttr('limitSeg','l',p.get('limit'));
+    } else if (view === 'bookings'){
+      if (p.has('period')) setSelect('bTf', p.get('period'));
+      if (p.get('period') === 'custom'){ if(p.has('from')) setNum('bFrom',p.get('from')); if(p.has('to')) setNum('bTo',p.get('to')); }
+      if (p.has('status')) clickSegByAttr('bStatusSeg','b',p.get('status'));
+    } else if (view === 'arrivals'){
+      if (p.has('days')) clickSegByAttr('arrSeg','d',p.get('days'));
+      if (p.has('venue')) clickVenueBySlug('arrVenueBar', p.get('venue'));
+    }
+
+    suppress = false;
+    setTimeout(writeState, 60); // canonicalise the URL
+    return true;
+  }
+
+  // ── wire listeners (added after the page's own handlers) ─────────────────
+  function wire(){
+    ['viewSeg','venueBar','limitSeg','bStatusSeg','arrSeg','arrVenueBar'].forEach(function(id){
+      var c=$(id); if(!c) return;
+      c.querySelectorAll('button').forEach(function(b){ b.addEventListener('click', function(){ setTimeout(writeState,0); }); });
+    });
+    ['gTf','bTf'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ setTimeout(writeState,0); }); });
+    ['minVisits','gFrom','gTo','bFrom','bTo'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ setTimeout(writeState,0); }); });
+  }
+
+  function init(){ wire(); applyState(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+})();
+</script>
 </body>
 </html>
