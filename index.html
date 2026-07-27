@@ -314,11 +314,31 @@ const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
 
-// Reporting project (return-rate RPCs) — same read-only anon access as the metrics page.
-const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
-const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
-
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+// Reporting data now goes through the hat-gated reporting-proxy edge function
+// rather than straight to the reporting project with the anon key.
+// Same {data, error} shape as the old dataClient.rpc() so call sites are unchanged.
+async function dataRpc(rpc, args = {}) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { data: null, error: new Error('Not signed in') };
+    const res = await fetch(SUPABASE_URL + '/functions/v1/reporting-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': ANON_KEY,
+        'Authorization': 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify({ rpc, args }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) return { data: null, error: new Error(j.error || 'Report unavailable') };
+    return { data: j.data, error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ROLES = ['staff','reservations','manager','finance','management','admin'];
@@ -491,9 +511,8 @@ function loadLiveData(apps) {
 // Combined (all venues) TOTAL covers vs forecast, last completed week
 async function loadForecastStats() {
   try {
-    const dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
     const names = ['The Gidley', 'Bistecca', "Alfie's"];
-    const results = await Promise.all(names.map(n => dataSb.rpc('get_actual_vs_forecast', { p_venue: n })));
+    const results = await Promise.all(names.map(n => dataRpc('get_actual_vs_forecast', { p_venue: n })));
     const map = {};
     results.forEach(({ data }) => (data || []).forEach(r => {
       const t = map[r.week_ending] = map[r.week_ending] || { ac:null, fc:null };
@@ -553,9 +572,8 @@ async function loadPreauthStats() {
 
 async function loadReturnRateStats() {
   try {
-    const dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth: { persistSession:false, autoRefreshToken:false } });
     const fns = ['get_gidley_return_rate', 'get_bistecca_return_rate', 'get_alfies_return_rate'];
-    const results = await Promise.all(fns.map(f => dataSb.rpc(f)));
+    const results = await Promise.all(fns.map(f => dataRpc(f)));
     const cur = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date()).slice(0, 7);
     const map = {};
     results.forEach(({ data }) => (data || []).forEach(r => {
@@ -580,8 +598,7 @@ async function loadReturnRateStats() {
 
 async function loadVipStats() {
   try {
-    var dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
-    var res = await dataSb.rpc('get_vip_tile_summary');
+    var res = await dataRpc('get_vip_tile_summary');
     if (res.error || !res.data) return;
     var arr = +res.data.arriving_next_7 || 0;
     var monthly = (res.data.monthly || []).map(function(m){ return +m.bookings; });
