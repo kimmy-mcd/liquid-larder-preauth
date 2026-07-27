@@ -3,14 +3,25 @@
   "trailingSlash": true,
   "redirects": [
     {
-      "source": "/staff/:path*",
+      "source": "/staff/",
       "has": [{ "type": "host", "value": "pay.liquidandlarder.com.au" }],
-      "destination": "https://hub.liquidandlarder.com.au/:path*",
+      "destination": "https://hub.liquidandlarder.com.au/",
       "permanent": false
     },
     {
-      "source": "/staff/:path*",
-      "destination": "/:path*",
+      "source": "/staff/:path+/",
+      "has": [{ "type": "host", "value": "pay.liquidandlarder.com.au" }],
+      "destination": "https://hub.liquidandlarder.com.au/:path+/",
+      "permanent": false
+    },
+    {
+      "source": "/staff/",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/staff/:rest+/",
+      "destination": "/:rest+/",
       "permanent": false
     },
     {
