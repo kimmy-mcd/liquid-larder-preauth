@@ -137,13 +137,14 @@ const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 const VENUES = [
+  { slug:'combined', name:'Combined'   },
   { slug:'gidley',   name:'The Gidley' },
   { slug:'bistecca', name:'Bistecca'   },
   { slug:'alfies',   name:"Alfie's"    },
 ];
 
-let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null, metric = 'dining';
-const DINING_VENUES = ['gidley','bistecca','alfies'];
+let venue = VENUES[0], period = 'thisfy', chooseFy = null, view = 'weekly', chart = null, metric = 'total';
+const DINING_VENUES = ['combined','gidley','bistecca','alfies'];
 const em = () => DINING_VENUES.includes(venue.slug) ? metric : 'total';
 const ckey = () => venue.slug + '|' + em();
 const __pick = r => { const m=em(); return m==='dining' ? r.dining_covers : (m==='bar' ? r.bar_covers : r.covers_actual); };
@@ -205,24 +206,47 @@ function buildVenueSwitcher() {
   });
 }
 
+// fetch one venue's raw weekly + daily rows
+async function fetchVenue(name) {
+  const [wRes, dRes] = await Promise.all([
+    dataClient.rpc('get_actual_vs_forecast', { p_venue: name }),
+    dataClient.rpc('get_covers_daily',       { p_venue: name }),
+  ]);
+  if (wRes.error) throw new Error(wRes.error.message);
+  if (dRes.error) throw new Error(dRes.error.message);
+  return { weekly: wRes.data || [], daily: dRes.data || [] };
+}
+// sum numeric cover columns across venues, keyed by week_ending / day
+const SUMCOLS = ['covers_forecast','covers_actual','dining_covers','bar_covers'];
+function mergeRows(sets, key) {
+  const map = new Map();
+  sets.forEach(rows => rows.forEach(r => {
+    let t = map.get(r[key]);
+    if (!t) { t = {}; t[key] = r[key]; SUMCOLS.forEach(c => t[c] = null); map.set(r[key], t); }
+    SUMCOLS.forEach(c => { if (r[c] != null) t[c] = (t[c] == null ? 0 : t[c]) + (+r[c]); });
+  }));
+  return [...map.values()];
+}
+
 async function load() {
   $('error').style.display = 'none';
   if (cache[ckey()]) return draw();
   $('chartWrap').style.display = 'none';
-  const L = $('loading'); L.style.display = 'flex'; L.textContent = 'Loading ' + venue.name + '…';
+  const L = $('loading'); L.style.display = 'flex';
+  L.textContent = 'Loading ' + (venue.slug === 'combined' ? 'all venues' : venue.name) + '…';
   try {
-    const [wRes, dRes] = await Promise.all([
-      dataClient.rpc('get_actual_vs_forecast', { p_venue: venue.name }),
-      dataClient.rpc('get_covers_daily',       { p_venue: venue.name }),
-    ]);
-    if (wRes.error) throw new Error(wRes.error.message);
-    if (dRes.error) throw new Error(dRes.error.message);
-    const weekly = (wRes.data||[])
+    const names = venue.slug === 'combined'
+      ? VENUES.filter(v => v.slug !== 'combined').map(v => v.name)
+      : [venue.name];
+    const sets = await Promise.all(names.map(fetchVenue));
+    const wRaw = sets.length === 1 ? sets[0].weekly : mergeRows(sets.map(s => s.weekly), 'week_ending');
+    const dRaw = sets.length === 1 ? sets[0].daily  : mergeRows(sets.map(s => s.daily),  'day');
+    const weekly = (wRaw)
       .filter(r => r.covers_forecast != null || r.covers_actual != null)
       .map(r => ({ wk:r.week_ending, fc:__fc(r),
         ac:__ac(r), vp:__vp(r), note:r.notes||null }))
       .sort((a,b)=>a.wk.localeCompare(b.wk));
-    const daily = (dRes.data||[]).map(r => ({ day:r.day, ac:__ac(r) })).sort((a,b)=>a.day.localeCompare(b.day));
+    const daily = (dRaw).map(r => ({ day:r.day, ac:__ac(r) })).sort((a,b)=>a.day.localeCompare(b.day));
     cache[ckey()] = { weekly, daily };
     draw();
   } catch (err) {
