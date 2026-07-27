@@ -348,10 +348,30 @@ const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const authSb = supabase.createClient(AUTH_URL, AUTH_ANON);
 
-// ── data (reporting project) ──────────────────────────────────────────────
-const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
-const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
-const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+// ── data (reporting project, via proxy) ───────────────────────────────────
+// Reporting data now goes through the hat-gated reporting-proxy edge function
+// rather than straight to the reporting project with the anon key.
+// Same {data, error} shape as the old dataClient.rpc() so call sites are unchanged.
+async function dataRpc(rpc, args = {}) {
+  try {
+    const { data: { session } } = await authSb.auth.getSession();
+    if (!session) return { data: null, error: new Error('Not signed in') };
+    const res = await fetch(AUTH_URL + '/functions/v1/reporting-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': AUTH_ANON,
+        'Authorization': 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify({ rpc, args }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) return { data: null, error: new Error(j.error || 'Report unavailable') };
+    return { data: j.data, error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
 
 const $ = id => document.getElementById(id);
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -487,7 +507,7 @@ async function loadGuests(){
   const L=$('gLoading'); L.style.display='flex'; L.textContent='Loading…';
   const venues = gState.venues.includes('all') ? null : gState.venues;
   try {
-    const { data, error } = await dataClient.rpc('get_vip_guests', { p_start:r.start, p_end:r.end, p_venues:venues, p_limit:500 });
+    const { data, error } = await dataRpc('get_vip_guests', { p_start:r.start, p_end:r.end, p_venues:venues, p_limit:500 });
     if(error) throw new Error(error.message);
     gState.data = data;
     L.style.display='none'; $('gContent').style.display='block';
@@ -607,7 +627,7 @@ async function openProfile(clientId){
     <div id="mBk"><div class="loading" style="min-height:120px;">Loading bookings…</div></div>`;
   $('gModal').style.display='flex'; document.body.style.overflow='hidden';
   try {
-    const { data, error } = await dataClient.rpc('get_vip_guest_bookings', { p_client_id:clientId });
+    const { data, error } = await dataRpc('get_vip_guest_bookings', { p_client_id:clientId });
     if(error) throw new Error(error.message);
     renderBookings(data||[]);
   } catch(err){
@@ -661,7 +681,7 @@ async function loadBookings(){
   $('bError').style.display='none'; $('bContent').style.display='none';
   const L=$('bLoading'); L.style.display='flex'; L.textContent='Loading…';
   try {
-    const { data, error } = await dataClient.rpc('get_vip_booking_metrics', { p_start:r.start, p_end:r.end });
+    const { data, error } = await dataRpc('get_vip_booking_metrics', { p_start:r.start, p_end:r.end });
     if(error) throw new Error(error.message);
     bState.data = data;
     L.style.display='none'; $('bContent').style.display='block';
@@ -712,7 +732,7 @@ async function loadArrivals(){
   const L=$('arrLoading'); L.style.display='flex'; L.textContent='Loading…';
   $('arrError').style.display='none'; $('arrContent').style.display='none';
   try {
-    const { data, error } = await dataClient.rpc('get_vip_arrivals', { p_days:arrDays });
+    const { data, error } = await dataRpc('get_vip_arrivals', { p_days:arrDays });
     if(error) throw new Error(error.message);
     L.style.display='none'; $('arrContent').style.display='block';
     renderArrivals(data||[]);
