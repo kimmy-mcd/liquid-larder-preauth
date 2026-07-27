@@ -485,6 +485,36 @@ function loadLiveData(apps) {
   if (has('Return Rate')) loadReturnRateStats();
   if (has('Quality Audits')) loadQualityStats(); if (has('VIPs')) loadVipStats();
   if (has('VIP Outreach')) loadOutreachStats();
+  if (has('Actual vs Forecast Covers')) loadForecastStats();
+}
+
+// Combined (all venues) TOTAL covers vs forecast, last completed week
+async function loadForecastStats() {
+  try {
+    const dataSb = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+    const names = ['The Gidley', 'Bistecca', "Alfie's"];
+    const results = await Promise.all(names.map(n => dataSb.rpc('get_actual_vs_forecast', { p_venue: n })));
+    const map = {};
+    results.forEach(({ data }) => (data || []).forEach(r => {
+      const t = map[r.week_ending] = map[r.week_ending] || { ac:null, fc:null };
+      if (r.covers_actual != null)   t.ac = (t.ac == null ? 0 : t.ac) + (+r.covers_actual);
+      if (r.covers_forecast != null) t.fc = (t.fc == null ? 0 : t.fc) + (+r.covers_forecast);
+    }));
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date());
+    const weeks = Object.keys(map).filter(w => w < today && map[w].ac).sort();
+    if (!weeks.length) return;
+    const last = weeks[weeks.length - 1], row = map[last];
+    const spark = sparkline(weeks.slice(-12).map(w => map[w].ac));
+    const covers = new Intl.NumberFormat('en-AU').format(row.ac);
+    if (row.fc) {
+      const v = (row.ac - row.fc) / row.fc * 100;
+      const txt = (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+      setFoot('Actual vs Forecast Covers',
+        `<span class="dot ${v >= 0 ? 'ok' : 'warn'}"></span><b>${txt}</b>&nbsp;vs forecast · ${covers} covers` + spark);
+    } else {
+      setFoot('Actual vs Forecast Covers', `<span class="dot ok"></span><b>${covers}</b>&nbsp;covers · last week` + spark);
+    }
+  } catch (_) { /* footer simply not shown */ }
 }
 
 async function loadPreauthStats() {
