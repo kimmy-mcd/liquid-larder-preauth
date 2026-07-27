@@ -162,6 +162,13 @@ const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); retu
 function mondayOf(d) { const x = new Date(d); x.setHours(0,0,0,0); const dow = (x.getDay()+6)%7; x.setDate(x.getDate()-dow); return x; }
 const fyEndOf = d => (d.getMonth() >= 6 ? d.getFullYear()+1 : d.getFullYear());   // AU FY Jul–Jun
 const fyLabel = fe => `FY${fe-1}/${String(fe).slice(2)}`;
+// FY-aligned quarters: Q1 Jul–Sep, Q2 Oct–Dec, Q3 Jan–Mar, Q4 Apr–Jun
+const fyQIdxOf = d => Math.floor((((d.getMonth()-6)+12)%12)/3);
+function fyQuarter(fyStart, qi) {
+  const abs = 6 + qi*3;
+  const s = new Date(fyStart + Math.floor(abs/12), abs%12, 1);
+  return { start:s, end:new Date(s.getFullYear(), s.getMonth()+3, 0), grain:'weekly', label:`Q${qi+1} ${fyLabel(fyStart+1)}` };
+}
 const today = () => { const n = new Date(); n.setHours(0,0,0,0); return n; };
 
 // window {start, end, grain, label} for the current period
@@ -169,8 +176,8 @@ function windowFor(p) {
   const n = today();
   if (p === 'thisweek') { const s = mondayOf(n); return { start:s, end:addDays(s,6), grain:'daily', label:'This week' }; }
   if (p === 'lastweek') { const s = addDays(mondayOf(n),-7); return { start:s, end:addDays(s,6), grain:'daily', label:'Last week' }; }
-  if (p === 'thisquarter') { const q = Math.floor(n.getMonth()/3); const s = new Date(n.getFullYear(), q*3, 1); return { start:s, end:new Date(n.getFullYear(), q*3+3, 0), grain:'weekly', label:`Q${q+1} ${n.getFullYear()}` }; }
-  if (p === 'lastquarter') { const q = Math.floor(n.getMonth()/3); const cs = new Date(n.getFullYear(), q*3, 1); const s = new Date(cs.getFullYear(), cs.getMonth()-3, 1); const e = new Date(cs.getFullYear(), cs.getMonth(), 0); return { start:s, end:e, grain:'weekly', label:`Q${(Math.floor(s.getMonth()/3))+1} ${s.getFullYear()}` }; }
+  if (p === 'thisquarter') { return fyQuarter(fyEndOf(n)-1, fyQIdxOf(n)); }
+  if (p === 'lastquarter') { let qi = fyQIdxOf(n)-1, fs = fyEndOf(n)-1; if (qi < 0) { qi = 3; fs -= 1; } return fyQuarter(fs, qi); }
   if (p === 'thisfy') { const fe = fyEndOf(n); return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
   if (p === 'lastfy') { const fe = fyEndOf(n)-1; return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
   if (p === 'choose') { const fe = chooseFy || fyEndOf(n); return { start:new Date(fe-1,6,1), end:new Date(fe,5,30), grain:'weekly', label:fyLabel(fe) }; }
@@ -472,7 +479,7 @@ function cumTip(days) {
 $('footnote').textContent =
   'Actual covers = guests on completed SevenRooms reservations, by trading day. Forecast covers come from the Liquid & Larder Forecast sheet (a weekly figure). KPIs compare like-for-like to date. "By day" views show actual covers per day with a forecast-pace line (the week’s forecast ÷ 7). Weeks run Monday–Sunday. Walk-ins not entered as reservations are not counted.';
 
-function buildMetricSwitcher(){ let host=document.getElementById('metricSeg'); if(!host){ const row=document.createElement('div'); row.className='metricRow'; row.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 14px;'; row.innerHTML='<span class="lead">Covers</span><div class="seg" id="metricSeg"></div>'; const kp=document.getElementById('kpis'); kp.parentNode.insertBefore(row, kp); host=document.getElementById('metricSeg'); } const opts=[['dining','Dining room'],['total','Total'],['bar','Bar']]; host.innerHTML=opts.map(o=>`<button data-metric="${o[0]}" class="${o[0]===metric?'on':''}">${o[1]}</button>`).join(''); host.querySelectorAll('button').forEach(b=> b.onclick=()=>{ if(b.dataset.metric===metric) return; metric=b.dataset.metric; host.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.metric===metric)); load(); }); }
+function buildMetricSwitcher(){ let host=document.getElementById('metricSeg'); if(!host){ const row=document.createElement('div'); row.className='metricRow'; row.style.cssText='display:flex;align-items:center;gap:10px;margin:0 0 14px;'; row.innerHTML='<span class="lead">Covers</span><div class="seg" id="metricSeg"></div>'; const kp=document.getElementById('kpis'); kp.parentNode.insertBefore(row, kp); host=document.getElementById('metricSeg'); } const opts=[['total','Total'],['dining','Dining room'],['bar','Bar']]; host.innerHTML=opts.map(o=>`<button data-metric="${o[0]}" class="${o[0]===metric?'on':''}">${o[1]}</button>`).join(''); host.querySelectorAll('button').forEach(b=> b.onclick=()=>{ if(b.dataset.metric===metric) return; metric=b.dataset.metric; host.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x.dataset.metric===metric)); load(); }); }
 function syncMetricUI(){ var row=document.querySelector('.metricRow'); if(row) row.style.display = DINING_VENUES.includes(venue.slug) ? 'flex' : 'none'; }
 (async () => { if (await gate()) { buildVenueSwitcher(); buildMetricSwitcher(); syncMetricUI(); load(); } })();
 </script>
