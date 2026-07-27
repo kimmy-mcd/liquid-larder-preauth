@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liquid &amp; Larder — Card Pre-Authorisation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://js.stripe.com/v3/"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<style>
+  body { min-height:100vh; display:flex; justify-content:center; padding:48px 18px; }
+  .wrap { width:100%; max-width:480px; animation:rise .5s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+  .brand { text-align:center; margin-bottom:30px; }
+  .brand h1.logo { height:24px; background:var(--green); -webkit-mask:url(/assets/wordmark.svg) no-repeat center / contain; mask:url(/assets/wordmark.svg) no-repeat center / contain; }
+  .brand p { color:var(--dim); font-size:11px; letter-spacing:.28em; text-transform:uppercase; text-indent:.28em; margin-top:12px; }
+  .card { border-radius:20px; padding:34px 30px; }
+  .secure { display:inline-flex; align-items:center; gap:7px; background:var(--sand-soft); color:var(--green); border-radius:999px; padding:6px 14px; font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; margin-bottom:20px; }
+  .secure svg { width:11px; height:11px; }
+  h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:23px; line-height:1.35; margin-bottom:22px; color:var(--green); }
+  .row { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px solid var(--hairline); font-size:13.5px; }
+  .row:last-of-type { border-bottom:none; }
+  .row span:first-child { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; padding-top:4px; white-space:nowrap; }
+  .row span:last-child { text-align:right; font-weight:500; }
+  .amountBox { background:linear-gradient(135deg, var(--sand-soft), #faf6ec); border-radius:14px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px; }
+  .amountBox .lbl { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; }
+  .amount { font-family:'Gilda Display',serif; font-size:28px; color:var(--green); }
+  .terms { font-size:12px; color:var(--dim); line-height:1.75; margin:20px 0 16px; }
+  label.accept { display:flex; gap:10px; font-size:12.5px; line-height:1.55; align-items:flex-start; cursor:pointer; margin-bottom:22px; }
+  label.accept input { margin-top:2px; accent-color:var(--green); width:15px; height:15px; }
+  #payment-element { margin-bottom:2px; }
+  button { width:100%; margin-top:24px; padding:16px; font-size:12px; letter-spacing:.2em; text-indent:.2em; }
+  .msg { margin-top:14px; }
+  .center { text-align:center; padding:28px 0; font-size:14px; line-height:1.7; }
+  .footer { text-align:center; color:var(--dim); font-size:10.5px; letter-spacing:.05em; margin-top:24px; line-height:1.8; }
+  @media (max-width:420px) { .card { padding:26px 20px; } body { padding:32px 14px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
+    <p id="venueLine">Card Pre-Authorisation</p>
+  </div>
+  <div class="card" id="app">
+    <div class="center" id="loading">Loading&hellip;</div>
+  </div>
+  <p class="footer">Your card details are entered directly with Stripe, our secure payment provider.<br>Liquid &amp; Larder never sees or stores your card number.</p>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+// Each venue has its own Stripe account. The Gidley and Bistecca are LIVE; Alfie's and Liquid & Larder remain TEST.
+const VENUE_PUBLISHABLE_KEYS = {
+  'Bistecca':   'pk_live_bHaYi0BMdiKfTBSSwRng5U3f',
+  'The Gidley': 'pk_live_51IEP4kFbPZPhzMLwFuEy3eBf76hTXO0Oes4mMn3VkORspJOOsPzg4H6aszgO7qTzDI1Hr2DKpJaLSzMlDrIfrHsb00bEkW0Wbx',
+  "Alfie's":    'pk_test_51NCsuACHDYb0j2Rl2DEPtowLQQIpbqoFaG3qWCTDlF8xFCc7e89qJBbsHBhaE5kqQN0ko7Up06NM4jMmMqMtvw3000THA6NDnQ',
+  'Liquid & Larder': 'pk_test_SHlaYt7a8XEg1umxdsXnfCTv00Dgc11pIG',
+};
+const FN = SUPABASE_URL + '/functions/v1/preauth-public';
+
+const params = new URLSearchParams(location.search);
+const token = params.get('t');
+const app = document.getElementById('app');
+
+async function api(action, extra = {}) {
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'apikey': ANON_KEY },
+    body: JSON.stringify({ action, token, ...extra }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Something went wrong');
+  return data;
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = c => new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD' }).format(c / 100);
+const fmtDate = d => new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+function show(html) { app.innerHTML = html; }
+
+async function init() {
+  if (!token) return show('<div class="center">This link is missing its reference. Please use the link you were sent.</div>');
+  let r, terms;
+  try { const resp = await api('get'); r = resp.request; terms = resp.terms; }
+  catch (e) { return show('<div class="center">' + esc(e.message) + '</div>'); }
+
+  document.getElementById('venueLine').textContent = r.venue_name;
+
+  // Returning from a 3D Secure redirect
+  const siFromRedirect = params.get('setup_intent');
+  if (siFromRedirect && r.status === 'sent') {
+    show('<div class="center">Confirming your card&hellip;</div>');
+    try { await api('complete', { setup_intent_id: siFromRedirect }); return success(r); }
+    catch (e) { return show('<div class="center msg err">' + esc(e.message) + '</div>'); }
+  }
+
+  if (r.status !== 'sent') {
+    if (r.status === 'cancelled' || r.status === 'expired') return show('<div class="center">This link is no longer active. Please contact the venue if you need assistance.</div>');
+    return success(r, true);
+  }
+
+  show(`
+    <span class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg> Secure card authorisation</span>
+    <h2>Hi ${esc(r.guest_first_name)}, please confirm your card details</h2>
+    <div class="row"><span>Venue</span><span>${esc(r.venue_name)}</span></div>
+    ${r.purpose ? '<div class="row"><span>For</span><span>' + esc(r.purpose) + '</span></div>' : ''}
+    <div class="row"><span>Date of use</span><span>${fmtDate(r.booking_date)}${r.booking_time ? ', ' + esc(r.booking_time) : ''}</span></div>
+    <div class="amountBox"><span class="lbl">Maximum hold</span><span class="amount">${fmt(r.max_amount_cents)}</span></div>
+    <div class="terms" id="termsSummary">
+      <p style="margin:0 0 8px">${esc(r.venue_name)} uses a secure pre-authorisation to hold your card for your booking.</p>
+      <ul style="margin:0; padding-left:18px">
+        <li>A temporary hold of up to <strong>${fmt(r.max_amount_cents)}</strong> may be placed on your card shortly before your date of use. A hold is not a payment.</li>
+        <li>After your visit we may charge the card for what you owe (your bill including any service charge and card payment surcharge, an agreed deposit or minimum spend, any damage, or a cancellation or no-show fee where one applies), never more than <strong>${fmt(r.max_amount_cents)}</strong>.</li>
+        <li>Anything not charged is released automatically.</li>
+      </ul>
+    </div>
+    <label class="accept"><input type="checkbox" id="accept"><span>I confirm I am authorised to use this card and I agree to the <a href="https://www.liquidandlarder.com.au/credit-card-authorisation-terms/" target="_blank" rel="noopener">Card Pre-Authorisation Terms</a>.</span></label>
+    <div id="payment-element"></div>
+    <button id="submit" disabled>Authorise up to ${fmt(r.max_amount_cents)}</button>
+    <div class="msg" id="msg"></div>
+  `);
+
+  const pk = VENUE_PUBLISHABLE_KEYS[r.venue_name];
+  if (!pk || pk.includes('REPLACE')) return show('<div class="center">Card authorisation is not yet configured for ' + esc(r.venue_name) + '. Please contact the venue.</div>');
+  const stripe = Stripe(pk);
+  const { client_secret } = await api('setup');
+  const elements = stripe.elements({
+    clientSecret: client_secret,
+    appearance: {
+      theme: 'flat',
+      variables: {
+        colorPrimary: '#1d3e3b', colorBackground: '#fbfaf7', colorText: '#242c2a',
+        colorTextSecondary: '#646c68', colorTextPlaceholder: '#a9aeab',
+        colorDanger: '#a44e33', fontFamily: 'Montserrat, sans-serif', borderRadius: '10px',
+      },
+      rules: { '.Input': { border: '1px solid #e6dfd2' } },
+    },
+    fonts: [{ cssSrc: 'https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500&display=swap' }],
+  });
+  elements.create('payment').mount('#payment-element');
+
+  const btn = document.getElementById('submit');
+  const accept = document.getElementById('accept');
+  const msg = document.getElementById('msg');
+  accept.addEventListener('change', () => btn.disabled = !accept.checked);
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true; btn.textContent = 'Processing…'; msg.textContent = ''; msg.className = 'msg';
+    try {
+      const { error: submitErr } = await elements.submit();
+      if (submitErr) throw new Error(submitErr.message);
+      const { error, setupIntent } = await stripe.confirmSetup({
+        elements, clientSecret: client_secret,
+        confirmParams: { return_url: location.href.split('&setup_intent')[0] },
+        redirect: 'if_required',
+      });
+      if (error) throw new Error(error.message);
+      await api('complete', { setup_intent_id: setupIntent.id });
+      success(r);
+    } catch (e) {
+      msg.textContent = e.message; msg.className = 'msg err';
+      btn.disabled = false; btn.textContent = 'Authorise up to ' + fmt(r.max_amount_cents);
+    }
+  });
+}
+
+function success(r, already = false) {
+  show(`<div class="center">
+    <h2 style="margin-bottom:12px">${already ? 'Already confirmed' : 'Thank you' + (r.guest_first_name ? ', ' + esc(r.guest_first_name) : '')}</h2>
+    <p class="msg ok">Your card has been securely ${already ? 'saved' : 'confirmed'} with ${esc(r.venue_name)}.<br><br>
+    A temporary hold of up to ${fmt(r.max_amount_cents)} will be placed on your card shortly before your date of use, and only the final account total is charged.</p>
+  </div>`);
+}
+
+init();
+</script>
+</body>
+</html>

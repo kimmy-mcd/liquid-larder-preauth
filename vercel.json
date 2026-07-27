@@ -5,13 +5,18 @@
     {
       "source": "/staff/:path*",
       "has": [{ "type": "host", "value": "pay.liquidandlarder.com.au" }],
-      "destination": "https://hub.liquidandlarder.com.au/staff/:path*",
+      "destination": "https://hub.liquidandlarder.com.au/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/staff/:path*",
+      "destination": "/:path*",
       "permanent": false
     },
     {
       "source": "/",
-      "has": [{ "type": "host", "value": "hub.liquidandlarder.com.au" }],
-      "destination": "/staff/",
+      "has": [{ "type": "host", "value": "pay.liquidandlarder.com.au" }],
+      "destination": "/guest/",
       "permanent": false
     }
   ]

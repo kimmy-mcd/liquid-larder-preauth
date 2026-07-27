@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="/styles/core.css" />
-  <link rel="stylesheet" href="/styles/staff.css" />
+  <link rel="stylesheet" href="/styles/hub.css" />
   <style>
     body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
     .login { width:100%; max-width:430px; padding:40px 40px 32px; border-radius:22px; margin:0; animation:rise .55s ease both; text-align:left; }
@@ -68,7 +68,7 @@
     <div id="signedIn" style="display:none;">
       <div class="divider"></div>
       <div class="actions">
-        <a class="btnlink primary" href="/staff/">Go to the Team Hub</a>
+        <a class="btnlink primary" href="/">Go to the Team Hub</a>
         <a class="btnlink secondary" href="/">Home</a>
       </div>
     </div>
@@ -99,7 +99,7 @@
       $('signin').disabled=true; msg('Signing in…');
       sb.auth.signInWithPassword({ email:email, password:pw }).then(function(r){
         if(r.error){ msg(r.error.message || 'Sign in failed.','err'); $('signin').disabled=false; }
-        else { msg('Signed in — taking you to the hub…','ok'); location.href='/staff/'; }
+        else { msg('Signed in — taking you to the hub…','ok'); location.href='/'; }
       });
     }
     $('signin').addEventListener('click', doSignIn);
@@ -110,7 +110,7 @@
       var email=$('email').value.trim();
       if(!email){ msg('Enter your email first, then tap Forgot password.','err'); return; }
       msg('Sending reset link…');
-      sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/staff/' }).then(function(r){
+      sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/' }).then(function(r){
         if(r.error) msg(r.error.message || 'Could not send reset email.','err');
         else msg('Check your email for a reset link.','ok');
       });

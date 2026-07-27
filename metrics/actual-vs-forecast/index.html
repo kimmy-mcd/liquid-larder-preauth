@@ -10,7 +10,7 @@
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/staff.css?v=3">
+<link rel="stylesheet" href="/styles/hub.css?v=3">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
@@ -81,7 +81,7 @@
   <div class="bar">
     <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Company metrics</div></div>
     <div class="who">
-      <a class="back" href="/staff/">&larr; Hub</a>
+      <a class="back" href="/">&larr; Hub</a>
       <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
       <div class="avatar hidden" id="avatar"></div>
       <button class="ghost hidden" id="logout">Sign out</button>
@@ -179,10 +179,10 @@ function windowFor(p) {
 // ── login gate ────────────────────────────────────────────────────────────
 async function gate() {
   const { data:{ session } } = await authSb.auth.getSession();
-  if (!session) { location.replace('/staff/'); return false; }
+  if (!session) { location.replace('/'); return false; }
   const { data:{ user } } = await authSb.auth.getUser();
   const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
-  if (!profile || !profile.active) { location.replace('/staff/'); return false; }
+  if (!profile || !profile.active) { location.replace('/'); return false; }
   const name = profile.full_name || profile.email;
   $('whoName').textContent = name;
   $('whoRole').textContent = profile.role;
@@ -191,7 +191,7 @@ async function gate() {
   $('wrap').style.display = 'block';
   return true;
 }
-$('logout').onclick = async () => { await authSb.auth.signOut(); location.href = '/staff/'; };
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href = '/'; };
 
 // ── venue switcher ────────────────────────────────────────────────────────
 function buildVenueSwitcher() {

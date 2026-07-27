@@ -10,7 +10,7 @@
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/staff.css?v=3">
+<link rel="stylesheet" href="/styles/hub.css?v=3">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root { --page-w:1144px; }
@@ -81,6 +81,27 @@
   table.vt .note { color:var(--dim); font-size:11px; line-height:1.5; max-width:230px; }
   .up { color:#3e6a8a; font-weight:600; }
   .lapsedTag { color:var(--err); font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  .cs { font-variant-numeric:tabular-nums; }
+  .cs .d { font-weight:600; color:var(--ink); font-size:11.5px; }
+  .cs .w { font-size:10px; color:var(--dim); margin-top:3px; }
+  .never { color:var(--dim); font-size:10.5px; font-style:italic; }
+  .oc { display:inline-block; font-size:8.5px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; padding:2px 7px; border-radius:999px; }
+  .oc.spoke { background:rgba(66,112,74,.13); color:var(--ok); }
+  .oc.left_message { background:rgba(62,106,138,.14); color:#3e6a8a; }
+  .oc.no_answer { background:var(--sand-soft); color:var(--dim); }
+  .oc.emailed { background:rgba(154,107,47,.12); color:#8a5a24; }
+  .oc.other { background:var(--sand-soft); color:var(--dim); }
+  .stale { color:var(--err); }
+  .outreachBox { border-top:1px solid var(--hairline); margin-top:16px; padding-top:14px; }
+  .outreachBox .oh { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:11px; }
+  .outreachBox .oh .l { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .outreachBox .oh a { font-size:10.5px; color:var(--green); font-weight:600; text-decoration:none; }
+  .outreachBox .oh a:hover { text-decoration:underline; }
+  .oitem { display:grid; grid-template-columns:92px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid #f0ece3; }
+  .oitem:last-child { border-bottom:none; }
+  .oitem .od { font-size:11.5px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .oitem .ow { font-size:10px; color:var(--dim); margin-top:2px; }
+  .oitem .on { font-size:11.5px; color:var(--ink); line-height:1.55; margin-top:5px; white-space:pre-wrap; }
 
   /* chips */
   .tier { display:inline-block; font-size:8.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; margin:2px 4px 0 0; vertical-align:middle; }
@@ -171,7 +192,7 @@
   <div class="bar">
     <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Company metrics</div></div>
     <div class="who">
-      <a class="back" href="/staff/">&larr; Hub</a>
+      <a class="back" href="/">&larr; Hub</a>
       <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
       <div class="avatar hidden" id="avatar"></div>
       <button class="ghost hidden" id="logout">Sign out</button>
@@ -372,10 +393,10 @@ function range(kind, fromEl, toEl){
 // ── login + permission gate ───────────────────────────────────────────────
 async function gate(){
   const { data:{ session } } = await authSb.auth.getSession();
-  if(!session){ location.replace('/staff/'); return false; }
+  if(!session){ location.replace('/'); return false; }
   const { data:{ user } } = await authSb.auth.getUser();
   const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
-  if(!profile || !profile.active){ location.replace('/staff/'); return false; }
+  if(!profile || !profile.active){ location.replace('/'); return false; }
   // per-app permission — VIP data is sensitive, so enforce at the page too
   let allowed = !!profile.is_super_admin;
   if(!allowed){
@@ -384,7 +405,7 @@ async function gate(){
       allowed = !!(ctx && (ctx.super_admin || (ctx.apps && ctx.apps.vips && ctx.apps.vips.includes('view'))));
     } catch(_){ allowed = false; }
   }
-  if(!allowed){ location.replace('/staff/'); return false; }
+  if(!allowed){ location.replace('/'); return false; }
   const name = profile.full_name || profile.email;
   $('whoName').textContent = name;
   $('whoRole').textContent = profile.is_super_admin ? 'Super admin' : '';
@@ -393,7 +414,24 @@ async function gate(){
   $('wrap').style.display='block';
   return true;
 }
-$('logout').onclick = async () => { await authSb.auth.signOut(); location.href='/staff/'; };
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href='/'; };
+
+// ── outreach log (hub accounts project) ───────────────────────────────────
+const OUTCOME_LABELS = { spoke:'Spoke to guest', left_message:'Left a message', no_answer:'No answer', emailed:'Emailed instead', other:'Other' };
+const outcomePill = k => `<span class="oc ${esc(k)}">${esc(OUTCOME_LABELS[k] || k)}</span>`;
+const todaySyd = () => new Intl.DateTimeFormat('en-CA',{ timeZone:'Australia/Sydney' }).format(new Date());
+const daysBetween = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000);
+let outreach = {};
+async function loadOutreach(){
+  try {
+    const { data, error } = await authSb.from('hub_vip_outreach').select('*')
+      .order('contacted_on', { ascending:false }).order('created_at', { ascending:false }).limit(5000);
+    if(error) throw error;
+    const by = {};
+    (data||[]).forEach(c => { (by[c.client_id] = by[c.client_id] || []).push(c); });
+    outreach = by;
+  } catch(_){ outreach = {}; }
+}
 
 // ── chips ─────────────────────────────────────────────────────────────────
 function chipsHtml(c){
@@ -416,6 +454,7 @@ const G_COLS = [
   { key:'avg_spend_head', label:'Avg / head', cls:'num', sortable:true },
   { key:'pct_cheques_linked', label:'% cheques linked', cls:'num', sortable:true },
   { key:'last_booked', label:'Last booked', cls:'num', sortable:true },
+  { key:'last_contacted', label:'Last contacted', sortable:false },
   { key:'notes', label:'Notes', sortable:false },
 ];
 
@@ -441,6 +480,7 @@ function buildVenueChips(){
 }
 
 async function loadGuests(){
+  guestsLoaded=true;
   const r = range($('gTf').value, $('gFrom'), $('gTo'));
   gState.range = r;
   $('gError').style.display='none'; $('gContent').style.display='none';
@@ -455,6 +495,14 @@ async function loadGuests(){
   } catch(err){
     L.style.display='none'; const e=$('gError'); e.style.display='flex'; e.textContent='Could not load data: '+err.message;
   }
+}
+
+function contactCell(clientId){
+  const h = outreach[clientId] || [];
+  if(!h.length) return '<span class="never">Never contacted</span>';
+  const c = h[0], d = daysBetween(c.contacted_on, todaySyd());
+  return `<div class="cs"><div class="d">${fmtDate(c.contacted_on)} <span class="${d>=90?'stale':''}">(${num(d)}d)</span></div>
+    <div class="w">${outcomePill(c.outcome)} ${esc(c.created_by_name||'')}</div></div>`;
 }
 
 function renderGuests(){
@@ -500,9 +548,10 @@ function renderGuests(){
       <td class="num">${money(g.avg_spend_head)}</td>
       <td class="num">${g.pct_cheques_linked==null?'–':(+g.pct_cheques_linked).toFixed(0)+'%'}</td>
       <td class="num ${lastCls}">${fmtDate(g.last_booked)}${lastCls?' ↗':''}</td>
+      <td>${contactCell(g.client_id)}</td>
       <td class="note">${esc((g.notes||'').replace(/\s+/g,' ').slice(0,120))}${(g.notes||'').length>120?'…':''}</td>
     </tr>`;
-  }).join('') : '<tr><td colspan="8" style="color:var(--dim);padding:18px 10px;">No VIPs match these filters.</td></tr>';
+  }).join('') : '<tr><td colspan="9" style="color:var(--dim);padding:18px 10px;">No VIPs match these filters.</td></tr>';
 
   $('gFoot').textContent = 'Visits = completed reservations in the selected window. Avg cheque = linked POS cheque totals averaged over visits with a cheque; avg / head divides each cheque by the party that arrived. % cheques linked = share of visits (since POS data began Nov 2023) that have a linked cheque. Last booked shows the latest reservation including upcoming (↗). Lapsed = no completed visit in 90+ days and nothing upcoming. Spend figures rely on POS cheques being linked to the booking, so they understate guests whose cheques were not matched.';
 }
@@ -554,6 +603,7 @@ async function openProfile(clientId){
       <div class="mStat"><div class="l">Lifetime / cover</div><div class="v">${money(g.lifetime_spend_per_cover)}</div></div>
     </div>
     ${g.notes?`<div class="mNote">${esc(g.notes)}</div>`:''}
+    ${outreachHtml(clientId)}
     <div id="mBk"><div class="loading" style="min-height:120px;">Loading bookings…</div></div>`;
   $('gModal').style.display='flex'; document.body.style.overflow='hidden';
   try {
@@ -564,6 +614,18 @@ async function openProfile(clientId){
     $('mBk').innerHTML = '<div class="error" style="min-height:100px;">Could not load bookings: '+esc(err.message)+'</div>';
   }
 }
+function outreachHtml(clientId){
+  const h = outreach[clientId] || [];
+  return `<div class="outreachBox">
+    <div class="oh"><div class="l">Contact history — ${h.length} entr${h.length===1?'y':'ies'}</div>
+      <a href="/marketing/vip-outreach/">Log a contact in VIP Outreach &rarr;</a></div>
+    ${h.length ? h.map(c=>`<div class="oitem">
+      <div><div class="od">${fmtDate(c.contacted_on)}</div><div class="ow">${esc(c.created_by_name||'')}</div></div>
+      <div>${outcomePill(c.outcome)}${c.note?`<div class="on">${esc(c.note)}</div>`:''}</div>
+    </div>`).join('') : '<p style="font-size:11.5px;color:var(--dim);">Nobody has logged a contact with this guest yet.</p>'}
+  </div>`;
+}
+
 function statusPill(s){
   if(s==='Complete') return '<span class="pill completed">Completed</span>';
   if(s==='Incomplete') return '<span class="pill upcoming">Upcoming</span>';
@@ -697,7 +759,7 @@ $('arrVenueBar').addEventListener('click',e=>{ const b=e.target.closest('.vchip'
 $('arrPrint').onclick=()=>window.print();
 
 // ── view switch ─────────────────────────────────────────────────────────────
-let bookingsLoaded=false, arrivalsLoaded=false;
+let guestsLoaded=false, bookingsLoaded=false, arrivalsLoaded=false;
 $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   $('viewSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
@@ -705,12 +767,13 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   $('viewGuests').style.display = v==='guests'?'block':'none';
   $('viewBookings').style.display = v==='bookings'?'block':'none';
   $('viewArrivals').style.display = v==='arrivals'?'block':'none';
+  if(v==='guests' && !guestsLoaded){ guestsLoaded=true; loadGuests(); }
   if(v==='bookings' && !bookingsLoaded){ bookingsLoaded=true; loadBookings(); }
   if(v==='arrivals' && !arrivalsLoaded){ arrivalsLoaded=true; loadArrivals(); }
 });
 
 // ── boot ────────────────────────────────────────────────────────────────────
-(async()=>{ if(await gate()){ buildVenueChips(); document.querySelector('#viewSeg button[data-v="arrivals"]').click(); } })();
+(async()=>{ if(await gate()){ buildVenueChips(); await loadOutreach(); document.querySelector('#viewSeg button[data-v="arrivals"]').click(); } })();
 </script>
 <!-- ─── URL state (deep-linking) ───────────────────────────────────────────────
      Additive: reads/writes control state via the DOM only. No existing

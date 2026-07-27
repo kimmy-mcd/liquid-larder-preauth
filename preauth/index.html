@@ -11,7 +11,7 @@
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
 <link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/staff.css?v=4">
+<link rel="stylesheet" href="/styles/hub.css?v=4">
 <style>
   :root { --page-w:1144px; }
   .sub a { color:var(--green); text-decoration:none; }
@@ -94,7 +94,7 @@
 <script>
 const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
-const PAY_URL = 'https://pay.liquidandlarder.com.au/'; // customer page on the dedicated pay subdomain
+const PAY_URL = 'https://pay.liquidandlarder.com.au/guest/'; // customer page on the dedicated pay subdomain
 const FN = SUPABASE_URL + '/functions/v1/preauth-staff';
 
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);

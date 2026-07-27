@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIP Outreach — Marketing · Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/hub.css?v=4">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root { --page-w:1144px; }
+  .hidden { display:none !important; }
+  .who { display:flex; align-items:center; gap:12px; }
+  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+  .who .back:hover { background:#eae2cf; }
+  .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green)); color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .who .meta { text-align:right; line-height:1.35; }
+  .who .meta .n { font-size:12.5px; font-weight:600; }
+  .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
+  @media (max-width:700px){ .who .meta { display:none; } }
+
+  .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:20px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; max-width:640px; }
+
+  .viewSeg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; margin-bottom:22px; }
+  .viewSeg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:10px 20px; border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
+  .viewSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+
+  .chipbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+  .chipbar .lead { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-right:2px; }
+  .vchip { border:1px solid var(--hairline); background:var(--card); color:var(--dim); font-size:11px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer; transition:all .14s; box-shadow:none; letter-spacing:.02em; }
+  .vchip:hover { border-color:rgba(29,62,59,.25); }
+  .vchip.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; border-color:transparent; }
+  .fchip { border:1px solid var(--hairline); background:var(--card); color:var(--dim); font-size:11px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer; box-shadow:none; }
+  .fchip.on { background:rgba(154,107,47,.13); color:#8a5a24; border-color:rgba(154,107,47,.35); }
+  .srch { width:auto; min-width:210px; padding:8px 14px; border-radius:999px; font-size:12.5px; }
+
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:22px; }
+  .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:18px 20px; position:relative; overflow:hidden; }
+  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgba(220,209,192,0)); }
+  .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:9px; }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:31px; line-height:1; color:var(--green); }
+  .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:8px; }
+
+  .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:22px 24px; margin-bottom:20px; }
+  .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:18px; }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .panelHead .sub { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
+
+  table.vt { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.vt th { text-align:left; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; padding:0 10px 11px; border-bottom:1px solid var(--hairline); white-space:nowrap; }
+  table.vt th.num, table.vt td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  table.vt th.sortable { cursor:pointer; user-select:none; }
+  table.vt th.sortable:hover { color:var(--green); }
+  table.vt th .arrow { color:var(--green); font-size:8px; }
+  table.vt td { padding:11px 10px; border-bottom:1px solid #f0ece3; vertical-align:top; }
+  table.vt tr:last-child td { border-bottom:none; }
+  table.vt tbody tr:hover td { background:#fbfaf7; }
+  table.vt .rk { color:var(--dim); font-variant-numeric:tabular-nums; width:22px; }
+  table.vt .gn { font-weight:600; color:var(--ink); }
+  table.vt .gc { font-size:10.5px; color:var(--dim); margin-top:3px; }
+  table.vt .note { color:var(--dim); font-size:11px; line-height:1.5; max-width:260px; }
+  .lapsedTag { color:var(--err); font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
+  a.tel { color:var(--green); text-decoration:none; font-weight:600; font-variant-numeric:tabular-nums; }
+  a.tel:hover { text-decoration:underline; }
+
+  .tier { display:inline-block; font-size:8.5px; letter-spacing:.06em; text-transform:uppercase; font-weight:700; padding:3px 8px; border-radius:999px; margin:2px 4px 0 0; vertical-align:middle; }
+  .tier.platinum { background:#e6e8ec; color:#5b6472; border:1px solid #cfd4dc; }
+  .tier.gold { background:#f6e9c6; color:#8a6a12; border:1px solid #e6d29a; }
+  .tier.silver { background:#e9edf1; color:#5c6b78; border:1px solid #d3dbe2; }
+  .tier.bronze { background:#f0e0d0; color:#8a5a2c; border:1px solid #e0c8ad; }
+  .tier.spend { background:rgba(66,112,74,.12); color:var(--ok); border:1px solid rgba(66,112,74,.2); }
+  .tier.imp { background:rgba(62,106,138,.14); color:#3e6a8a; border:1px solid rgba(62,106,138,.25); }
+  .tier.crit { background:rgba(164,78,51,.12); color:var(--err); border:1px solid rgba(164,78,51,.25); }
+
+  /* contact status */
+  .cs { font-variant-numeric:tabular-nums; }
+  .cs .d { font-weight:600; color:var(--ink); }
+  .cs .w { font-size:10.5px; color:var(--dim); margin-top:3px; }
+  .never { color:var(--dim); font-size:11px; font-style:italic; }
+  .oc { display:inline-block; font-size:9px; letter-spacing:.05em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:999px; }
+  .oc.spoke { background:rgba(66,112,74,.13); color:var(--ok); }
+  .oc.left_message { background:rgba(62,106,138,.14); color:#3e6a8a; }
+  .oc.no_answer { background:var(--sand-soft); color:var(--dim); }
+  .oc.emailed { background:rgba(154,107,47,.12); color:#8a5a24; }
+  .oc.other { background:var(--sand-soft); color:var(--dim); }
+  .stale { color:var(--err); }
+
+  .logBtn { border:1px solid var(--hairline); background:var(--card); color:var(--green); font-size:10.5px; font-weight:600; padding:7px 13px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; white-space:nowrap; }
+  .logBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
+
+  /* modal */
+  .modal { position:fixed; inset:0; background:rgba(29,62,59,.30); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
+  .modalCard { background:var(--card); border-radius:var(--r-card); box-shadow:0 14px 44px rgba(0,0,0,.22); width:100%; max-width:660px; padding:24px 26px; }
+  .modalHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
+  .modalHead .mt { font-family:'Gilda Display',serif; font-size:22px; color:var(--green); }
+  .modalHead .ms { font-size:11.5px; color:var(--dim); margin-top:6px; line-height:1.6; }
+  .modalHead button { border:none; background:var(--sand-soft); width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:17px; line-height:1; color:var(--dim); flex:none; }
+  .modalHead button:hover { background:#eae2cf; }
+  .fRow { display:flex; flex-wrap:wrap; gap:14px; margin-bottom:14px; }
+  .fld { flex:1; min-width:180px; }
+  .fld label { display:block; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:6px; }
+  .fld input, .fld select, .fld textarea { width:100%; padding:10px 13px; border-radius:12px; font-size:12.5px; font-family:'Montserrat',sans-serif; }
+  .fld textarea { min-height:86px; resize:vertical; line-height:1.6; }
+  .saveRow { display:flex; align-items:center; gap:14px; margin-top:4px; }
+  .hist { border-top:1px solid var(--hairline); margin-top:20px; padding-top:16px; }
+  .hist .h { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:12px; }
+  .hitem { display:grid; grid-template-columns:96px 1fr; gap:14px; padding:11px 0; border-bottom:1px solid #f0ece3; }
+  .hitem:last-child { border-bottom:none; }
+  .hitem .hd { font-size:11.5px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
+  .hitem .hw { font-size:10px; color:var(--dim); margin-top:3px; }
+  .hitem .hn { font-size:12px; color:var(--ink); line-height:1.6; margin-top:6px; white-space:pre-wrap; }
+
+  .loading, .error { display:flex; align-items:center; justify-content:center; min-height:180px; font-size:13.5px; color:var(--dim); }
+  .error { color:var(--err); }
+  .msg { font-size:11.5px; }
+  .msg.err { color:var(--err); }
+  .msg.ok { color:var(--ok); }
+  .footnote { font-size:11px; color:var(--dim); margin-top:22px; line-height:1.7; }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub">Marketing</div></div>
+    <div class="who">
+      <a class="back" href="/">&larr; Hub</a>
+      <div class="meta hidden" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <div class="avatar hidden" id="avatar"></div>
+      <button class="ghost hidden" id="logout">Sign out</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap" id="wrap" style="display:none;">
+  <div class="pageHead">
+    <div>
+      <h2>VIP Outreach</h2>
+      <p>Who to call, and a record of every call made &middot; guest data live from the reporting database</p>
+    </div>
+  </div>
+
+  <div class="viewSeg" id="viewSeg">
+    <button data-v="list" class="on">Call list</button>
+    <button data-v="log">Contact log</button>
+  </div>
+
+  <!-- ══════════ CALL LIST ══════════ -->
+  <section id="viewList">
+    <div class="chipbar" id="venueBar"><span class="lead">Venue</span>
+      <button class="vchip on" data-venue="all">All venues</button>
+    </div>
+    <div class="chipbar" id="filterBar">
+      <span class="lead">Show</span>
+      <button class="fchip" data-f="never">Never contacted</button>
+      <button class="fchip" data-f="due30">Not in 30 days</button>
+      <button class="fchip" data-f="due90">Not in 90 days</button>
+      <button class="fchip" data-f="lapsed">Lapsed guests</button>
+      <button class="fchip" data-f="upcoming">Has upcoming</button>
+      <button class="fchip" data-f="phone">Has a phone number</button>
+      <input class="srch" id="srch" type="search" placeholder="Search a guest by name…" style="margin-left:8px;">
+    </div>
+
+    <div id="lLoading" class="loading">Loading…</div>
+    <div id="lError" class="error" style="display:none;"></div>
+    <div id="lContent" style="display:none;">
+      <div class="kpis" id="lKpis"></div>
+      <div class="panel">
+        <div class="panelHead"><div class="t">Call list</div><div class="sub" id="lSub"></div></div>
+        <div style="overflow-x:auto;">
+          <table class="vt">
+            <thead><tr id="lHead"></tr></thead>
+            <tbody id="lBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <p class="footnote">Visits and last visit come from completed reservations over the past five years. &ldquo;Last contacted&rdquo; is the most recent entry logged here by anyone on the team; guests never contacted sit at the top by default. Logging a contact records your name and the time automatically, and entries cannot be edited by anyone but the person who wrote them.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ CONTACT LOG ══════════ -->
+  <section id="viewLog" style="display:none;">
+    <div id="hLoading" class="loading">Loading…</div>
+    <div id="hError" class="error" style="display:none;"></div>
+    <div id="hContent" style="display:none;">
+      <div class="panel">
+        <div class="panelHead"><div class="t">Every contact logged</div><div class="sub" id="hSub"></div></div>
+        <div style="overflow-x:auto;">
+          <table class="vt">
+            <thead><tr>
+              <th>Date</th><th>Guest</th><th>Outcome</th><th>Note</th><th>Logged by</th>
+            </tr></thead>
+            <tbody id="hBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════ LOG CONTACT MODAL ══════════ -->
+<div class="modal" id="cModal" style="display:none;">
+  <div class="modalCard">
+    <div class="modalHead">
+      <div><div class="mt" id="mTitle"></div><div class="ms" id="mSub"></div></div>
+      <button id="mClose" aria-label="Close">&times;</button>
+    </div>
+    <div id="mForm"></div>
+    <div id="mHist"></div>
+  </div>
+</div>
+
+<script>
+// ── auth project (hub accounts, permissions, outreach log) ────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const authSb = supabase.createClient(AUTH_URL, AUTH_ANON);
+
+// ── reporting project (guest + reservation data) ──────────────────────────
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataClient = supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
+const $ = id => document.getElementById(id);
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const pad = n => String(n).padStart(2,'0');
+const iso = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmtDate = s => { if(!s) return '–'; const [y,m,d]=s.split('-'); return `${+d} ${MONTHS[+m-1]} ${y.slice(2)}`; };
+const num = n => (n==null?0:+n).toLocaleString();
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const todaySyd = () => new Intl.DateTimeFormat('en-CA',{ timeZone:'Australia/Sydney' }).format(new Date());
+const daysBetween = (a,b) => Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000);
+
+const VENUES = [
+  { id:'ahNzfnNldmVucm9vbXMtc2VjdXJlchwLEg9uaWdodGxvb3BfVmVudWUYgIDSjrqA3AoM', name:'The Gidley' },
+  { id:'ahNzfnNldmVucm9vbXMtc2VjdXJlchwLEg9uaWdodGxvb3BfVmVudWUYgICSvsTR-wkM', name:'Bistecca' },
+  { id:'ahNzfnNldmVucm9vbXMtc2VjdXJlchwLEg9uaWdodGxvb3BfVmVudWUYgICSyMSv2gsM', name:"Alfie's" },
+];
+
+const OUTCOMES = [
+  { key:'spoke',        label:'Spoke to guest' },
+  { key:'left_message', label:'Left a message' },
+  { key:'no_answer',    label:'No answer' },
+  { key:'emailed',      label:'Emailed instead' },
+  { key:'other',        label:'Other' },
+];
+const outcomeLabel = k => (OUTCOMES.find(o=>o.key===k) || { label:k }).label;
+const outcomePill = k => `<span class="oc ${esc(k)}">${esc(outcomeLabel(k))}</span>`;
+
+let myProfile = null, canLog = false;
+let state = { venues:['all'], filters:new Set(), search:'', sort:'last_contacted', dir:1, guests:[], contacts:[], byClient:{} };
+
+// ── gate ──────────────────────────────────────────────────────────────────
+async function gate(){
+  const { data:{ session } } = await authSb.auth.getSession();
+  if(!session){ location.replace('/'); return false; }
+  const { data:{ user } } = await authSb.auth.getUser();
+  const { data:profile } = await authSb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if(!profile || !profile.active){ location.replace('/'); return false; }
+  let allowed = !!profile.is_super_admin;
+  canLog = !!profile.is_super_admin;
+  if(!allowed || !canLog){
+    try {
+      const { data:ctx } = await authSb.rpc('hub_my_context');
+      const keys = (ctx && ctx.apps && ctx.apps['vip-outreach']) || [];
+      if(ctx && ctx.super_admin){ allowed = true; canLog = true; }
+      else { allowed = allowed || keys.includes('view'); canLog = canLog || keys.includes('log'); }
+    } catch(_){ }
+  }
+  if(!allowed){ location.replace('/'); return false; }
+  myProfile = profile;
+  const name = profile.full_name || profile.email;
+  $('whoName').textContent = name;
+  $('whoRole').textContent = profile.is_super_admin ? 'Super admin' : '';
+  $('avatar').textContent = (name.match(/\b[a-zA-Z]/g) || [name[0]||'?']).slice(0,2).join('').toUpperCase();
+  ['whoMeta','avatar','logout'].forEach(id=>$(id).classList.remove('hidden'));
+  $('wrap').style.display='block';
+  return true;
+}
+$('logout').onclick = async () => { await authSb.auth.signOut(); location.href='/'; };
+
+function chipsHtml(c){
+  if(!c) return '';
+  let h='';
+  if(c.status) h+=`<span class="tier ${String(c.status).toLowerCase()}">${esc(c.status)}</span>`;
+  if(c.spender) h+=`<span class="tier spend">Spender ${esc(c.spender)}</span>`;
+  if(c.important_guest) h+=`<span class="tier imp">Important guest</span>`;
+  if(c.critic) h+=`<span class="tier crit">Critic</span>`;
+  return h;
+}
+
+// ── view switch ───────────────────────────────────────────────────────────
+$('viewSeg').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-v]'); if(!b) return;
+  $('viewSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const v=b.dataset.v;
+  $('viewList').style.display = v==='list' ? 'block' : 'none';
+  $('viewLog').style.display  = v==='log'  ? 'block' : 'none';
+  if(v==='log') renderLog();
+});
+
+// ── data ──────────────────────────────────────────────────────────────────
+function indexContacts(){
+  const by = {};
+  state.contacts.forEach(c=>{
+    const list = by[c.client_id] = by[c.client_id] || [];
+    list.push(c);
+  });
+  Object.values(by).forEach(list => list.sort((a,b)=>
+    (a.contacted_on < b.contacted_on ? 1 : a.contacted_on > b.contacted_on ? -1 : (a.created_at < b.created_at ? 1 : -1))));
+  state.byClient = by;
+}
+
+async function loadContacts(){
+  const { data, error } = await authSb.from('hub_vip_outreach').select('*')
+    .order('contacted_on', { ascending:false }).order('created_at', { ascending:false }).limit(5000);
+  if(error) throw new Error(error.message);
+  state.contacts = data || [];
+  indexContacts();
+}
+
+async function loadAll(){
+  $('lError').style.display='none'; $('lContent').style.display='none';
+  const L=$('lLoading'); L.style.display='flex'; L.textContent='Loading…';
+  const end = todaySyd();
+  const start = (() => { const d=new Date(end+'T00:00:00'); d.setFullYear(d.getFullYear()-5); return iso(d); })();
+  const venues = state.venues.includes('all') ? null : state.venues;
+  try {
+    const [g] = await Promise.all([
+      dataClient.rpc('get_vip_guests', { p_start:start, p_end:end, p_venues:venues, p_limit:1000 }),
+      loadContacts(),
+    ]);
+    if(g.error) throw new Error(g.error.message);
+    state.guests = (g.data && g.data.guests) || [];
+    state.cohort = (g.data && g.data.cohort_size) || state.guests.length;
+    L.style.display='none'; $('lContent').style.display='block';
+    renderList();
+  } catch(err){
+    L.style.display='none'; const e=$('lError'); e.style.display='flex'; e.textContent='Could not load data: '+err.message;
+  }
+}
+
+// ── call list ─────────────────────────────────────────────────────────────
+const L_COLS = [
+  { key:'_rank', label:'', cls:'rk', sortable:false },
+  { key:'name', label:'Guest', sortable:false },
+  { key:'phone', label:'Phone', sortable:false },
+  { key:'visits_window', label:'Visits', cls:'num', sortable:true },
+  { key:'last_visit_date', label:'Last visit', cls:'num', sortable:true },
+  { key:'last_contacted', label:'Last contacted', sortable:true },
+  { key:'_action', label:'', sortable:false },
+];
+
+function buildVenueChips(){
+  const bar=$('venueBar');
+  VENUES.forEach(v=>{
+    const b=document.createElement('button'); b.className='vchip'; b.dataset.venue=v.id; b.textContent=v.name; bar.appendChild(b);
+  });
+  bar.addEventListener('click', e=>{
+    const b=e.target.closest('.vchip'); if(!b) return;
+    const v=b.dataset.venue;
+    if(v==='all'){ state.venues=['all']; }
+    else {
+      state.venues = state.venues.filter(x=>x!=='all');
+      const i=state.venues.indexOf(v);
+      if(i>=0) state.venues.splice(i,1); else state.venues.push(v);
+      if(!state.venues.length) state.venues=['all'];
+    }
+    bar.querySelectorAll('.vchip').forEach(x=>x.classList.toggle('on',
+      state.venues.includes('all') ? x.dataset.venue==='all' : state.venues.includes(x.dataset.venue)));
+    loadAll();
+  });
+}
+
+function rowsForList(){
+  const today = todaySyd();
+  let rows = state.guests.map(g=>{
+    const hist = state.byClient[g.client_id] || [];
+    const last = hist[0] || null;
+    return Object.assign({}, g, {
+      _hist: hist,
+      last_contacted: last ? last.contacted_on : null,
+      last_outcome: last ? last.outcome : null,
+      last_by: last ? last.created_by_name : null,
+      days_since_contact: last ? daysBetween(last.contacted_on, today) : null,
+    });
+  });
+  const f = state.filters;
+  if(f.has('never'))    rows = rows.filter(r=>!r.last_contacted);
+  if(f.has('due30'))    rows = rows.filter(r=>r.days_since_contact==null || r.days_since_contact>=30);
+  if(f.has('due90'))    rows = rows.filter(r=>r.days_since_contact==null || r.days_since_contact>=90);
+  if(f.has('lapsed'))   rows = rows.filter(r=>r.is_lapsed);
+  if(f.has('upcoming')) rows = rows.filter(r=>r.has_upcoming);
+  if(f.has('phone'))    rows = rows.filter(r=>!!r.phone_number);
+  const q = state.search.trim().toLowerCase();
+  if(q) rows = rows.filter(r=>String(r.name||'').toLowerCase().includes(q));
+
+  const k = state.sort, dir = state.dir;
+  rows.sort((a,b)=>{
+    if(k==='last_contacted'){
+      // never contacted first when ascending, then oldest contact first
+      const av=a.last_contacted, bv=b.last_contacted;
+      if(av===bv) return (+b.visits_window||0)-(+a.visits_window||0);
+      if(!av) return -1*dir;
+      if(!bv) return 1*dir;
+      return (av<bv?-1:1)*dir;
+    }
+    if(k==='last_visit_date'){
+      const av=a[k]||'', bv=b[k]||'';
+      return av<bv?-dir:av>bv?dir:0;
+    }
+    const av=a[k]==null?-Infinity:+a[k], bv=b[k]==null?-Infinity:+b[k];
+    return (av-bv)*dir;
+  });
+  return rows;
+}
+
+function renderList(){
+  const rows = rowsForList();
+  const today = todaySyd();
+
+  // KPIs
+  const all = state.guests.length;
+  const contacted = state.guests.filter(g=>(state.byClient[g.client_id]||[]).length).length;
+  const last30 = state.contacts.filter(c=>daysBetween(c.contacted_on, today) < 30).length;
+  const spoke30 = state.contacts.filter(c=>c.outcome==='spoke' && daysBetween(c.contacted_on, today) < 30).length;
+  $('lKpis').innerHTML =
+    `<div class="kpi"><div class="lab">VIPs in cohort</div><div class="val">${num(all)}</div><div class="subnote">Guests carrying a VIP tag</div></div>` +
+    `<div class="kpi"><div class="lab">Never contacted</div><div class="val">${num(all-contacted)}</div><div class="subnote">No entry logged against them</div></div>` +
+    `<div class="kpi"><div class="lab">Contacts, last 30 days</div><div class="val">${num(last30)}</div><div class="subnote">${num(spoke30)} reached the guest</div></div>` +
+    `<div class="kpi"><div class="lab">On this list</div><div class="val">${num(rows.length)}</div><div class="subnote">Matching your filters</div></div>`;
+
+  $('lHead').innerHTML = L_COLS.map(c=>{
+    if(!c.sortable) return `<th class="${c.cls||''}">${esc(c.label)}</th>`;
+    const on = state.sort===c.key;
+    const arr = on ? (state.dir<0?' <span class="arrow">▼</span>':' <span class="arrow">▲</span>') : '';
+    return `<th class="${c.cls||''} sortable" data-k="${c.key}">${esc(c.label)}${arr}</th>`;
+  }).join('');
+
+  $('lSub').textContent = `${rows.length} of ${state.guests.length} VIPs` +
+    (state.venues.includes('all') ? '' : ' · ' + state.venues.length + ' venue' + (state.venues.length>1?'s':'')) +
+    (canLog ? ' · click Log contact to record a call' : ' · view only');
+
+  $('lBody').innerHTML = rows.length ? rows.map((r,i)=>{
+    const contactCell = r.last_contacted
+      ? `<div class="cs"><div class="d">${fmtDate(r.last_contacted)} <span class="${r.days_since_contact>=90?'stale':''}">(${num(r.days_since_contact)}d)</span></div>
+         <div class="w">${outcomePill(r.last_outcome)} ${esc(r.last_by||'')}</div></div>`
+      : '<span class="never">Never contacted</span>';
+    return `<tr>
+      <td class="rk">${i+1}</td>
+      <td><div class="gn">${esc(r.name)}</div>
+        <div>${chipsHtml(r.chips)}</div>
+        ${r.is_lapsed?'<div class="lapsedTag" style="margin-top:4px;">Lapsed '+num(r.days_since_last_visit)+'d</div>':''}</td>
+      <td>${r.phone_number ? `<a class="tel" href="tel:${esc(r.phone_number)}">${esc(r.phone_number)}</a>` : '<span class="never">No number</span>'}
+        ${r.email?`<div class="gc">${esc(r.email)}</div>`:''}</td>
+      <td class="num"><b>${num(r.visits_window)}</b></td>
+      <td class="num">${fmtDate(r.last_visit_date)}</td>
+      <td>${contactCell}</td>
+      <td style="text-align:right;"><button class="logBtn" data-id="${esc(r.client_id)}">${canLog?'Log contact':'History'}</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="color:var(--dim);padding:18px 10px;">No VIPs match these filters.</td></tr>';
+}
+
+$('lHead').addEventListener('click', e=>{
+  const th=e.target.closest('th.sortable'); if(!th) return;
+  const k=th.dataset.k;
+  if(state.sort===k) state.dir*=-1; else { state.sort=k; state.dir = k==='last_contacted' ? 1 : -1; }
+  renderList();
+});
+$('lBody').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-id]'); if(b) openContact(b.dataset.id);
+});
+$('filterBar').addEventListener('click', e=>{
+  const b=e.target.closest('.fchip'); if(!b) return;
+  const f=b.dataset.f;
+  if(state.filters.has(f)) state.filters.delete(f); else state.filters.add(f);
+  b.classList.toggle('on'); renderList();
+});
+$('srch').oninput = e => { state.search = e.target.value; renderList(); };
+
+// ── contact log view ──────────────────────────────────────────────────────
+function renderLog(){
+  $('hLoading').style.display='none'; $('hContent').style.display='block';
+  const names = {};
+  state.guests.forEach(g=>{ names[g.client_id]=g.name; });
+  const rows = state.contacts;
+  $('hSub').textContent = `${rows.length} entr${rows.length===1?'y':'ies'} · newest first`;
+  $('hBody').innerHTML = rows.length ? rows.map(c=>`<tr>
+    <td class="cs"><div class="d">${fmtDate(c.contacted_on)}</div></td>
+    <td><div class="gn">${esc(names[c.client_id] || c.guest_name || 'Unknown guest')}</div></td>
+    <td>${outcomePill(c.outcome)}</td>
+    <td class="note">${esc(c.note || '')}</td>
+    <td><div class="gc" style="margin-top:0;">${esc(c.created_by_name || '')}</div></td>
+  </tr>`).join('') : '<tr><td colspan="5" style="color:var(--dim);padding:18px 10px;">Nothing logged yet.</td></tr>';
+}
+
+// ── log contact modal ─────────────────────────────────────────────────────
+let modalClient = null;
+function openContact(clientId){
+  const g = state.guests.find(x=>x.client_id===clientId);
+  if(!g) return;
+  modalClient = g;
+  const hist = state.byClient[clientId] || [];
+  $('mTitle').innerHTML = esc(g.name) + ' ' + chipsHtml(g.chips);
+  $('mSub').textContent = [g.phone_number, g.email].filter(Boolean).join(' · ') || 'No contact details on the profile';
+
+  $('mForm').innerHTML = canLog ? `
+    <div class="fRow">
+      <div class="fld"><label for="fDate">Date of contact</label><input type="date" id="fDate" value="${todaySyd()}" max="${todaySyd()}"></div>
+      <div class="fld"><label for="fOutcome">Outcome</label><select id="fOutcome">${OUTCOMES.map(o=>`<option value="${o.key}">${esc(o.label)}</option>`).join('')}</select></div>
+    </div>
+    <div class="fld" style="margin-bottom:16px;"><label for="fNote">Note</label><textarea id="fNote" placeholder="What was said, anything worth the next person knowing…"></textarea></div>
+    <div class="saveRow"><button id="fSave">Save contact</button><span class="msg" id="fMsg"></span></div>`
+    : '<p class="msg" style="color:var(--dim);">You have view access to outreach history, but not permission to log a contact.</p>';
+
+  renderHistory(hist);
+  $('cModal').style.display='flex'; document.body.style.overflow='hidden';
+  if(canLog) $('fSave').onclick = saveContact;
+}
+
+function renderHistory(hist){
+  $('mHist').innerHTML = `<div class="hist"><div class="h">Contact history — ${hist.length} entr${hist.length===1?'y':'ies'}</div>` +
+    (hist.length ? hist.map(c=>`<div class="hitem">
+      <div><div class="hd">${fmtDate(c.contacted_on)}</div><div class="hw">${esc(c.created_by_name||'')}</div></div>
+      <div>${outcomePill(c.outcome)}${c.note?`<div class="hn">${esc(c.note)}</div>`:''}</div>
+    </div>`).join('') : '<p class="msg" style="color:var(--dim);">Nobody has logged a contact with this guest yet.</p>')
+    + '</div>';
+}
+
+async function saveContact(){
+  const btn=$('fSave'), msg=$('fMsg');
+  const outcome = $('fOutcome').value;
+  const contacted_on = $('fDate').value || todaySyd();
+  const note = $('fNote').value.trim();
+  if(contacted_on > todaySyd()){ msg.className='msg err'; msg.textContent='That date is in the future.'; return; }
+  btn.disabled = true; msg.className='msg'; msg.textContent='Saving…';
+  try {
+    const { error } = await authSb.from('hub_vip_outreach').insert({
+      client_id: modalClient.client_id,
+      guest_name: modalClient.name,
+      contacted_on, outcome, note: note || null,
+      created_by: (await authSb.auth.getUser()).data.user.id,
+    });
+    if(error) throw new Error(error.message);
+    await loadContacts();
+    msg.className='msg ok'; msg.textContent='Saved.';
+    $('fNote').value='';
+    renderHistory(state.byClient[modalClient.client_id] || []);
+    renderList();
+    setTimeout(()=>{ msg.textContent=''; }, 2500);
+  } catch(err){
+    msg.className='msg err'; msg.textContent = 'Could not save: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function closeModal(){ $('cModal').style.display='none'; document.body.style.overflow=''; }
+$('mClose').onclick = closeModal;
+$('cModal').onclick = e => { if(e.target===$('cModal')) closeModal(); };
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+// ── boot ──────────────────────────────────────────────────────────────────
+(async () => {
+  if(!(await gate())) return;
+  buildVenueChips();
+  await loadAll();
+})();
+</script>
+</body>
+</html>
