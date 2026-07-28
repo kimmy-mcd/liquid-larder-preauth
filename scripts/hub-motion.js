@@ -22,6 +22,13 @@
   var RM = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   var LL = window.LL = window.LL || {};
 
+  /* Every MutationObserver we create is pushed here and the array is hung off
+     window.LL. An observer with no reference held anywhere is eligible for
+     garbage collection even while it still has registered observations, and
+     Chrome does collect them on a busy page — which silently stopped the
+     document-level watcher on the live home page. Hold the references. */
+  var OBSERVERS = LL._observers = [];
+
   /* ---------- number parsing -------------------------------------------
      Handles "412", "31.4", "$1,240", "-2.4", each optionally wrapped in
      prefixes/suffixes, and leaves any <small>/<span> unit siblings alone. */
@@ -126,8 +133,9 @@
     box.__llWatched = true;
     /* childList only — our own edits are to text nodes (characterData), so we
        can never re-trigger ourselves and end up fighting the animation. */
-    new MutationObserver(function () { processKpis(box); })
-      .observe(box, { childList: true, subtree: true });
+    var mo = new MutationObserver(function () { processKpis(box); });
+    mo.observe(box, { childList: true, subtree: true });
+    OBSERVERS.push(mo);
   }
 
   function scanKpis() {
@@ -224,11 +232,21 @@
     /* Pages render their data asynchronously, so watch the document for new
        .kpis / svg.spark arriving. Debounced to one pass per frame. */
     var queued = false;
-    new MutationObserver(function () {
+    var mo = new MutationObserver(function () {
       if (queued) return;
       queued = true;
       requestAnimationFrame(function () { queued = false; tick(); });
-    }).observe(document.body, { childList: true, subtree: true });
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    OBSERVERS.push(mo);
+
+    /* Belt and braces: a few cheap re-scans so a slow Supabase response is
+       still picked up even if the observer were ever to go missing. Each pass
+       is a querySelectorAll and an early return on anything already handled. */
+    window.addEventListener('load', tick);
+    setTimeout(tick, 800);
+    setTimeout(tick, 2500);
+    setTimeout(tick, 6000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
