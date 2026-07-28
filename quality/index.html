@@ -36,6 +36,29 @@
   .chip.plain { background:rgba(29,62,59,.07); color:var(--dim); }
   .dueRow { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
   svg.spark { display:block; width:100%; height:60px; margin:8px 0 10px; }
+  .trend { margin:18px 0 2px; }
+  .trendHead { display:flex; justify-content:space-between; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:2px; }
+  .trendTitle { font-size:10.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  .trendNote { font-size:11px; color:var(--dim); }
+  .trendWrap { position:relative; }
+  svg.trendSvg { display:block; width:100%; height:auto; touch-action:none; border-radius:8px; }
+  svg.trendSvg:focus-visible { outline:none; box-shadow:var(--ring); }
+  .tt { position:absolute; pointer-events:none; opacity:0; transition:opacity .12s ease; background:#fff;
+    border:1px solid var(--hairline); border-radius:10px; padding:9px 11px; min-width:130px;
+    box-shadow:0 6px 22px rgba(29,62,59,.16); font-size:12px; z-index:5; }
+  .tt.on { opacity:1; }
+  .tt .ttM { font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .tt .ttV { font-size:19px; font-weight:600; color:var(--green); margin:3px 0 2px; }
+  .tt .ttR { display:flex; align-items:center; gap:7px; color:var(--dim); font-size:11px; margin-top:3px; }
+  .tt .key { width:13px; border-top:2px solid var(--green); flex:none; }
+  .tt .key.dash { border-top:2px dashed var(--err); }
+  .tt .ttA { margin-top:7px; padding-top:6px; border-top:1px solid var(--hairline); font-size:11px; color:var(--dim); line-height:1.6; }
+  .tt .ttA b { color:var(--ink); font-weight:600; }
+  details.figs { margin-top:12px; }
+  details.figs summary { cursor:pointer; font-size:11.5px; color:var(--dim); font-weight:600; }
+  details.figs table { width:100%; border-collapse:collapse; font-size:12px; margin-top:8px; font-variant-numeric:tabular-nums; }
+  details.figs th, details.figs td { padding:5px 8px; border-bottom:1px solid var(--hairline); text-align:left; }
+  details.figs th { color:var(--dim); font-weight:600; font-size:10px; letter-spacing:.08em; text-transform:uppercase; }
   .comp { display:flex; align-items:center; gap:9px; font-size:11.5px; margin-top:6px; }
   .comp .lbl { width:116px; color:var(--dim); font-weight:600; flex:none; }
   .comp .track { flex:1; height:6px; border-radius:4px; background:rgba(29,62,59,.08); overflow:hidden; }
@@ -149,6 +172,7 @@
         <button class="ghost" id="logBack">&larr; All venues</button>
       </div>
       <div class="dueRow" id="logDue"></div>
+      <figure class="trend" id="logTrend"></figure>
       <div style="overflow-x:auto; margin-top:16px">
         <table class="log">
           <thead><tr><th>Date</th><th>Type</th><th>Score</th><th>Auditor</th><th>Recorded by</th><th>History</th></tr></thead>
@@ -272,6 +296,147 @@ function spark(hist) {
     <circle cx="${lx}" cy="${ly}" r="3" fill="#1d3e3b"/></svg>`;
 }
 
+const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function niceScale(lo, hi, n) {
+  const raw = ((hi - lo) || 1) / n;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw - 1e-9) || 10 * mag;
+  const start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+  const ticks = [];
+  for (let v = start; v <= end + 1e-9; v += step) ticks.push(Math.round(v * 1000) / 1000);
+  return { ticks, lo: start, hi: end };
+}
+
+function trendSeries(venue, auditRows) {
+  const byMonth = {};
+  (auditRows || []).forEach(a => {
+    const k = String(a.audit_date).slice(0, 7);
+    (byMonth[k] = byMonth[k] || []).push(a);
+  });
+  return DASH.monthly
+    .filter(m => m.venue === venue)
+    .map(m => ({ key: String(m.month).slice(0, 7), score: Number(m.score), pass: Number(m.pass_mark) }))
+    .sort((a, b) => a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
+    .slice(-12)
+    .map(m => ({ ...m, audits: byMonth[m.key] || [] }));
+}
+
+function renderTrend(venue, auditRows) {
+  const host = $('logTrend');
+  const D = trendSeries(venue, auditRows);
+  if (D.length < 2) {
+    host.innerHTML = '<div class="dim" style="font-size:12px;margin:14px 0 2px">Not enough monthly history for a trend yet.</div>';
+    return;
+  }
+  const W = 1000, H = 250, L = 46, R = 62, T = 20, B = 52;
+  const x0 = L, x1 = W - R, y0 = T, y1 = H - B;
+  const vals = D.flatMap(d => [d.score, d.pass]);
+  const sc = niceScale(Math.min(...vals) - 0.5, Math.max(...vals) + 0.5, 5);
+  const X = i => x0 + i * (x1 - x0) / (D.length - 1);
+  const Y = v => y1 - (v - sc.lo) * (y1 - y0) / (sc.hi - sc.lo);
+  const last = D[D.length - 1];
+  // keep the two right-edge labels off each other when the score sits near the pass mark
+  const yScoreLab = Y(last.score) + 4;
+  let yPassLab = Y(last.pass) + 4;
+  if (Math.abs(yPassLab - yScoreLab) < 15) yPassLab = yScoreLab + (last.score >= last.pass ? 16 : -16);
+
+  const grid = sc.ticks.map(t =>
+    `<line x1="${x0}" y1="${Y(t).toFixed(1)}" x2="${x1}" y2="${Y(t).toFixed(1)}" stroke="rgba(29,62,59,.08)" stroke-width="1"/>` +
+    `<text x="${x0 - 11}" y="${(Y(t) + 4).toFixed(1)}" text-anchor="end" font-size="12" fill="#646c68">${t}</text>`).join('');
+
+  const pts = f => D.map((d, i) => `${X(i).toFixed(1)},${Y(f(d)).toFixed(1)}`).join(' ');
+
+  const dots = D.map((d, i) =>
+    `<circle cx="${X(i).toFixed(1)}" cy="${Y(d.score).toFixed(1)}" r="${i === D.length - 1 ? 5 : 3.5}" fill="#1d3e3b" stroke="#fff" stroke-width="2"/>`).join('');
+
+  const marks = D.map((d, i) => d.audits.length
+    ? `<circle cx="${X(i).toFixed(1)}" cy="${y1 + 9}" r="3" fill="#1d3e3b" opacity=".6"/>` : '').join('');
+
+  const xlab = D.map((d, i) => {
+    const yy = d.key.slice(0, 4), mm = d.key.slice(5, 7);
+    const showYear = i === 0 || mm === '01';
+    return `<text x="${X(i).toFixed(1)}" y="${y1 + 26}" text-anchor="middle" font-size="12" fill="#646c68">${MON3[+mm - 1]}</text>` +
+      (showYear ? `<text x="${X(i).toFixed(1)}" y="${y1 + 40}" text-anchor="middle" font-size="10.5" fill="#9aa19d">${yy}</text>` : '');
+  }).join('');
+
+  host.innerHTML = `
+    <div class="trendHead">
+      <span class="trendTitle">Monthly score &middot; last ${D.length} months</span>
+      <span class="trendNote">Dashed line = pass mark &middot; dot below the axis = an audit was recorded that month</span>
+    </div>
+    <div class="trendWrap">
+      <svg class="trendSvg" viewBox="0 0 ${W} ${H}" role="img" tabindex="0"
+        aria-label="${esc(venue)} monthly quality score, last ${D.length} months. Latest ${last.score.toFixed(1)} per cent against a pass mark of ${last.pass}. Use arrow keys to step through months.">
+        ${grid}
+        <polyline points="${pts(d => d.pass)}" fill="none" stroke="#a44e33" stroke-width="1.6" stroke-dasharray="6 5" opacity=".75"/>
+        <text x="${x1 + 9}" y="${yPassLab.toFixed(1)}" font-size="11" fill="#a44e33">pass ${last.pass}</text>
+        <polyline points="${pts(d => d.score)}" fill="none" stroke="#1d3e3b" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}${marks}${xlab}
+        <text x="${x1 + 9}" y="${yScoreLab.toFixed(1)}" font-size="13" font-weight="600" fill="#1d3e3b">${last.score.toFixed(1)}%</text>
+        <line class="cross" x1="0" y1="${y0}" x2="0" y2="${y1}" stroke="#1d3e3b" stroke-width="1" opacity="0"/>
+        <circle class="cdot" cx="0" cy="0" r="5.5" fill="#1d3e3b" stroke="#fff" stroke-width="2" opacity="0"/>
+        <rect x="${x0}" y="${y0}" width="${x1 - x0}" height="${y1 - y0+ 16}" fill="transparent"/>
+      </svg>
+      <div class="tt"></div>
+    </div>
+    <details class="figs">
+      <summary>Monthly figures</summary>
+      <table>
+        <thead><tr><th>Month</th><th>Score</th><th>Pass mark</th><th>Audits recorded</th></tr></thead>
+        <tbody>${D.slice().reverse().map(d => `<tr>
+          <td>${MON3[+d.key.slice(5, 7) - 1]} ${d.key.slice(0, 4)}</td>
+          <td>${d.score.toFixed(1)}%</td>
+          <td>${d.pass}%</td>
+          <td>${d.audits.length ? d.audits.map(a => esc(TYPE_LABEL[a.audit_type] || a.audit_type)).join(', ') : '&mdash;'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </details>`;
+
+  const svg = host.querySelector('.trendSvg');
+  const tt = host.querySelector('.tt');
+  const cross = host.querySelector('.cross');
+  const cdot = host.querySelector('.cdot');
+  let cur = -1;
+
+  function show(i) {
+    if (i < 0 || i >= D.length) return;
+    cur = i;
+    const d = D[i], px = X(i), py = Y(d.score);
+    cross.setAttribute('x1', px); cross.setAttribute('x2', px); cross.setAttribute('opacity', '.18');
+    cdot.setAttribute('cx', px); cdot.setAttribute('cy', py); cdot.setAttribute('opacity', '1');
+    tt.innerHTML = `<div class="ttM">${MON3[+d.key.slice(5, 7) - 1]} ${d.key.slice(0, 4)}</div>
+      <div class="ttV">${d.score.toFixed(1)}%</div>
+      <div class="ttR"><span class="key"></span>score</div>
+      <div class="ttR"><span class="key dash"></span>pass mark ${d.pass}%</div>
+      ${d.audits.length ? `<div class="ttA">${d.audits.map(a => `<b>${esc(TYPE_LABEL[a.audit_type] || a.audit_type)}</b> &middot; ${esc(fmtD(a.audit_date))}`).join('<br>')}</div>` : ''}`;
+    tt.classList.add('on');
+    const r = svg.getBoundingClientRect(), sx = r.width / W, sy = r.height / H;
+    tt.style.left = Math.max(0, Math.min(r.width - tt.offsetWidth, px * sx - tt.offsetWidth / 2)) + 'px';
+    tt.style.top = Math.max(0, py * sy - tt.offsetHeight - 14) + 'px';
+  }
+  function hide() {
+    tt.classList.remove('on');
+    cross.setAttribute('opacity', '0'); cdot.setAttribute('opacity', '0'); cur = -1;
+  }
+  function idxAt(clientX) {
+    const r = svg.getBoundingClientRect(), ux = (clientX - r.left) / (r.width / W);
+    let best = 0, bd = Infinity;
+    D.forEach((_, i) => { const dd = Math.abs(X(i) - ux); if (dd < bd) { bd = dd; best = i; } });
+    return best;
+  }
+  svg.addEventListener('pointermove', e => show(idxAt(e.clientX)));
+  svg.addEventListener('pointerleave', hide);
+  svg.addEventListener('focus', () => show(D.length - 1));
+  svg.addEventListener('blur', hide);
+  svg.addEventListener('keydown', e => {
+    const at = cur < 0 ? D.length - 1 : cur;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); show(Math.max(0, at - 1)); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); show(Math.min(D.length - 1, at + 1)); }
+    else if (e.key === 'Escape') hide();
+  });
+}
+
 function compRow(label, p) {
   if (p === null) return '';
   const c = Math.round(p * 1000) / 10;
@@ -343,11 +508,13 @@ async function openLog(venue) {
   $('logSub').textContent = 'Every audit recorded for this venue, newest first. Select a row to open the full report.';
   $('logDue').innerHTML = dueChips(venue);
   $('logRows').innerHTML = '<tr><td colspan="6" class="dim">Loading…</td></tr>';
+  renderTrend(venue, []);
   const m = $('logMsg'); m.textContent = ''; m.className = 'msg';
   window.scrollTo({ top: 0 });
   try {
     const res = await api({ action: 'list_audits', venue, limit: 500 });
     const rows = res.audits || [];
+    renderTrend(venue, rows);
     if (!rows.length) { $('logRows').innerHTML = '<tr><td colspan="6" class="dim">No audits recorded for this venue yet.</td></tr>'; return; }
     $('logRows').innerHTML = rows.map(a => {
       const p = auditPct(a);
@@ -364,6 +531,7 @@ async function openLog(venue) {
     $('logRows').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => openAudit(tr.dataset.id));
   } catch (e) {
     $('logRows').innerHTML = '';
+    renderTrend(venue, []);
     m.textContent = e.message; m.className = 'msg err';
   }
 }
