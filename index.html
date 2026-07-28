@@ -476,10 +476,29 @@ async function enter() {
 // a failure just leaves that card/footer out.
 // ============================================================
 const kpiParts = {};
+/* Three loaders resolve independently and each used to rebuild the whole strip,
+   which replayed the entrance animation on every card up to three times. Cards
+   are now keyed and reused, so a card already on screen is left alone and only
+   genuinely new or changed ones animate in. */
 function renderKpis() {
-  const html = ['attention', 'onhold', 'rr', 'quality'].map(k => kpiParts[k] || '').join('');
-  $('kpiStrip').innerHTML = html;
-  $('kpiStrip').classList.toggle('hidden', !html);
+  const strip = $('kpiStrip');
+  const wanted = [];
+  for (const k of ['attention', 'onhold', 'rr', 'quality']) {
+    const html = kpiParts[k];
+    if (!html) continue;
+    let el = Array.prototype.find.call(strip.children, c => c.dataset.kpi === k);
+    if (!el || el.__llHtml !== html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      el = tmp.firstElementChild;
+      el.dataset.kpi = k;
+      el.__llHtml = html;
+    }
+    wanted.push(el);
+  }
+  wanted.forEach((el, i) => { if (strip.children[i] !== el) strip.insertBefore(el, strip.children[i] || null); });
+  while (strip.children.length > wanted.length) strip.lastElementChild.remove();
+  strip.classList.toggle('hidden', !wanted.length);
 }
 const kpiCard = (label, value, deltaCls, deltaText) =>
   `<div class="kpi card"><div class="k">${label}</div><div class="v">${value}</div>` +
@@ -702,6 +721,9 @@ $('invite').onclick = async () => {
 };
 
 async function loadUsers() {
+  if (!$('userRows').children.length) {
+    $('userRows').innerHTML = ('<tr><td colspan="3"><div class="ll-sk" style="height:14px"></div></td></tr>').repeat(3);
+  }
   const { data: users, error } = await sb.from('portal_profiles').select('*').order('created_at');
   if (error) return;
   const initials = u => ((u.full_name || u.email).match(/\b[a-zA-Z]/g) || ['?']).slice(0, 2).join('').toUpperCase();
@@ -713,8 +735,8 @@ async function loadUsers() {
       <td><span class="chip ${u.active ? 'active' : 'disabled'}">${u.active ? 'Active' : 'Disabled'}</span></td>
       <td style="white-space:nowrap;text-align:right">
         ${u.id !== myProfile.id ? `
-          <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active})">${u.active ? 'Disable' : 'Enable'}</button>
-          <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}')">Remove</button>` : '<span class="dim">you</span>'}
+          <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active}, this)">${u.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}', this)">Remove</button>` : '<span class="dim">you</span>'}
       </td>
     </tr>`).join('');
   }
@@ -750,14 +772,28 @@ async function loadUsers() {
     }
     window.inviteAsgRemove = function(i){ inviteAsg.splice(i, 1); renderInviteAsg(); };
 
-    window.toggleActive = async (id, active) => {
-  await sb.from('portal_profiles').update({ active }).eq('id', id);
-  loadUsers();
+    window.toggleActive = async (id, active, btn) => {
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    if (btn) btn.disabled = true;
+    const { error } = await sb.from('portal_profiles').update({ active }).eq('id', id);
+    if (error) throw error;
+    await loadUsers();
+    m.textContent = active ? 'Account enabled.' : 'Account disabled — they can no longer sign in.';
+    m.className = 'msg ok';
+  } catch (e) { m.textContent = e.message || String(e); m.className = 'msg err'; }
+  finally { if (btn) btn.disabled = false; }
 };
-window.removeUser = async (id, email) => {
+window.removeUser = async (id, email, btn) => {
   if (!confirm('Remove ' + email + ' entirely? They will no longer be able to sign in.')) return;
-  try { await adminApi({ action: 'remove', id }); loadUsers(); }
-  catch (e) { $('invMsg').textContent = e.message; $('invMsg').className = 'msg err'; }
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    if (btn) btn.disabled = true;
+    await adminApi({ action: 'remove', id });
+    await loadUsers();
+    m.textContent = email + ' removed.'; m.className = 'msg ok';
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { if (btn) btn.disabled = false; }
 };
 
 // supabase-js fires SIGNED_IN after consuming an invite hash; re-run main then
@@ -803,6 +839,12 @@ async function reloadTeamAdmin() {
   $('taMsg').textContent = '';
 }
 function taErr(e) { $('taMsg').textContent = e.message || String(e); $('taMsg').className = 'msg err'; }
+/* Team admin only ever spoke up when something failed. Success is worth saying
+   on a permissions screen — this is the counterpart, and hub-motion.js turns it
+   into a toast for free. Call it AFTER reloadTeamAdmin(), which clears #taMsg. */
+function taOk(text) { $('taMsg').textContent = text; $('taMsg').className = 'msg ok'; }
+/* the clicked control goes busy while the call is in flight */
+function taBusy(el, on) { if (el) el.disabled = on; }
 function hatById(id) { return (taData.hats || []).find(h => h.id === id); }
 function venueById(id) { return (taData.venues || []).find(v => v.id === id); }
 function deptGroups() {
@@ -822,7 +864,7 @@ function renderTaUsers() {
       const chips = (u.assignments || []).map(a => {
         const h = hatById(a.hat_id), v = venueById(a.venue_id);
         return '<span class="asgChip">' + esc(h ? h.name : '?') + ' · ' + esc(v ? v.name : '?') +
-          '<button title="Remove" onclick="taRemoveAssign(\'' + a.id + '\')">×</button></span>';
+          '<button title="Remove" onclick="taRemoveAssign(\'' + a.id + '\', this)">×</button></span>';
       }).join('') || '<span class="dim" style="font-size:11px">No assignments</span>';
       return '<div style="padding:14px 0;border-bottom:1px solid var(--hairline)">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
@@ -836,16 +878,23 @@ function renderTaUsers() {
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
           '<select class="taSelect" id="hatSel_' + u.id + '">' + hatOpts + '</select>' +
           '<select class="taSelect" id="venSel_' + u.id + '">' + venOpts + '</select>' +
-          '<button class="ghost miniBtn" onclick="taAddAssign(\'' + u.id + '\')">Add hat</button>' +
+          '<button class="ghost miniBtn" onclick="taAddAssign(\'' + u.id + '\', this)">Add hat</button>' +
         '</div></div>';
     }).join('');
 }
-window.taAddAssign = async (uid) => { try {
+window.taAddAssign = async (uid, btn) => { try {
+  taBusy(btn, true);
   await adminApi({ action:'assignment_add', user_id:uid, hat_id:$('hatSel_' + uid).value, venue_id:$('venSel_' + uid).value });
   await reloadTeamAdmin();
-} catch (e) { taErr(e); } };
-window.taRemoveAssign = async (id) => { try { await adminApi({ action:'assignment_remove', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
-window.taToggleSuper = async (uid, val) => { try { await adminApi({ action:'set_super_admin', user_id:uid, value:val }); await reloadTeamAdmin(); } catch (e) { taErr(e); await reloadTeamAdmin(); } };
+  taOk('Hat added.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRemoveAssign = async (id, btn) => { try { taBusy(btn, true);
+  await adminApi({ action:'assignment_remove', id }); await reloadTeamAdmin(); taOk('Hat removed.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taToggleSuper = async (uid, val) => { try {
+  await adminApi({ action:'set_super_admin', user_id:uid, value:val }); await reloadTeamAdmin();
+  taOk(val ? 'Super admin granted.' : 'Super admin removed.');
+} catch (e) { taErr(e); await reloadTeamAdmin(); } };
 
 function renderTaHats() {
   const allHats = (taData.hats || []);
@@ -853,7 +902,7 @@ function renderTaHats() {
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
     '<input id="newHatName" placeholder="New hat name" style="max-width:240px">' +
     '<input id="newHatDept" placeholder="Department (optional)" style="max-width:220px">' +
-    '<button class="miniBtn" onclick="taCreateHat()">Add hat</button></div>';
+    '<button class="miniBtn" onclick="taCreateHat(this)">Add hat</button></div>';
   deptGroups().forEach(([dept, hats]) => {
     html += '<div class="deptHead">' + esc(dept) + '</div>';
     hats.forEach(h => {
@@ -862,31 +911,40 @@ function renderTaHats() {
       html += '<div class="hatRow ' + (h.active ? '' : 'retired') + '">' +
         '<div><input value="' + esc(h.name) + '" onchange="taRenameHat(\'' + h.id + '\',this.value)" style="font-weight:600">' +
         (h.jd_link ? ' <a href="' + esc(h.jd_link) + '" target="_blank" rel="noopener" style="font-size:11px">JD ↗</a>' : '') + '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + (h.reports_to || []).map(function(pid){ var ph = hatById(pid); return '<span class="asgChip">' + esc(ph ? ph.name : '?') + '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\')">×</button></span>'; }).join('') + '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' + '<option value="">+ reports to…</option>' + allHats.filter(function(x){ return x.id !== h.id && !(h.reports_to || []).includes(x.id); }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
+        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + (h.reports_to || []).map(function(pid){ var ph = hatById(pid); return '<span class="asgChip">' + esc(ph ? ph.name : '?') + '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\', this)">×</button></span>'; }).join('') + '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' + '<option value="">+ reports to…</option>' + allHats.filter(function(x){ return x.id !== h.id && !(h.reports_to || []).includes(x.id); }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
         '<div style="text-align:right">' + (h.active
-          ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\')">Retire</button>'
-          : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\')">Restore</button>') + '</div>' +
+          ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\', this)">Retire</button>'
+          : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\', this)">Restore</button>') + '</div>' +
       '</div>';
     });
   });
   $('taHats').innerHTML = html;
 }
-window.taCreateHat = async () => { try {
+window.taCreateHat = async (btn) => { try {
   const name = $('newHatName').value.trim(); if (!name) return;
+  taBusy(btn, true);
   await adminApi({ action:'hat_create', name, department:$('newHatDept').value.trim() || null });
   await reloadTeamAdmin();
+  taOk('Hat “' + name + '” created.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRenameHat = async (id, name, el) => { try {
+  await adminApi({ action:'hat_update', id, name:name.trim() });
+  if (window.LL) LL.flash(el);            /* inline rename: a wash, not a toast */
 } catch (e) { taErr(e); } };
-window.taRenameHat = async (id, name) => { try { await adminApi({ action:'hat_update', id, name:name.trim() }); } catch (e) { taErr(e); } };
-window.taAddParent = async (id, pid) => { if (!pid) return; try { const h = hatById(id); const s = new Set(h.reports_to || []); s.add(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
-window.taRemoveParent = async (id, pid) => { try { const h = hatById(id); const s = new Set(h.reports_to || []); s.delete(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
-window.taRestoreHat = async (id) => { try { await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); } };
-window.taRetireHat = async (id, name) => {
+window.taAddParent = async (id, pid) => { if (!pid) return; try { const h = hatById(id); const s = new Set(h.reports_to || []); s.add(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); taOk('Reporting line added.'); } catch (e) { taErr(e); } };
+window.taRemoveParent = async (id, pid, btn) => { try { taBusy(btn, true); const h = hatById(id); const s = new Set(h.reports_to || []); s.delete(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); taOk('Reporting line removed.'); } catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRestoreHat = async (id, btn) => { try { taBusy(btn, true);
+  await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); taOk('Hat restored.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRetireHat = async (id, name, btn) => {
   const affected = (taData.users || []).filter(u => (u.assignments || []).some(a => a.hat_id === id)).map(u => u.full_name || u.email);
   const msg = 'Retire “' + name + '”?\n\n' + (affected.length
     ? ('These people will lose the access this hat grants:\n• ' + affected.join('\n• '))
     : 'No one is currently assigned this hat.');
   if (!confirm(msg)) return;
-  try { await adminApi({ action:'hat_retire', id }); await reloadTeamAdmin(); } catch (e) { taErr(e); }
+  try { taBusy(btn, true);
+    await adminApi({ action:'hat_retire', id }); await reloadTeamAdmin(); taOk('Hat “' + name + '” retired.');
+  } catch (e) { taErr(e); } finally { taBusy(btn, false); }
 };
 
 function renderTaPerms() {
@@ -904,17 +962,20 @@ function renderTaPerms() {
     live.forEach(h => {
       rows += '<tr><td class="hatCol">' + esc(h.name) + '</td>' + actions.map(a => {
         const on = grantset.has(h.id + '|' + a.id);
-        return '<td><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="taPerm(\'' + h.id + '\',\'' + a.id + '\',this.checked)"></td>';
+        return '<td><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="taPerm(\'' + h.id + '\',\'' + a.id + '\',this.checked,this)"></td>';
       }).join('') + '</tr>';
     });
   });
   $('taPerms').innerHTML = '<p class="taHint">Tick to grant a hat an action. A person sees an app’s tile if any of their hats grants any action in it. Retired hats are hidden.</p>' +
     '<div class="matrixWrap"><table class="matrix"><thead>' + head1 + head2 + '</thead><tbody>' + rows + '</tbody></table></div>';
 }
-window.taPerm = async (hat_id, action_id, granted) => { try {
+window.taPerm = async (hat_id, action_id, granted, box) => { try {
   await adminApi({ action:'perm_set', hat_id, action_id, granted });
   if (granted) taData.permissions.push({ hat_id, action_id });
   else taData.permissions = taData.permissions.filter(p => !(p.hat_id === hat_id && p.action_id === action_id));
+  /* one wash over the cell rather than a toast — someone ticking twenty boxes
+     does not want twenty notifications, but does want to see each one land */
+  if (window.LL && box) LL.flash(box.closest('td') || box);
 } catch (e) { taErr(e); await reloadTeamAdmin(); } };
 
 // Reveal Team admin for super admins after profile loads (wraps enter, additive).

@@ -459,6 +459,7 @@ function dueChips(venue) {
 
 function renderCards() {
   const el = $('cards'); el.innerHTML = '';
+  el.classList.add('kpis');   /* additive — .vgrid keeps owning the layout */
   const passNow = Number(DASH.settings.pass_mark);
   for (const v of DASH.venues) {
     const hist = DASH.monthly.filter(m => m.venue === v.name);
@@ -479,12 +480,12 @@ function renderCards() {
     const dates = TYPES.map(t => latest[t]?.audit_date).filter(Boolean).sort();
     const lastD = dates.length ? fmtD(dates[dates.length - 1]) : '—';
     const n = (DASH.counts || {})[v.name] || 0;
-    el.insertAdjacentHTML('beforeend', `<div class="card vcard" tabindex="0" role="button" data-venue="${esc(v.name)}"
+    el.insertAdjacentHTML('beforeend', `<div class="card vcard kpi" tabindex="0" role="button" data-venue="${esc(v.name)}"
         aria-label="Open the audit log for ${esc(v.name)}">
-      <div class="vhead"><div><div class="vname">${esc(v.name)}</div>
+      <div class="vhead"><div><div class="vname lab">${esc(v.name)}</div>
         <div class="vmeta">Most recent audit: ${esc(lastD)} · ${n} report${n === 1 ? '' : 's'} on file</div></div>
         ${s === null ? '' : `<span class="chip ${s >= passNow ? 'pass' : 'fail'}">${s >= passNow ? 'Pass' : 'Below pass'}</span>`}</div>
-      <div class="scoreRow">${s === null ? '<span class="dim">No audits yet</span>' : `<span class="bigScore">${s.toFixed(1)}<span>%</span></span>`} ${delta}</div>
+      <div class="scoreRow">${s === null ? '<span class="dim">No audits yet</span>' : `<span class="bigScore val">${s.toFixed(1)}<span>%</span></span>`} ${delta}</div>
       ${spark(hist)}${comps}
       <div class="dueRow">${dueChips(v.name)}</div></div>`);
   }
@@ -508,7 +509,7 @@ async function openLog(venue) {
   $('logTitle').textContent = venue + ' — audit log';
   $('logSub').textContent = 'Every audit recorded for this venue, newest first. Select a row to open the full report.';
   $('logDue').innerHTML = dueChips(venue);
-  $('logRows').innerHTML = '<tr><td colspan="6" class="dim">Loading…</td></tr>';
+  $('logRows').innerHTML = ('<tr><td colspan="6"><div class="ll-sk" style="height:14px"></div></td></tr>').repeat(3);
   renderTrend(venue, []);
   const m = $('logMsg'); m.textContent = ''; m.className = 'msg';
   window.scrollTo({ top: 0 });
@@ -717,7 +718,9 @@ async function saveEdit() {
     $('detSave').disabled = true;
     const res = await api(payload);
     if (res.unchanged) { m.textContent = 'Nothing changed.'; m.className = 'msg'; EDITING = false; paintDetail(); return; }
-    m.textContent = `Saved — ${a.venue} is now ${res.venue_score}%`; m.className = 'msg ok';
+    /* The outcome is announced once, at the end, after paintDetail() has
+       rebuilt the panel — announcing it here as well produced two toasts a
+       second apart for a single save. */
     EDITING = false; VIEW_VER = null;
     DETAIL = await api({ action: 'get_audit', id: a.id });
     paintDetail();
@@ -849,6 +852,14 @@ async function saveSettings() {
 // ---- load ----
 async function load(first = true) {
   const pm = $('pageMsg'); pm.textContent = ''; pm.className = 'msg';
+  if (!$('cards').children.length) {
+    /* shimmer in the shape of the venue cards rather than an empty page */
+    $('cards').innerHTML = ('<div class="card vcard" style="pointer-events:none">' +
+      '<div class="ll-sk" style="height:13px;width:45%"></div>' +
+      '<div class="ll-sk" style="height:30px;width:32%;margin-top:14px"></div>' +
+      '<div class="ll-sk" style="height:10px;width:70%;margin-top:16px"></div>' +
+      '<div class="ll-sk" style="height:10px;width:60%;margin-top:8px"></div></div>').repeat(3);
+  }
   try {
     DASH = await api({ action: 'dashboard' });
     renderCards();
@@ -883,7 +894,16 @@ async function load(first = true) {
   }
 }
 
-$('refresh').onclick = async () => { await load(false); if (LOG_VENUE) await openLog(LOG_VENUE); };
+$('refresh').onclick = async () => {
+  const m = $('pageMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    $('refresh').disabled = true;
+    await load(false);
+    if (LOG_VENUE) await openLog(LOG_VENUE);
+    m.textContent = 'Scores refreshed.'; m.className = 'msg ok';
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('refresh').disabled = false; }
+};
 $('logBack').onclick = closeLog;
 $('detClose').onclick = () => { $('detailCard').classList.add('hidden'); $('logRows').querySelectorAll('tr').forEach(tr => tr.classList.remove('sel')); };
 $('detEdit').onclick = () => { EDITING = true; VIEW_VER = null; paintDetail(); };
