@@ -6,6 +6,8 @@
      · KPI values count up on first render and flash green when they change
      · a soft spotlight follows the cursor inside home-page tiles
      · sparklines draw themselves left to right
+     · action buttons show press → spinner → tick, and outcomes slide in as
+       a toast (see "action feedback bridge" below)
 
    Available to page code as window.LL:
      LL.toast(msg, {err:true})     → slide-in confirmation, auto-dismisses
@@ -224,8 +226,93 @@
     };
   };
 
+  /* ---------- action feedback bridge -------------------------------------
+     Every action handler in the hub is written the same way: disable the
+     button that was clicked, await the call, then write the outcome into a
+     .msg element as `msg ok` or `msg err`, and re-enable the button in a
+     finally block. That existing convention is enough to drive the button
+     states and the toasts without editing a single handler.
+
+     Nothing here changes what a handler does. The inline .msg text stays
+     exactly where it is — the toast is an addition, so if this file ever
+     fails to load, the pages behave precisely as they do today. */
+
+  var lastOkAt = 0;
+  function nowMs() { return (window.performance && performance.now) ? performance.now() : +new Date(); }
+
+  /* outcomes -> toasts */
+  function reportMsg(el) {
+    var txt = (el.textContent || '').trim();
+    if (!txt) { el.__llLast = ''; return; }
+    var isOk = el.classList.contains('ok');
+    var isErr = el.classList.contains('err');
+    if (!isOk && !isErr) return;                        // in-progress text, not an outcome
+
+    /* A handler writes the text and the class as separate statements. When
+       they land in the same task the observer batches them into ONE callback,
+       so we cannot rely on seeing the intermediate cleared state — dedupe on a
+       short time window instead of on the text alone. Anything less than this
+       swallows a legitimate repeat, e.g. pressing Save twice with the same
+       validation error still needs to tell you twice. */
+    var t = nowMs();
+    if (txt === el.__llLast && (t - (el.__llLastAt || 0)) < 400) return;
+    el.__llLast = txt;
+    el.__llLastAt = t;
+    if (isOk) lastOkAt = t;
+    LL.toast(txt, { err: isErr, life: isErr ? 5200 : 2800 });
+  }
+
+  function bridgeMsgs() {
+    var els = document.querySelectorAll('.msg');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.__llMsg) continue;
+      el.__llMsg = true;
+      el.__llLast = (el.textContent || '').trim();      // never announce what is already on screen
+      (function (node) {
+        var mo = new MutationObserver(function () { reportMsg(node); });
+        mo.observe(node, { childList: true, characterData: true, subtree: true,
+                           attributes: true, attributeFilter: ['class'] });
+        OBSERVERS.push(mo);
+      })(el);
+    }
+  }
+
+  /* in-flight buttons — arm on click, then look one tick later: if the
+     handler disabled the very button that was pressed, it is an async action
+     worth showing state for. A button disabled for any other reason is never
+     touched. */
+  function watchButton(btn, handle) {
+    var settled = false;
+    function finish(ok) {
+      if (settled) return;
+      settled = true;
+      mo.disconnect();
+      if (ok) handle.done(); else handle.fail();
+    }
+    var mo = new MutationObserver(function () {
+      if (btn.disabled) return;                         // still working
+      finish((nowMs() - lastOkAt) < 700);               // an ok landed alongside it
+    });
+    mo.observe(btn, { attributes: true, attributeFilter: ['disabled'] });
+    OBSERVERS.push(mo);
+    setTimeout(function () { finish(false); }, 25000);  // never leave a button stuck
+  }
+
+  if (!RM) {
+    document.addEventListener('click', function (e) {
+      if (!e.target || !e.target.closest) return;
+      var btn = e.target.closest('button');
+      if (!btn || btn.disabled || btn.__llBusy) return;
+      setTimeout(function () {
+        if (!btn.disabled || btn.__llBusy) return;      // synchronous action, nothing to show
+        watchButton(btn, LL.busy(btn));
+      }, 0);
+    }, true);
+  }
+
   /* ---------- boot ------------------------------------------------------- */
-  function tick() { scanKpis(); scanSparks(); }
+  function tick() { scanKpis(); scanSparks(); bridgeMsgs(); }
 
   function boot() {
     tick();
