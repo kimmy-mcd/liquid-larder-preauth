@@ -54,3 +54,164 @@ table { max-width:100%; }
   h1.logo { width:108px; }
   .topbar .who .avatar { display:none; }
 }
+
+/* ==========================================================================
+   v6 — motion layer (28 Jul 2026)
+   Shared micro-interactions and page transitions for every staff page.
+   Rules of the house:
+     · animate transform/opacity only — compositor work, never layout
+     · 130ms feedback / 220ms movement / 380ms entrances
+     · new utility classes are prefixed .ll- so they cannot collide with a
+       page's own inline <style> block
+     · the whole layer is switched off by prefers-reduced-motion at the foot
+   Paired with /scripts/hub-motion.js (count-up, spotlight, toasts).
+   ========================================================================== */
+
+:root {
+  --e-out:cubic-bezier(.22,.9,.28,1);      /* entering */
+  --e-spring:cubic-bezier(.34,1.4,.5,1);   /* things that should feel physical */
+  --t-fast:130ms; --t-med:220ms; --t-slow:380ms;
+}
+
+/* --- 1. cross-document page transitions ---------------------------------
+   Chrome/Edge cross-fade page to page; Safari/Firefox ignore this and keep
+   today's hard cut, so there is nothing to fall back to. Guest pages don't
+   load hub.css, so they are deliberately excluded. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation:llFadeOut 140ms ease both; }
+::view-transition-new(root) { animation:llPageIn 240ms var(--e-out) both; }
+@keyframes llFadeOut { to { opacity:0; } }
+@keyframes llPageIn { from { opacity:0; transform:translateY(8px); } }
+
+/* --- 2. staggered entrances ---------------------------------------------
+   Tiles and KPI cards are injected once their query resolves, so these fire
+   as the data lands rather than on page load. */
+@keyframes llRise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+.tiles > a.tile { animation:llRise .5s var(--e-out) both; }
+.tiles > a.tile:nth-child(1)  { animation-delay:0ms; }
+.tiles > a.tile:nth-child(2)  { animation-delay:55ms; }
+.tiles > a.tile:nth-child(3)  { animation-delay:110ms; }
+.tiles > a.tile:nth-child(4)  { animation-delay:165ms; }
+.tiles > a.tile:nth-child(5)  { animation-delay:220ms; }
+.tiles > a.tile:nth-child(6)  { animation-delay:275ms; }
+.tiles > a.tile:nth-child(7)  { animation-delay:330ms; }
+.tiles > a.tile:nth-child(8)  { animation-delay:385ms; }
+.tiles > a.tile:nth-child(n+9){ animation-delay:440ms; }
+
+.kpis > .kpi { animation:llRise .42s var(--e-out) both; }
+.kpis > .kpi:nth-child(1)  { animation-delay:0ms; }
+.kpis > .kpi:nth-child(2)  { animation-delay:45ms; }
+.kpis > .kpi:nth-child(3)  { animation-delay:90ms; }
+.kpis > .kpi:nth-child(4)  { animation-delay:135ms; }
+.kpis > .kpi:nth-child(5)  { animation-delay:180ms; }
+.kpis > .kpi:nth-child(n+6){ animation-delay:225ms; }
+
+/* --- 3. hover life ------------------------------------------------------ */
+.appIcon { transition:transform var(--t-med) var(--e-spring), background var(--t-med); }
+a.tile:hover .appIcon { transform:scale(1.06) rotate(-3deg); background:#eae2cf; }
+a.tile.soon:hover .appIcon { transform:none; background:var(--sand-soft); }
+a.navItem svg { transition:transform var(--t-med) var(--e-spring), stroke var(--t-fast); }
+a.navItem:hover svg { transform:scale(1.12) rotate(-4deg); }
+a.back { transition:background var(--t-fast), transform var(--t-fast) var(--e-out); }
+a.back:hover { transform:translateX(-2px); }
+
+/* --- 4. cursor spotlight on tiles ---------------------------------------
+   hub-motion.js writes --ll-mx / --ll-my; without the script the tile simply
+   never lights up, so this degrades to today's behaviour. */
+a.tile::after {
+  content:''; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:0;
+  border-radius:inherit; transition:opacity var(--t-med);
+  background:radial-gradient(340px circle at var(--ll-mx,50%) var(--ll-my,50%),
+                             rgba(220,209,192,.42), transparent 62%);
+}
+a.tile:hover::after { opacity:1; }
+a.tile.soon::after { display:none; }
+a.tile > * { position:relative; z-index:1; }
+
+/* --- 5. buttons --------------------------------------------------------- */
+button:active { transform:translateY(0) scale(.97); transition-duration:60ms; }
+button:disabled:active { transform:none; }
+
+button.ll-busy { color:transparent !important; position:relative; pointer-events:none; }
+button.ll-busy .ll-spin { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+button.ll-busy .ll-spin i { display:block; width:14px; height:14px; border-radius:50%;
+  border:2px solid rgba(255,255,255,.28); border-top-color:#faf8f4; animation:llSpin .7s linear infinite; }
+button.ghost.ll-busy .ll-spin i { border-color:rgba(29,62,59,.22); border-top-color:var(--green); }
+@keyframes llSpin { to { transform:rotate(360deg); } }
+button.ll-done { color:transparent !important; background:var(--ok) !important; position:relative; }
+button.ll-done .ll-tick { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+button.ll-done .ll-tick svg { width:16px; height:16px; stroke:#faf8f4; stroke-width:2.6; fill:none;
+  stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:26; stroke-dashoffset:26;
+  animation:llDraw .32s var(--e-out) .05s forwards; }
+@keyframes llDraw { to { stroke-dashoffset:0; } }
+
+/* --- 6. table rows ------------------------------------------------------
+   A 2px anchor that wipes in from the centre. Excludes the Team admin
+   permission matrix, whose first column is sticky. */
+table:not(.matrix) tbody tr td:first-child { position:relative; }
+table:not(.matrix) tbody tr td:first-child::before {
+  content:''; position:absolute; left:0; top:6px; bottom:6px; width:2px; border-radius:2px;
+  background:var(--green); transform:scaleY(0); transform-origin:center;
+  transition:transform var(--t-med) var(--e-out);
+}
+table:not(.matrix) tbody tr:hover td:first-child::before { transform:scaleY(1); }
+
+/* --- 7. keyboard focus -------------------------------------------------- */
+button:focus-visible, a:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline:none; box-shadow:var(--ring); animation:llBloom .45s var(--e-out);
+}
+@keyframes llBloom { from { box-shadow:0 0 0 0 rgba(29,62,59,.34); } to { box-shadow:var(--ring); } }
+
+/* --- 8. live status dot ------------------------------------------------- */
+.dot.live { animation:llBreathe 2.6s var(--e-out) infinite; }
+@keyframes llBreathe { 0%,100% { box-shadow:0 0 0 0 rgba(66,112,74,.38); } 50% { box-shadow:0 0 0 6px rgba(66,112,74,0); } }
+
+/* --- 9. value-change flash (added by hub-motion.js) --------------------- */
+.ll-flash { animation:llFlash .95s var(--e-out); border-radius:6px; }
+@keyframes llFlash { 0% { background:rgba(66,112,74,.20); } 100% { background:transparent; } }
+
+/* --- 10. sparkline draw-on ---------------------------------------------- */
+svg.spark path[stroke] { stroke-dasharray:var(--ll-len,140); stroke-dashoffset:var(--ll-len,140);
+  animation:llDrawSpark 1s var(--e-out) .1s forwards; }
+@keyframes llDrawSpark { to { stroke-dashoffset:0; } }
+svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwards; }
+@keyframes llAppear { to { opacity:1; } }
+
+/* --- 11. skeleton placeholders ------------------------------------------ */
+.ll-sk { border-radius:8px; background:linear-gradient(90deg,#f0ece3 25%,#f8f5ee 37%,#f0ece3 63%);
+  background-size:400% 100%; animation:llShim 1.35s ease infinite; }
+@keyframes llShim { 0% { background-position:100% 0; } 100% { background-position:-100% 0; } }
+.ll-skRow { display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid var(--hairline); }
+
+/* --- 12. toasts (window.LL.toast) --------------------------------------- */
+#llToastZone { position:fixed; right:22px; bottom:22px; z-index:200;
+  display:flex; flex-direction:column; gap:10px; align-items:flex-end; pointer-events:none; }
+.ll-toast { pointer-events:auto; display:flex; align-items:center; gap:11px;
+  background:var(--card); border:1px solid var(--hairline); border-left:3px solid var(--ok);
+  border-radius:12px; box-shadow:0 8px 30px -6px rgba(29,62,59,.22); padding:13px 18px;
+  font-size:12.5px; color:var(--ink); min-width:230px; max-width:min(360px,80vw);
+  animation:llToastIn .42s var(--e-spring) both; }
+.ll-toast.err { border-left-color:var(--err); }
+.ll-toast.out { animation:llToastOut .28s var(--e-out) both; }
+@keyframes llToastIn { from { opacity:0; transform:translateY(14px) scale(.96); } to { opacity:1; transform:none; } }
+@keyframes llToastOut { to { opacity:0; transform:translateX(24px); } }
+@media (max-width:560px) {
+  #llToastZone { right:14px; left:14px; bottom:14px; align-items:stretch; }
+  .ll-toast { min-width:0; max-width:none; }
+}
+
+/* --- 13. a shadow under the topbar once you've scrolled ----------------- */
+@supports (animation-timeline: scroll()) {
+  .topbar { animation:llStuck linear both; animation-timeline:scroll(root); animation-range:0 70px; }
+  @keyframes llStuck { to { box-shadow:0 6px 22px -16px rgba(29,62,59,.55); } }
+}
+
+/* --- 14. the escape hatch ----------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+    scroll-behavior:auto !important;
+  }
+}
