@@ -170,8 +170,14 @@ button:focus-visible, a:focus-visible, summary:focus-visible, [tabindex]:focus-v
 .ll-flash { animation:llFlash .95s var(--e-out); border-radius:6px; }
 @keyframes llFlash { 0% { background:rgba(66,112,74,.20); } 100% { background:transparent; } }
 
-/* --- 10. sparkline draw-on ---------------------------------------------- */
-svg.spark path[stroke] { stroke-dasharray:var(--ll-len,140); stroke-dashoffset:var(--ll-len,140);
+/* --- 10. sparkline draw-on ----------------------------------------------
+   Covers both shapes in use: <path stroke> on the home tiles and <polyline
+   stroke> on the Quality venue cards. Anything that already carries its own
+   stroke-dasharray (the dashed pass-mark line) is left alone — overriding it
+   would turn that line solid. */
+svg.spark path[stroke]:not([stroke-dasharray]),
+svg.spark polyline[stroke]:not([stroke-dasharray]) {
+  stroke-dasharray:var(--ll-len,140); stroke-dashoffset:var(--ll-len,140);
   animation:llDrawSpark 1s var(--e-out) .1s forwards; }
 @keyframes llDrawSpark { to { stroke-dashoffset:0; } }
 svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwards; }
@@ -192,6 +198,9 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
   font-size:12.5px; color:var(--ink); min-width:230px; max-width:min(360px,80vw);
   animation:llToastIn .42s var(--e-spring) both; }
 .ll-toast.err { border-left-color:var(--err); }
+/* pages define their own .dot sizing; the toast must not depend on that */
+.ll-toast .dot { width:7px; height:7px; border-radius:50%; flex:0 0 7px; background:var(--ok); }
+.ll-toast.err .dot { background:var(--err); }
 .ll-toast.out { animation:llToastOut .28s var(--e-out) both; }
 @keyframes llToastIn { from { opacity:0; transform:translateY(14px) scale(.96); } to { opacity:1; transform:none; } }
 @keyframes llToastOut { to { opacity:0; transform:translateX(24px); } }

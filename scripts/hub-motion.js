@@ -30,6 +30,17 @@
      Chrome does collect them on a busy page — which silently stopped the
      document-level watcher on the live home page. Hold the references. */
   var OBSERVERS = LL._observers = [];
+  function hold(mo, node) { OBSERVERS.push({ mo: mo, node: node || null }); }
+
+  /* Pages that rebuild a dialog body on every open (Pre-Auth does) hand us a
+     fresh .msg element each time. Without this the observer list would grow
+     for the whole shift, each one watching a node that no longer exists. */
+  function pruneObservers() {
+    for (var i = OBSERVERS.length - 1; i >= 0; i--) {
+      var o = OBSERVERS[i];
+      if (o.node && !o.node.isConnected) { o.mo.disconnect(); OBSERVERS.splice(i, 1); }
+    }
+  }
 
   /* ---------- number parsing -------------------------------------------
      Handles "412", "31.4", "$1,240", "-2.4", each optionally wrapped in
@@ -137,7 +148,7 @@
        can never re-trigger ourselves and end up fighting the animation. */
     var mo = new MutationObserver(function () { processKpis(box); });
     mo.observe(box, { childList: true, subtree: true });
-    OBSERVERS.push(mo);
+    hold(mo, box);
   }
 
   function scanKpis() {
@@ -150,7 +161,8 @@
 
   /* ---------- sparkline draw-on ----------------------------------------- */
   function scanSparks() {
-    var paths = document.querySelectorAll('svg.spark path[stroke]');
+    var paths = document.querySelectorAll(
+      'svg.spark path[stroke]:not([stroke-dasharray]), svg.spark polyline[stroke]:not([stroke-dasharray])');
     for (var i = 0; i < paths.length; i++) {
       var p = paths[i];
       if (p.__llLen) continue;
@@ -273,7 +285,7 @@
         var mo = new MutationObserver(function () { reportMsg(node); });
         mo.observe(node, { childList: true, characterData: true, subtree: true,
                            attributes: true, attributeFilter: ['class'] });
-        OBSERVERS.push(mo);
+        hold(mo, node);
       })(el);
     }
   }
@@ -283,11 +295,12 @@
      worth showing state for. A button disabled for any other reason is never
      touched. */
   function watchButton(btn, handle) {
-    var settled = false;
+    var settled = false, poll = null;
     function finish(ok) {
       if (settled) return;
       settled = true;
       mo.disconnect();
+      if (poll) clearInterval(poll);
       if (ok) handle.done(); else handle.fail();
     }
     var mo = new MutationObserver(function () {
@@ -295,8 +308,18 @@
       finish((nowMs() - lastOkAt) < 700);               // an ok landed alongside it
     });
     mo.observe(btn, { attributes: true, attributeFilter: ['disabled'] });
-    OBSERVERS.push(mo);
-    setTimeout(function () { finish(false); }, 25000);  // never leave a button stuck
+    hold(mo, btn);
+
+    /* Some handlers finish by hiding the button instead of re-enabling it —
+       Pre-Auth's charge / release / edit-date / refund all do, since the
+       action is done and the control should go away. Watch for the button
+       stopping being rendered (or leaving the DOM) as a second completion
+       signal, otherwise those four would spin until the stall timeout. */
+    var poll = setInterval(function () {
+      if (settled) { clearInterval(poll); return; }
+      if (!btn.isConnected || !btn.getClientRects().length) { clearInterval(poll); finish(true); }
+    }, 250);
+    setTimeout(function () { clearInterval(poll); finish(false); }, 25000);  // never leave a button stuck
   }
 
   if (!RM) {
@@ -312,7 +335,7 @@
   }
 
   /* ---------- boot ------------------------------------------------------- */
-  function tick() { scanKpis(); scanSparks(); bridgeMsgs(); }
+  function tick() { scanKpis(); scanSparks(); bridgeMsgs(); pruneObservers(); }
 
   function boot() {
     tick();
@@ -325,7 +348,7 @@
       requestAnimationFrame(function () { queued = false; tick(); });
     });
     mo.observe(document.body, { childList: true, subtree: true });
-    OBSERVERS.push(mo);
+    hold(mo, document.body);
 
     /* Belt and braces: a few cheap re-scans so a slow Supabase response is
        still picked up even if the observer were ever to go missing. Each pass
