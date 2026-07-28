@@ -16,7 +16,9 @@
   :root { --page-w:1144px; }
   .hidden { display:none !important; }
   .vgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:18px; margin-bottom:26px; }
-  .vcard { padding:22px 24px; margin-bottom:0; }
+  .vcard { padding:22px 24px; margin-bottom:0; cursor:pointer; transition:box-shadow .15s ease, transform .15s ease; }
+  .vcard:hover { box-shadow:0 6px 22px rgba(29,62,59,.10); transform:translateY(-1px); }
+  .vcard:focus-visible { outline:none; box-shadow:var(--ring); }
   .vhead { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .vname { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
   .vmeta { color:var(--dim); font-size:11px; margin-top:4px; }
@@ -30,6 +32,9 @@
   .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
   .chip.pass { background:rgba(66,112,74,.12); color:var(--ok); }
   .chip.fail { background:rgba(164,78,51,.12); color:var(--err); }
+  .chip.due  { background:rgba(164,78,51,.10); color:var(--err); }
+  .chip.plain { background:rgba(29,62,59,.07); color:var(--dim); }
+  .dueRow { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
   svg.spark { display:block; width:100%; height:60px; margin:8px 0 10px; }
   .comp { display:flex; align-items:center; gap:9px; font-size:11.5px; margin-top:6px; }
   .comp .lbl { width:116px; color:var(--dim); font-weight:600; flex:none; }
@@ -54,6 +59,29 @@
   .sumNote { font-size:12px; font-weight:600; margin:10px 0 16px; }
   .sumNote.ok { color:var(--ok); } .sumNote.err { color:var(--err); }
   .foot { color:var(--dim); font-size:11px; line-height:1.7; margin-top:6px; }
+  /* audit log */
+  table.log { width:100%; border-collapse:collapse; font-size:13px; }
+  table.log th { text-align:left; padding:8px 8px; font-size:10.5px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--dim); border-bottom:1px solid var(--hairline); font-weight:600; }
+  table.log td { padding:11px 8px; border-bottom:1px solid var(--hairline); vertical-align:top; }
+  table.log tbody tr { cursor:pointer; }
+  table.log tbody tr:hover { background:rgba(29,62,59,.035); }
+  table.log tr.sel { background:rgba(29,62,59,.06); }
+  .tag { display:inline-block; font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase;
+    padding:3px 9px; border-radius:999px; background:rgba(29,62,59,.07); color:var(--green); white-space:nowrap; }
+  .edited { font-size:10.5px; color:var(--dim); }
+  .trail { list-style:none; padding:0; margin:6px 0 0; }
+  .trail li { padding:10px 0; border-bottom:1px solid var(--hairline); font-size:12.5px; }
+  .trail .who { font-weight:600; color:var(--green); }
+  .trail .when { color:var(--dim); font-size:11px; }
+  .trail .diff { margin:6px 0 0; padding-left:14px; color:var(--ink); }
+  .trail .diff li { border:none; padding:2px 0; font-size:12px; }
+  .trail del { color:var(--err); text-decoration:line-through; }
+  .trail ins { color:var(--ok); text-decoration:none; font-weight:600; }
+  .detailGrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:14px; }
+  .ro { padding:11px 13px; background:rgba(29,62,59,.04); border-radius:var(--r-input); font-size:13.5px; }
+  .subhead { font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--dim); font-weight:600; margin:18px 0 8px; }
+  .btnRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:16px; }
 </style>
 </head>
 <body>
@@ -66,48 +94,101 @@
 <div class="wrap">
   <div class="msg" id="pageMsg"></div>
 
-  <div id="cards" class="vgrid"></div>
+  <!-- ============ DASHBOARD ============ -->
+  <div id="dashView">
+    <div id="cards" class="vgrid"></div>
 
-  <!-- RECORD AUDIT (admin + management) -->
-  <div class="card hidden" id="entryCard">
-    <div class="cardTitle">Record an audit</div>
-    <div class="grid" style="margin-bottom:16px">
-      <div><label>Venue</label><select id="fVenue"></select></div>
-      <div><label>Audit type</label>
-        <select id="fType">
-          <option value="hoq">Head of Quality visit</option>
-          <option value="wt">Walkthrough</option>
-          <option value="ms">Mystery shopper</option>
-          <option value="or">Online reviews (monthly)</option>
-        </select></div>
-      <div><label>Date</label><input type="date" id="fDate"></div>
-      <div><label>Auditor initials</label><input id="fWho" maxlength="10" placeholder="e.g. SL"></div>
+    <!-- RECORD AUDIT -->
+    <div class="card hidden" id="entryCard">
+      <div class="cardTitle">Record an audit</div>
+      <div class="grid" style="margin-bottom:16px">
+        <div><label>Venue</label><select id="fVenue"></select></div>
+        <div><label>Audit type</label><select id="fType"></select></div>
+        <div><label>Date</label><input type="date" id="fDate"></div>
+        <div><label>Auditor</label><div class="ro" id="fWho">You</div></div>
+      </div>
+      <div id="typeForm"></div>
+      <div><label>General notes</label><textarea id="fNotes" rows="2" placeholder="Optional summary notes"></textarea></div>
+      <div style="margin-top:18px"><button id="saveAudit">Save audit</button></div>
+      <div class="msg" id="fMsg"></div>
     </div>
-    <div id="typeForm"></div>
-    <div><label>General notes</label><textarea id="fNotes" rows="2" placeholder="Optional summary notes"></textarea></div>
-    <div style="margin-top:18px"><button id="saveAudit">Save audit</button></div>
-    <div class="msg" id="fMsg"></div>
+
+    <!-- SETTINGS -->
+    <div class="card hidden" id="setCard">
+      <div class="cardTitle">Scoring settings</div>
+      <div class="setGrid">
+        <div><label>Head of Quality</label><input type="number" id="wHoq" min="0" max="100"></div>
+        <div><label>Walkthrough</label><input type="number" id="wWt" min="0" max="100"></div>
+        <div><label>Mystery shopper</label><input type="number" id="wMs" min="0" max="100"></div>
+        <div><label>Online reviews</label><input type="number" id="wOr" min="0" max="100"></div>
+        <div><label>Pass mark %</label><input type="number" id="passIn" min="0" max="100" step="0.5"></div>
+      </div>
+      <div class="sumNote" id="wSum"></div>
+      <button id="saveSet">Apply settings</button>
+      <div class="msg" id="setMsg"></div>
+    </div>
+
+    <div class="foot">
+      Component percentages are earned &divide; available from each audit's own line items — no fixed scaling factors.
+      Online reviews are the monthly average out of 100. The walkthrough weight splits equally across a venue's areas.
+      A score carries forward from its last entry until that component is audited again.
+      Head of Quality audits are quarterly (financial year), walkthroughs and online reviews are monthly, and mystery
+      shops are ad hoc — flagged once six months old. Due labels are indicators only; nothing blocks a save.
+      Trend lines show the monthly score against the pass mark (dashed); history before July 2026 was migrated from the 2026 spreadsheet.
+    </div>
   </div>
 
-  <!-- SETTINGS (admin only) -->
-  <div class="card hidden" id="setCard">
-    <div class="cardTitle">Scoring settings</div>
-    <div class="setGrid">
-      <div><label>Head of Quality</label><input type="number" id="wHoq" min="0" max="100"></div>
-      <div><label>Walkthrough</label><input type="number" id="wWt" min="0" max="100"></div>
-      <div><label>Mystery shopper</label><input type="number" id="wMs" min="0" max="100"></div>
-      <div><label>Online reviews</label><input type="number" id="wOr" min="0" max="100"></div>
-      <div><label>Pass mark %</label><input type="number" id="passIn" min="0" max="100" step="0.5"></div>
+  <!-- ============ AUDIT LOG (per venue) ============ -->
+  <div id="logView" class="hidden">
+    <div class="card">
+      <div class="vhead" style="margin-bottom:4px">
+        <div>
+          <div class="cardTitle" id="logTitle" style="margin:0"></div>
+          <div class="vmeta" id="logSub"></div>
+        </div>
+        <button class="ghost" id="logBack">&larr; All venues</button>
+      </div>
+      <div class="dueRow" id="logDue"></div>
+      <div style="overflow-x:auto; margin-top:16px">
+        <table class="log">
+          <thead><tr><th>Date</th><th>Type</th><th>Score</th><th>Auditor</th><th>Recorded by</th><th>History</th></tr></thead>
+          <tbody id="logRows"></tbody>
+        </table>
+      </div>
+      <div class="msg" id="logMsg"></div>
     </div>
-    <div class="sumNote" id="wSum"></div>
-    <button id="saveSet">Apply settings</button>
-    <div class="msg" id="setMsg"></div>
-  </div>
 
-  <div class="foot">
-    Component percentages are earned &divide; available from each audit's own line items — no fixed scaling factors.
-    Online reviews are the monthly average out of 100. The walkthrough weight splits equally across a venue's areas.
-    Trend lines show the monthly score against the pass mark (dashed); history before July 2026 was migrated from the 2026 spreadsheet.
+    <div class="card hidden" id="detailCard">
+      <div class="vhead" style="margin-bottom:10px">
+        <div class="cardTitle" id="detTitle" style="margin:0"></div>
+        <button class="ghost" id="detClose">Close</button>
+      </div>
+      <div class="detailGrid">
+        <div><label>Date</label><div id="detDateRO" class="ro"></div><input type="date" id="detDate" class="hidden"></div>
+        <div><label>Auditor</label><div id="detWhoRO" class="ro"></div></div>
+        <div><label>Audit type</label><div class="ro" id="detType"></div></div>
+        <div><label>Revision</label><select id="detVer"></select></div>
+      </div>
+      <div class="msg" id="detVerNote"></div>
+      <div id="detBody"></div>
+      <div><label>General notes</label><div id="detNotesRO" class="ro" style="min-height:20px"></div>
+        <textarea id="detNotes" rows="2" class="hidden"></textarea></div>
+
+      <div id="detEditBox" class="hidden">
+        <div style="margin-top:14px"><label>Reason for the change (optional, stored in the history)</label>
+          <input id="detReason" maxlength="200" placeholder="e.g. transposed the bar food score"></div>
+      </div>
+
+      <div class="btnRow">
+        <button id="detEdit" class="hidden">Edit this audit</button>
+        <button id="detSave" class="hidden">Save changes</button>
+        <button class="ghost hidden" id="detCancel">Cancel</button>
+      </div>
+      <div class="msg" id="detMsg"></div>
+
+      <div class="subhead">Change history</div>
+      <ul class="trail" id="detTrail"></ul>
+    </div>
   </div>
 </div>
 
@@ -119,13 +200,17 @@ const FN = SUPABASE_URL + '/functions/v1/quality-staff';
 const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const TYPE_LABEL = { hoq:'Head of Quality', ms:'Mystery shopper', or:'Online reviews' };
+const TYPES = ['hoq','wt','ms','or'];
+const TYPE_LABEL = { hoq:'Head of Quality', wt:'Walkthrough', ms:'Mystery shopper', or:'Online reviews' };
 const HOQ_TMPL = [
   {s:'Bar',i:'Food',m:5},{s:'Bar',i:'Drinks',m:10},{s:'Bar',i:'Service — Sequence',m:5},{s:'Bar',i:'Service — Tone of voice',m:5},
   {s:'Restaurant',i:'Food',m:10},{s:'Restaurant',i:'Drinks',m:5},{s:'Restaurant',i:'Service — Sequence',m:5},{s:'Restaurant',i:'Service — Tone of voice',m:5},
   {s:'Venue',i:'Atmosphere',m:10},
 ];
-let DASH = null; // dashboard payload
+let DASH = null;      // dashboard payload
+let LOG_VENUE = null; // venue whose audit log is open
+let DETAIL = null;    // { audit, changes, versions, can_edit }
+let EDITING = false;
 
 // Must be signed in via the hub — session is shared across the site origin
 (async () => {
@@ -148,6 +233,7 @@ async function api(payload) {
 }
 
 const pct = (e, a) => a > 0 ? Math.min(e / a, 1) : 0;
+const canSaveType = t => t === 'hoq' ? !!DASH.can_save_hoq : !!DASH.can_save_audit;
 
 function wtPct(a) {
   if (a && Array.isArray(a.items) && a.items.length) {
@@ -160,7 +246,7 @@ function wtPct(a) {
 function venueScore(venue) {
   const w = DASH.settings.weights, latest = DASH.latest[venue] || {};
   const parts = [];
-  for (const t of ['hoq','wt','ms','or']) {
+  for (const t of TYPES) {
     const a = latest[t];
     if (!a) continue;
     const p = t === 'wt' ? wtPct(a) : pct(Number(a.earned), Number(a.available));
@@ -195,6 +281,15 @@ function compRow(label, p) {
 }
 
 function fmtD(d) { return new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { day:'numeric', month:'short', year:'numeric' }); }
+function fmtT(ts) { return new Date(ts).toLocaleString('en-AU', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }); }
+
+function dueChips(venue) {
+  const d = (DASH.due || {})[venue] || {};
+  return TYPES.map(t => {
+    const s = d[t]; if (!s) return '';
+    return `<span class="chip ${s.due ? 'due' : 'plain'}" title="${esc(s.cadence)}${s.last ? ' · last ' + fmtD(s.last) : ''}">${esc(TYPE_LABEL[t])}: ${s.due ? (s.last ? 'due' : 'none yet') : 'current'}</span>`;
+  }).join('');
+}
 
 function renderCards() {
   const el = $('cards'); el.innerHTML = '';
@@ -215,14 +310,256 @@ function renderCards() {
     }
     if (latest.ms) comps += compRow('Mystery shopper', pct(Number(latest.ms.earned), Number(latest.ms.available)));
     if (latest.or) comps += compRow('Online reviews', pct(Number(latest.or.earned), Number(latest.or.available)));
-    const dates = ['hoq','wt','ms','or'].map(t => latest[t]?.audit_date).filter(Boolean).sort();
+    const dates = TYPES.map(t => latest[t]?.audit_date).filter(Boolean).sort();
     const lastD = dates.length ? fmtD(dates[dates.length - 1]) : '—';
-    el.insertAdjacentHTML('beforeend', `<div class="card vcard">
-      <div class="vhead"><div><div class="vname">${esc(v.name)}</div><div class="vmeta">Most recent audit: ${esc(lastD)}</div></div>
+    const n = (DASH.counts || {})[v.name] || 0;
+    el.insertAdjacentHTML('beforeend', `<div class="card vcard" tabindex="0" role="button" data-venue="${esc(v.name)}"
+        aria-label="Open the audit log for ${esc(v.name)}">
+      <div class="vhead"><div><div class="vname">${esc(v.name)}</div>
+        <div class="vmeta">Most recent audit: ${esc(lastD)} · ${n} report${n === 1 ? '' : 's'} on file</div></div>
         ${s === null ? '' : `<span class="chip ${s >= passNow ? 'pass' : 'fail'}">${s >= passNow ? 'Pass' : 'Below pass'}</span>`}</div>
       <div class="scoreRow">${s === null ? '<span class="dim">No audits yet</span>' : `<span class="bigScore">${s.toFixed(1)}<span>%</span></span>`} ${delta}</div>
-      ${spark(hist)}${comps}</div>`);
+      ${spark(hist)}${comps}
+      <div class="dueRow">${dueChips(v.name)}</div></div>`);
   }
+  el.querySelectorAll('.vcard').forEach(c => {
+    c.onclick = () => openLog(c.dataset.venue);
+    c.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLog(c.dataset.venue); } };
+  });
+}
+
+// ---- audit log ----
+function auditPct(a) {
+  if (a.audit_type === 'wt') return wtPct(a);
+  return pct(Number(a.earned), Number(a.available));
+}
+
+async function openLog(venue) {
+  LOG_VENUE = venue;
+  $('dashView').classList.add('hidden');
+  $('logView').classList.remove('hidden');
+  $('detailCard').classList.add('hidden');
+  $('logTitle').textContent = venue + ' — audit log';
+  $('logSub').textContent = 'Every audit recorded for this venue, newest first. Select a row to open the full report.';
+  $('logDue').innerHTML = dueChips(venue);
+  $('logRows').innerHTML = '<tr><td colspan="6" class="dim">Loading…</td></tr>';
+  const m = $('logMsg'); m.textContent = ''; m.className = 'msg';
+  window.scrollTo({ top: 0 });
+  try {
+    const res = await api({ action: 'list_audits', venue, limit: 500 });
+    const rows = res.audits || [];
+    if (!rows.length) { $('logRows').innerHTML = '<tr><td colspan="6" class="dim">No audits recorded for this venue yet.</td></tr>'; return; }
+    $('logRows').innerHTML = rows.map(a => {
+      const p = auditPct(a);
+      const ed = Number(a.edit_count || 0);
+      return `<tr data-id="${esc(a.id)}">
+        <td>${esc(fmtD(a.audit_date))}</td>
+        <td><span class="tag">${esc(TYPE_LABEL[a.audit_type] || a.audit_type)}</span></td>
+        <td>${p === null ? '—' : (p * 100).toFixed(1) + '%'}<div class="edited">${Number(a.earned)} / ${Number(a.available)}</div></td>
+        <td>${esc(a.auditor)}</td>
+        <td>${esc(a.created_by || '—')}<div class="edited">${esc(fmtT(a.created_at))}</div></td>
+        <td>${ed ? `<span class="tag">edited ${ed}×</span><div class="edited">${esc(a.updated_by || '')}<br>${esc(a.updated_at ? fmtT(a.updated_at) : '')}</div>` : '<span class="dim">Original</span>'}</td>
+      </tr>`;
+    }).join('');
+    $('logRows').querySelectorAll('tr[data-id]').forEach(tr => tr.onclick = () => openAudit(tr.dataset.id));
+  } catch (e) {
+    $('logRows').innerHTML = '';
+    m.textContent = e.message; m.className = 'msg err';
+  }
+}
+
+function closeLog() {
+  LOG_VENUE = null; DETAIL = null; EDITING = false;
+  $('logView').classList.add('hidden');
+  $('dashView').classList.remove('hidden');
+  window.scrollTo({ top: 0 });
+}
+
+// ---- audit detail + edit ----
+function detailItemsHTML(a, editable) {
+  if (a.audit_type === 'hoq' || a.audit_type === 'wt') {
+    const rows = (a.items || []).map(it => editable
+      ? `<tr>
+          <td><input class="ds" value="${esc(it.section || '')}"></td>
+          <td><input class="di" value="${esc(it.item)}"></td>
+          <td class="num"><input class="dm" type="number" min="0" value="${Number(it.max)}"></td>
+          <td class="num"><input class="de" type="number" min="0" value="${Number(it.score)}"></td>
+          <td><input class="dn" value="${esc(it.notes || '')}" placeholder="Notes"></td></tr>`
+      : `<tr><td>${esc(it.section || '')}</td><td>${esc(it.item)}</td><td class="num">${Number(it.max)}</td>
+          <td class="num">${Number(it.score)}</td><td>${esc(it.notes || '')}</td></tr>`).join('');
+    return `<div style="overflow-x:auto"><table class="items">
+      <thead><tr><th>Section</th><th>Item</th><th>Max</th><th>Score</th><th>Notes</th></tr></thead>
+      <tbody id="dRows">${rows}</tbody></table></div>
+      <div class="totLine"><span class="pctv" id="dPct"></span><span id="dTot"></span></div>`;
+  }
+  if (a.audit_type === 'ms') {
+    return editable
+      ? `<div class="grid" style="margin-bottom:12px">
+          <div><label>Points available</label><input id="dMsA" type="number" min="1" value="${Number(a.available)}"></div>
+          <div><label>Points earned</label><input id="dMsE" type="number" min="0" value="${Number(a.earned)}"></div></div>
+         <div class="totLine"><span class="pctv" id="dPct"></span><span id="dTot"></span></div>`
+      : `<div class="detailGrid"><div><label>Points available</label><div class="ro">${Number(a.available)}</div></div>
+         <div><label>Points earned</label><div class="ro">${Number(a.earned)}</div></div></div>`;
+  }
+  return editable
+    ? `<div class="grid" style="margin-bottom:12px">
+        <div><label>Average review score (0–100)</label><input id="dOrV" type="number" min="0" max="100" value="${Number(a.earned)}"></div></div>
+       <div class="totLine"><span class="pctv" id="dPct"></span><span id="dTot"></span></div>`
+    : `<div class="detailGrid"><div><label>Average review score</label><div class="ro">${Number(a.earned)} / 100</div></div></div>`;
+}
+
+function readDetailRows() {
+  return [...document.querySelectorAll('#dRows tr')].map(tr => ({
+    section: tr.querySelector('.ds').value,
+    item: tr.querySelector('.di').value,
+    max: +tr.querySelector('.dm').value || 0,
+    score: tr.querySelector('.de').value === '' ? 0 : +tr.querySelector('.de').value,
+    notes: tr.querySelector('.dn').value,
+    elE: tr.querySelector('.de'),
+  }));
+}
+
+function detailTotals() {
+  const a = DETAIL.audit, tTot = $('dTot'), tPct = $('dPct');
+  if (!tTot) return { ok: true };
+  let e = 0, av = 0, valid = true;
+  if (a.audit_type === 'hoq' || a.audit_type === 'wt') {
+    for (const r of readDetailRows()) {
+      const over = r.score > r.max;
+      r.elE.classList.toggle('err', over); if (over) valid = false;
+      av += r.max; e += r.score;
+    }
+  } else if (a.audit_type === 'ms') {
+    av = +$('dMsA').value || 0; e = +$('dMsE').value || 0;
+    const over = e > av && av > 0; $('dMsE').classList.toggle('err', over); if (over) valid = false;
+  } else {
+    av = 100; e = +$('dOrV').value || 0;
+    const over = e > 100; $('dOrV').classList.toggle('err', over); if (over) valid = false;
+  }
+  tTot.textContent = `Total ${e} / ${av}`;
+  tPct.textContent = av > 0 ? (Math.min(e / av, 1) * 100).toFixed(1) + '%' : '';
+  return { ok: valid && av > 0 };
+}
+
+function renderTrail(changes, audit) {
+  const el = $('detTrail');
+  const parts = (changes || []).map(c => {
+    const diff = (c.changes || []).map(d =>
+      `<li>${esc(d.field)}: <del>${esc(d.from === null || d.from === undefined ? '—' : d.from)}</del> → <ins>${esc(d.to === null || d.to === undefined ? '—' : d.to)}</ins></li>`).join('');
+    return `<li><span class="who">${esc(c.changed_by)}</span> ${c.action === 'created' ? 'recorded this audit' : 'edited this audit'}
+      <div class="when">${esc(fmtT(c.changed_at))}</div>
+      ${c.note ? `<div class="when" style="margin-top:4px">“${esc(c.note)}”</div>` : ''}
+      ${diff ? `<ul class="diff">${diff}</ul>` : ''}</li>`;
+  });
+  // Audits recorded before the change log existed still show their creation.
+  if (!(changes || []).some(c => c.action === 'created')) {
+    parts.push(`<li><span class="who">${esc(audit.created_by || 'import')}</span> recorded this audit
+      <div class="when">${esc(fmtT(audit.created_at))}</div></li>`);
+  }
+  el.innerHTML = parts.join('') || '<li class="dim">No history recorded.</li>';
+}
+
+// Which revision is on screen: null = current live row, otherwise a version_no.
+let VIEW_VER = null;
+
+function shownRevision() {
+  if (VIEW_VER === null) return DETAIL.audit;
+  const v = (DETAIL.versions || []).find(x => x.version_no === VIEW_VER);
+  return v ? { ...DETAIL.audit, ...v } : DETAIL.audit;
+}
+
+function paintVersionPicker() {
+  const vs = DETAIL.versions || [];
+  const sel = $('detVer'), note = $('detVerNote');
+  const cur = vs.length + 1;
+  sel.innerHTML = [`<option value="">Current (v${cur})</option>`]
+    .concat(vs.map(v => `<option value="${v.version_no}">v${v.version_no} — superseded ${esc(fmtT(v.superseded_at))}</option>`))
+    .join('');
+  sel.value = VIEW_VER === null ? '' : String(VIEW_VER);
+  sel.disabled = EDITING;
+  if (VIEW_VER === null) { note.textContent = ''; note.className = 'msg'; }
+  else {
+    const v = vs.find(x => x.version_no === VIEW_VER);
+    note.textContent = `Viewing an earlier revision, superseded by ${v?.superseded_by || 'someone'} on ${fmtT(v?.superseded_at)}${v?.reason ? ` — “${v.reason}”` : ''}. Read-only.`;
+    note.className = 'msg';
+  }
+}
+
+function paintDetail() {
+  const a = shownRevision();
+  const viewingOld = VIEW_VER !== null;
+  $('detTitle').textContent = `${TYPE_LABEL[a.audit_type] || a.audit_type} — ${fmtD(a.audit_date)}`;
+  $('detType').textContent = TYPE_LABEL[a.audit_type] || a.audit_type;
+  $('detDateRO').textContent = fmtD(a.audit_date);
+  $('detWhoRO').textContent = a.auditor;
+  $('detNotesRO').textContent = a.notes || '—';
+  $('detDate').value = a.audit_date;
+  $('detNotes').value = a.notes || '';
+  $('detBody').innerHTML = detailItemsHTML(a, EDITING);
+  paintVersionPicker();
+
+  const tog = (id, on) => $(id).classList.toggle('hidden', !on);
+  tog('detDateRO', !EDITING); tog('detDate', EDITING);
+  tog('detNotesRO', !EDITING); tog('detNotes', EDITING);
+  tog('detEditBox', EDITING);
+  tog('detEdit', DETAIL.can_edit && !EDITING && !viewingOld);
+  tog('detSave', EDITING);
+  tog('detCancel', EDITING);
+
+  if (EDITING) {
+    document.querySelectorAll('#detBody input').forEach(i => i.oninput = detailTotals);
+    detailTotals();
+  }
+  renderTrail(DETAIL.changes, DETAIL.audit);
+}
+
+async function openAudit(id) {
+  const m = $('detMsg'); m.textContent = ''; m.className = 'msg';
+  $('logRows').querySelectorAll('tr').forEach(tr => tr.classList.toggle('sel', tr.dataset.id === id));
+  try {
+    DETAIL = await api({ action: 'get_audit', id });
+    EDITING = false; VIEW_VER = null;
+    $('detailCard').classList.remove('hidden');
+    paintDetail();
+    $('detailCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    const lm = $('logMsg'); lm.textContent = e.message; lm.className = 'msg err';
+  }
+}
+
+async function saveEdit() {
+  const m = $('detMsg'); m.textContent = ''; m.className = 'msg';
+  const a = DETAIL.audit;
+  if (!$('detDate').value) { m.textContent = 'A date is required.'; m.className = 'msg err'; return; }
+  if (!detailTotals().ok) { m.textContent = 'Fix the highlighted scores — a score cannot exceed its maximum.'; m.className = 'msg err'; return; }
+  const payload = {
+    action: 'update_audit', id: a.id,
+    audit_date: $('detDate').value,
+    notes: $('detNotes').value.trim(), reason: $('detReason').value.trim(),
+  };
+  if (a.audit_type === 'hoq' || a.audit_type === 'wt') {
+    payload.items = readDetailRows().map(({ section, item, max, score, notes }) => ({ section, item, max, score, notes }));
+  } else if (a.audit_type === 'ms') {
+    payload.earned = +$('dMsE').value || 0; payload.available = +$('dMsA').value || 0;
+  } else {
+    payload.earned = +$('dOrV').value || 0; payload.available = 100;
+  }
+  try {
+    $('detSave').disabled = true;
+    const res = await api(payload);
+    if (res.unchanged) { m.textContent = 'Nothing changed.'; m.className = 'msg'; EDITING = false; paintDetail(); return; }
+    m.textContent = `Saved — ${a.venue} is now ${res.venue_score}%`; m.className = 'msg ok';
+    EDITING = false; VIEW_VER = null;
+    DETAIL = await api({ action: 'get_audit', id: a.id });
+    paintDetail();
+    await load(false);
+    await openLog(a.venue);
+    $('detailCard').classList.remove('hidden');
+    paintDetail();
+    $('detMsg').textContent = `Saved — ${a.venue} is now ${res.venue_score}%`;
+    $('detMsg').className = 'msg ok';
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('detSave').disabled = false; }
 }
 
 // ---- entry form ----
@@ -296,11 +633,11 @@ function totals() {
 async function saveAudit() {
   const m = $('fMsg'); m.textContent = ''; m.className = 'msg';
   const t = $('fType').value, r = totals();
-  if (!$('fDate').value || !$('fWho').value.trim()) { m.textContent = 'Date and auditor initials are required.'; m.className = 'msg err'; return; }
+  if (!$('fDate').value) { m.textContent = 'A date is required.'; m.className = 'msg err'; return; }
   if (!r.ok) { m.textContent = 'Fix the highlighted scores — a score cannot exceed its maximum.'; m.className = 'msg err'; return; }
   const payload = {
     action: 'save_audit', venue: $('fVenue').value, audit_type: t,
-    audit_date: $('fDate').value, auditor: $('fWho').value.trim(), notes: $('fNotes').value.trim(),
+    audit_date: $('fDate').value, notes: $('fNotes').value.trim(),
   };
   if (t === 'hoq' || t === 'wt') payload.items = readRows().map(({ section, item, max, score, notes }) => ({ section, item, max, score: score || 0, notes }));
   else if (t === 'ms') { payload.earned = +$('msE').value || 0; payload.available = +$('msA').value || 0; }
@@ -348,6 +685,11 @@ async function load(first = true) {
     renderCards();
     if (DASH.can_write) {
       $('entryCard').classList.remove('hidden');
+      $('fWho').textContent = DASH.me || 'You';
+      const allowed = TYPES.filter(canSaveType);
+      const sel = $('fType'), keep = sel.value;
+      sel.innerHTML = allowed.map(t => `<option value="${t}">${esc(TYPE_LABEL[t])}</option>`).join('');
+      if (allowed.includes(keep)) sel.value = keep;
       if (first || !$('fVenue').options.length) {
         $('fVenue').innerHTML = DASH.venues.map(v => `<option>${esc(v.name)}</option>`).join('');
         $('fDate').value = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney' }).format(new Date());
@@ -355,8 +697,10 @@ async function load(first = true) {
         $('saveAudit').onclick = saveAudit;
         renderTypeForm();
       }
+    } else {
+      $('entryCard').classList.add('hidden');
     }
-    if (DASH.role === 'admin') {
+    if (DASH.can_edit_settings) {
       $('setCard').classList.remove('hidden');
       $('wHoq').value = DASH.settings.weights.hoq; $('wWt').value = DASH.settings.weights.wt;
       $('wMs').value = DASH.settings.weights.ms; $('wOr').value = DASH.settings.weights.or;
@@ -369,7 +713,14 @@ async function load(first = true) {
     pm.textContent = e.message; pm.className = 'msg err';
   }
 }
-$('refresh').onclick = () => load(false);
+
+$('refresh').onclick = async () => { await load(false); if (LOG_VENUE) await openLog(LOG_VENUE); };
+$('logBack').onclick = closeLog;
+$('detClose').onclick = () => { $('detailCard').classList.add('hidden'); $('logRows').querySelectorAll('tr').forEach(tr => tr.classList.remove('sel')); };
+$('detEdit').onclick = () => { EDITING = true; VIEW_VER = null; paintDetail(); };
+$('detCancel').onclick = () => { EDITING = false; paintDetail(); };
+$('detVer').onchange = () => { VIEW_VER = $('detVer').value === '' ? null : Number($('detVer').value); paintDetail(); };
+$('detSave').onclick = saveEdit;
 </script>
 </body>
 </html>
