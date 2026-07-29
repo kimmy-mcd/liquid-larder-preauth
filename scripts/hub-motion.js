@@ -252,20 +252,33 @@
   var lastOkAt = 0;
   function nowMs() { return (window.performance && performance.now) ? performance.now() : +new Date(); }
 
-  /* outcomes -> toasts */
-  function reportMsg(el) {
+  function isShown(el) { return !!(el.getClientRects && el.getClientRects().length); }
+
+  /* outcomes -> toasts.
+     Two conventions exist in the hub. App pages use `.msg` and mark the
+     outcome with an `ok` / `err` class. The reporting pages instead keep a
+     hidden `.error` panel and reveal it with the failure text — those failures
+     can sit below the fold and be missed entirely, which is the reason this
+     handles both. */
+  function reportOutcome(el, alwaysErr) {
     var txt = (el.textContent || '').trim();
     if (!txt) { el.__llLast = ''; return; }
-    var isOk = el.classList.contains('ok');
-    var isErr = el.classList.contains('err');
-    if (!isOk && !isErr) return;                        // in-progress text, not an outcome
+    var isOk = false, isErr;
+    if (alwaysErr) {
+      if (!isShown(el)) return;                         // hidden leftover text stays quiet
+      isErr = true;
+    } else {
+      isOk = el.classList.contains('ok');
+      isErr = el.classList.contains('err');
+      if (!isOk && !isErr) return;                      // in-progress text, not an outcome
+    }
 
-    /* A handler writes the text and the class as separate statements. When
-       they land in the same task the observer batches them into ONE callback,
-       so we cannot rely on seeing the intermediate cleared state — dedupe on a
-       short time window instead of on the text alone. Anything less than this
-       swallows a legitimate repeat, e.g. pressing Save twice with the same
-       validation error still needs to tell you twice. */
+    /* A handler writes the text and the class (or the text and the display)
+       as separate statements. When they land in the same task the observer
+       batches them into ONE callback, so we cannot rely on seeing the
+       intermediate cleared state — dedupe on a short time window instead of on
+       the text alone. Anything less than this swallows a legitimate repeat,
+       e.g. pressing Save twice with the same validation error. */
     var t = nowMs();
     if (txt === el.__llLast && (t - (el.__llLastAt || 0)) < 400) return;
     el.__llLast = txt;
@@ -274,21 +287,29 @@
     LL.toast(txt, { err: isErr, life: isErr ? 5200 : 2800 });
   }
 
-  function bridgeMsgs() {
-    var els = document.querySelectorAll('.msg');
+  function bridge(sel, alwaysErr) {
+    var els = document.querySelectorAll(sel);
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
       if (el.__llMsg) continue;
       el.__llMsg = true;
-      el.__llLast = (el.textContent || '').trim();      // never announce what is already on screen
+      if (alwaysErr) {
+        /* a panel injected with its failure text already in place never
+           mutates afterwards, so announce it as we adopt it */
+        reportOutcome(el, true);
+      } else {
+        el.__llLast = (el.textContent || '').trim();    // never announce what is already on screen
+      }
       (function (node) {
-        var mo = new MutationObserver(function () { reportMsg(node); });
+        var mo = new MutationObserver(function () { reportOutcome(node, alwaysErr); });
         mo.observe(node, { childList: true, characterData: true, subtree: true,
-                           attributes: true, attributeFilter: ['class'] });
+                           attributes: true, attributeFilter: ['class', 'style'] });
         hold(mo, node);
       })(el);
     }
   }
+
+  function bridgeMsgs() { bridge('.msg', false); bridge('.error', true); }
 
   /* in-flight buttons — arm on click, then look one tick later: if the
      handler disabled the very button that was pressed, it is an async action
