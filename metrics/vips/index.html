@@ -177,14 +177,18 @@
   .printHead .d { font-size:11px; color:var(--dim); margin-top:4px; }
   @media print {
     body::before, body::after { display:none; }
-    .topbar, .viewSeg, .arrHead, .footnote, #arrError, #arrLoading { display:none !important; }
-    #viewGuests, #viewBookings { display:none !important; }
+    .topbar, .viewSeg, .arrHead, .footnote, .controls, .chipbar, .printBtn, .panelHead,
+    #arrError, #arrLoading, #gError, #gLoading { display:none !important; }
     .wrap { max-width:none; padding:0; margin:0; }
     .pageHead { display:none; }
     .printHead { display:block; margin-bottom:18px; }
+    .panel { box-shadow:none; border:none; padding:0; }
     .arrVenue { page-break-inside:avoid; }
     .acard { break-inside:avoid; border-bottom:1px solid #ccc; }
     .anote { color:#333 !important; }
+    table.vt { font-size:11px; }
+    table.vt .note { max-width:none; white-space:normal; }
+    table.vt th.sortable { cursor:default; }
   }
 </style>
 </head>
@@ -217,6 +221,7 @@
 
   <!-- ══════════ SCREEN 1 — TOP GUESTS ══════════ -->
   <section id="viewGuests">
+    <div class="printHead"><h3>Top VIP guests</h3><div class="d" id="gPrintSub"></div></div>
     <div class="controls">
       <div class="tfbar">
         <span class="lead">Window</span>
@@ -257,7 +262,14 @@
     <div id="gError" class="error" style="display:none;"></div>
     <div id="gContent" style="display:none;">
       <div class="panel">
-        <div class="panelHead"><div class="t">Top VIP guests</div><div class="sub" id="gSub"></div></div>
+        <div class="panelHead">
+          <div class="t">Top VIP guests</div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <div class="sub" id="gSub"></div>
+            <button class="printBtn" id="gPrintBtn">Print</button>
+            <button class="printBtn" id="gExportBtn">Export CSV</button>
+          </div>
+        </div>
         <div style="overflow-x:auto;">
         <table class="vt">
           <thead><tr id="gHead"></tr></thead>
@@ -555,7 +567,11 @@ function renderGuests(){
   }).join('');
 
   const cohort = gState.data.cohort_size || 0;
-  $('gSub').textContent = `${total} of ${cohort} VIPs${gState.venues.includes('all')?'':' · '+gState.venues.length+' venue'+(gState.venues.length>1?'s':'')} · ${r.label} · click a guest for full profile`;
+  const venueLbl = gState.venues.includes('all') ? '' : ' · '+gState.venues.length+' venue'+(gState.venues.length>1?'s':'');
+  $('gSub').textContent = `${total} of ${cohort} VIPs${venueLbl} · ${r.label} · click a guest for full profile`;
+  const printedAt = new Date().toLocaleDateString('en-AU',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  $('gPrintSub').textContent = `${total} of ${cohort} VIPs${venueLbl} · ${r.label} · printed ${printedAt}`;
+  gState.lastRows = rows;
 
   $('gBody').innerHTML = rows.length ? rows.map((g,i)=>{
     const lastCls = g.has_upcoming && g.last_booked && (!g.last_visit_date || g.last_booked>g.last_visit_date) ? 'up' : '';
@@ -604,6 +620,57 @@ $('limitSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   $('limitSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); gState.limit=+b.dataset.l; renderGuests();
 });
+
+// ── print + CSV export (Top guests) ────────────────────────────────────────
+function csvCell(v){
+  const s = String(v==null?'':v);
+  return /[",\r\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function tagsText(c){
+  if(!c) return '';
+  const t=[];
+  if(c.status) t.push(c.status);
+  if(c.spender) t.push('Spender '+c.spender);
+  if(c.important_guest) t.push('Important guest');
+  if(c.critic) t.push('Critic');
+  return t.join('; ');
+}
+function contactText(clientId){
+  const h = outreach[clientId] || [];
+  if(!h.length) return 'Never contacted';
+  const c = h[0], d = daysBetween(c.contacted_on, todaySyd());
+  return `${c.contacted_on} (${d}d) — ${OUTCOME_LABELS[c.outcome]||c.outcome}${c.created_by_name?' · '+c.created_by_name:''}`;
+}
+function exportGuestsCsv(){
+  const rows = gState.lastRows || [];
+  const head = ['Rank','Guest','Tags','Lapsed','Visits','Avg cheque','Avg / head','% cheques linked','Last booked','Last contacted','Notes'];
+  const lines = [head.map(csvCell).join(',')];
+  rows.forEach((g,i)=>{
+    const tags = tagsText(g.chips) + (g.is_lapsed ? (tagsText(g.chips)?'; ':'')+'Lapsed '+num(g.days_since_last_visit||0)+'d' : '');
+    lines.push([
+      i+1,
+      g.name||'',
+      tags,
+      g.is_lapsed ? 'Yes' : 'No',
+      g.visits_window ?? '',
+      g.avg_cheque ?? '',
+      g.avg_spend_head ?? '',
+      g.pct_cheques_linked ?? '',
+      g.last_booked || '',
+      contactText(g.client_id),
+      g.notes || '',
+    ].map(csvCell).join(','));
+  });
+  const csv = '\uFEFF' + lines.join('\r\n');
+  const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `vip-guests-${iso(new Date())}.csv`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+$('gPrintBtn').onclick = () => window.print();
+$('gExportBtn').onclick = exportGuestsCsv;
 
 // ── profile modal ──────────────────────────────────────────────────────────
 async function openProfile(clientId){
