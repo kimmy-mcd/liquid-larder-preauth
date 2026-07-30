@@ -890,15 +890,50 @@ async function refreshReach() {
   } catch (e) { box.innerHTML = `<span class="fieldNote">${esc(e.message)}</span>`; }
 }
 
+/* Every [bracketed] token still sitting in the text. Some are meant to stay —
+   [Guest first name] is a merge field — but [$XX] in a published policy is a
+   page that tells somebody the fee is XX dollars. Listing them all and letting
+   the approver decide beats guessing which is which. */
+function placeholdersIn(body) {
+  const found = new Set();
+  for (const b of (body?.blocks || [])) {
+    for (const t of [b.text || '', ...(b.items || [])]) {
+      for (const m of String(t).matchAll(/\[[^\]\n]{1,40}\]/g)) found.add(m[0]);
+    }
+  }
+  return [...found];
+}
+
 async function adminReview(id) {
   const d = await api({ action:'version', version_id: id });
   const hatNames = META.hats.filter(h => d.hat_ids.includes(h.id)).map(h => h.name);
   const venueNames = META.venues.filter(v => d.venue_ids.includes(v.id)).map(v => v.name);
+  const holes = placeholdersIn(d.version.body);
   $('screen').innerHTML = `
     <div class="pageHead"><h2>${esc(d.policy.title)}</h2>
       <p>Version ${d.version.version_no} · ${esc(d.version.status.replace(/_/g, ' '))}
          ${d.version.is_material ? '' : ' · minor change'}</p></div>
     ${adminNav('')}
+    ${(d.version.fidelity_notes || []).length || d.version.changelog ? `<div class="card">
+      <div class="cardTitle">What the standardiser changed</div>
+      ${d.version.changelog ? `<p style="font-size:12.5px; line-height:1.7; margin-bottom:${(d.version.fidelity_notes || []).length ? '12px' : '0'}">${esc(d.version.changelog)}</p>` : ''}
+      ${(d.version.fidelity_notes || []).length ? `<ul style="margin-left:18px">
+        ${d.version.fidelity_notes.map(n => `<li style="font-size:12.5px; line-height:1.75; color:var(--dim); margin-bottom:6px">${esc(typeof n === 'string' ? n : (n.note || JSON.stringify(n)))}</li>`).join('')}
+      </ul>
+      <p class="fieldNote" style="margin:12px 0 0">Every departure from the source document is listed here.
+         If something is missing from this list, it was not changed.</p>` : ''}
+      ${d.version.source === 'docs' && d.version.source_doc_id
+        ? `<p class="fieldNote" style="margin:10px 0 0"><a href="https://docs.google.com/document/d/${esc(d.version.source_doc_id)}/edit" target="_blank" rel="noopener">Open the source Doc</a> to compare.</p>` : ''}
+    </div>` : ''}
+    ${holes.length ? `<div class="card">
+      <div class="cardTitle">Placeholders still in the text</div>
+      <div class="reach"><div style="display:flex; gap:7px; flex-wrap:wrap">
+        ${holes.map(h => `<span class="chip plain" style="font-family:monospace; text-transform:none; letter-spacing:0">${esc(h)}</span>`).join('')}
+      </div>
+      <div class="warn">Some of these are meant to stay — a merge field like [Guest first name] is filled in
+        when the email is sent. Others are unfinished. Publishing a policy that still says [$XX] is worse
+        than not publishing it at all, so check every one before you approve.</div></div>
+    </div>` : ''}
     <div class="card">
       <div class="cardTitle">Who it reaches</div>
       <p style="font-size:12.5px; line-height:1.7">
