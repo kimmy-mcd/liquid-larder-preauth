@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Hub — Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
+<style>
+  /* v4 home shell — sidebar app layout. Shared stylesheets untouched; all overrides live here. */
+  body { min-height:100vh; padding:0; }
+  .hidden { display:none !important; }
+
+  /* ---------- auth (login / set password) ---------- */
+  .authWrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
+  .login { width:100%; max-width:410px; padding:44px 40px 36px; border-radius:22px; margin:0; animation:rise .55s ease both; }
+  @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+  .wordmark { width:196px; height:23px; background:var(--accent-ink);
+    -webkit-mask:url(/assets/wordmark.svg) no-repeat left center / contain;
+    mask:url(/assets/wordmark.svg) no-repeat left center / contain; }
+  .loginBrand { display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
+  .loginBrand .sub { color:var(--dim); font-size:10px; letter-spacing:.30em; text-transform:uppercase; font-weight:600; margin:0; }
+  .login h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:24px; color:var(--accent-ink); margin-bottom:6px; }
+  .login .lead { color:var(--dim); font-size:12.5px; line-height:1.7; margin-bottom:24px; }
+  .login .field { margin-bottom:16px; }
+  .login button:not(.ghost) { width:100%; margin-top:6px; }
+  .forgotRow { text-align:center; margin-top:16px; }
+  .loginFoot { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:24px; color:var(--dim); font-size:11px; }
+  .loginFoot svg { width:12px; height:12px; stroke:var(--dim); fill:none; stroke-width:1.8; }
+
+  /* ---------- shell ---------- */
+  #homeView { display:flex; min-height:100vh; }
+  aside.side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; padding:26px 18px 20px;
+    border-right:1px solid var(--hairline); background:rgb(var(--bg-rgb) / .6); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .sideBrand { display:flex; align-items:center; gap:12px; padding:0 8px 24px; }
+  .monogram { width:38px; height:38px; border-radius:11px; flex:0 0 38px;
+    background:linear-gradient(150deg, var(--green-hi), var(--green)); color:var(--on-accent-warm);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Gilda Display',serif; font-size:15px;
+    box-shadow:0 2px 8px rgb(var(--green-rgb) / .25), inset 0 1px 0 rgb(var(--card-rgb) / .14); }
+  .sideBrand .t { line-height:1.25; }
+  .sideBrand .t .n { font-family:'Gilda Display',serif; font-size:15px; color:var(--accent-ink); }
+  .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  nav.sideNav { flex:1; overflow-y:auto; }
+  .navGroup { margin-bottom:22px; }
+  .navGroup .g { font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); font-weight:600; padding:0 10px; margin-bottom:8px; }
+  a.navItem { display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:10px;
+    color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
+  a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
+  a.navItem:hover { background:rgb(var(--tint-rgb) / .07); }
+  a.navItem.active { background:var(--green); color:var(--on-accent); box-shadow:0 2px 8px rgb(var(--green-rgb) / .28); }
+  a.navItem.active svg { stroke:var(--on-accent-soft); }
+  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gold);
+    background:rgb(var(--gold-rgb) / .12); border-radius:999px; padding:2px 8px; }
+  .sideUser { border-top:1px solid var(--hairline); padding-top:16px; display:flex; align-items:center; gap:11px; }
+  .avatar { width:36px; height:36px; border-radius:50%; flex:0 0 36px;
+    background:linear-gradient(135deg, var(--green-hi), var(--green)); color:var(--on-accent);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .sideUser .meta { line-height:1.3; min-width:0; }
+  .sideUser .meta .n { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sideUser .meta .r { font-size:9.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em; font-weight:600; }
+  button.iconBtn { margin-left:auto; background:none; box-shadow:none; padding:7px; border-radius:8px; color:var(--dim); }
+  button.iconBtn:hover { background:rgb(var(--tint-rgb) / .07); color:var(--accent-ink); transform:none; filter:none; }
+  button.iconBtn svg { width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; display:block; }
+
+  main.content { flex:1; min-width:0; padding:34px 44px 70px; max-width:1180px; }
+  .mobileBar { display:none; }
+
+  /* ---------- page header ---------- */
+  .pageHead { margin-bottom:26px; animation:rise .5s ease both; }
+  .pageHead .hello { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); }
+  .pageHead .date { color:var(--dim); font-size:12.5px; margin-top:6px; }
+
+  /* ---------- KPI strip ---------- */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:36px; animation:rise .5s .05s ease both; }
+  .kpi { padding:18px 20px 16px; margin-bottom:0; position:relative; overflow:hidden; }
+  .kpi .k { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:9px; }
+  .kpi .v { font-family:'Gilda Display',serif; font-size:27px; color:var(--ink); line-height:1; }
+  .kpi .v small { font-family:'Montserrat',sans-serif; font-size:12px; color:var(--dim); margin-left:2px; }
+  .kpi .d { font-size:11px; margin-top:8px; font-weight:600; }
+  .kpi .d.up { color:var(--ok); } .kpi .d.down { color:var(--err); } .kpi .d.flat { color:var(--dim); font-weight:500; }
+  .kpi::after { content:''; position:absolute; left:20px; right:20px; bottom:0; height:2px;
+    background:linear-gradient(90deg, var(--sand), rgb(var(--sand-rgb) / 0)); }
+
+  /* ---------- sections + tiles ---------- */
+  .sectionRow { display:flex; align-items:center; gap:14px; margin:34px 0 16px; }
+  .sectionRow:first-child { margin-top:0; }
+  .sectionRow .t { font-size:10.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap; }
+  .sectionRow .rule { flex:1; height:1px; background:linear-gradient(90deg, var(--hairline), rgb(var(--green-rgb) / 0)); }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:18px; }
+  a.tile { position:relative; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--hairline);
+    border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px 20px; color:var(--ink);
+    text-decoration:none; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  a.tile:hover { transform:translateY(-3px); border-color:rgb(var(--tint-rgb) / .22);
+    box-shadow:0 4px 10px rgb(var(--green-rgb) / .07), 0 24px 56px -12px rgb(var(--green-rgb) / .18); }
+  a.tile .top { display:flex; align-items:flex-start; gap:14px; margin-bottom:13px; }
+  .appIcon { width:42px; height:42px; border-radius:12px; flex:0 0 42px; display:flex; align-items:center; justify-content:center;
+    background:var(--sand-soft); border:1px solid rgb(var(--sand-rgb) / .7); }
+  .appIcon svg { width:19px; height:19px; stroke:var(--accent-ink); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  a.tile .name { font-family:'Gilda Display',serif; font-size:18.5px; color:var(--accent-ink); line-height:1.2; padding-top:2px; padding-right:22px; }
+  a.tile .desc { color:var(--dim); font-size:12.5px; line-height:1.65; flex:1; }
+  a.tile .foot { display:flex; align-items:center; gap:8px; margin-top:16px; padding-top:14px;
+    border-top:1px solid var(--hairline); font-size:11.5px; color:var(--dim); min-height:37px; }
+  a.tile .foot b { color:var(--ink); font-weight:600; }
+  .dot { width:7px; height:7px; border-radius:50%; flex:0 0 7px; }
+  .dot.warn { background:var(--gold); box-shadow:0 0 0 3px rgb(var(--gold-rgb) / .15); }
+  .dot.ok { background:var(--ok); box-shadow:0 0 0 3px rgb(var(--ok-rgb) / .15); }
+  .spark { margin-left:auto; }
+  a.tile .go { position:absolute; top:20px; right:20px; width:26px; height:26px; border-radius:50%;
+    background:var(--sand-soft); color:var(--accent-ink); display:flex; align-items:center; justify-content:center;
+    font-size:13px; opacity:0; transform:translate(-4px,4px); transition:opacity .18s, transform .18s; }
+  a.tile:hover .go { opacity:1; transform:none; }
+  a.tile.soon { border-style:dashed; background:rgb(var(--card-rgb) / .55); box-shadow:none; cursor:default; }
+  a.tile.soon:hover { transform:none; box-shadow:none; border-color:var(--hairline); }
+  a.tile.soon .name, a.tile.soon .desc, a.tile.soon .appIcon { opacity:.55; }
+  .soonTag { margin-left:auto; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
+    color:var(--dim); background:var(--sand-soft); border-radius:999px; padding:3px 10px; }
+
+  /* ---------- admin ---------- */
+  .adminCard { margin-top:40px; padding:28px; }
+  .adminHead { margin-bottom:22px; }
+  .adminHead .t { font-family:'Gilda Display',serif; font-size:19px; color:var(--accent-ink); }
+  .adminHead .sub2 { color:var(--dim); font-size:12px; margin-top:4px; }
+  .inviteRow { display:grid; grid-template-columns:1.4fr 1.2fr auto; gap:12px; align-items:end; }
+  .inviteRow button { padding:12px 22px; }
+  td { padding:11px 10px; }
+  .userCell { display:flex; align-items:center; gap:11px; }
+  .userCell .av { width:30px; height:30px; border-radius:50%; flex:0 0 30px; background:var(--sand-soft);
+    color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; }
+  .userCell .n { font-weight:600; font-size:12.5px; }
+  .userCell .e { color:var(--dim); font-size:11px; }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; border-radius:999px; padding:4px 11px; }
+  .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.active { color:var(--ok); background:rgb(var(--ok-rgb) / .10); }
+  .chip.disabled { color:var(--err); background:rgb(var(--err-rgb) / .10); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:920px) {
+    aside.side { display:none; }
+    main.content { padding:22px 20px 70px; }
+    .mobileBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    .inviteRow { grid-template-columns:1fr; }
+  }
+  @media (max-width:560px) {
+    main.content { padding:20px 16px 60px; }
+    .pageHead .hello { font-size:24px; }
+    .kpis { grid-template-columns:1fr 1fr; gap:12px; }
+    .tiles { grid-template-columns:1fr; }
+    .adminCard, .card.adminCard { padding:22px 18px; }
+  }
+  @media (max-width:380px) {
+    .kpis { grid-template-columns:1fr; }
+  }
+
+/* ---------- team admin (hat system, super-admin only) ---------- */
+.taTabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-bottom:20px; }
+.taTab { padding:10px 16px; font-size:12.5px; font-weight:600; color:var(--dim); background:none; box-shadow:none; border-radius:8px 8px 0 0; cursor:pointer; }
+.taTab:hover { color:var(--accent-ink); background:rgb(var(--tint-rgb) / .05); transform:none; filter:none; }
+.taTab.active { color:var(--accent-ink); border-bottom:2px solid var(--accent-ink); }
+.taPanel { display:none; }
+.taPanel.active { display:block; }
+.taHint { color:var(--dim); font-size:11.5px; margin:0 0 16px; line-height:1.6; }
+.hatRow { display:grid; grid-template-columns:1.5fr 1fr auto; gap:12px; align-items:center; padding:9px 0; border-bottom:1px solid var(--hairline); }
+.hatRow.retired { opacity:.5; }
+.deptHead { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); font-weight:600; margin:20px 0 6px; }
+.asgChip { display:inline-flex; align-items:center; gap:6px; font-size:11px; background:var(--sand-soft); border-radius:999px; padding:4px 6px 4px 11px; margin:3px 5px 3px 0; }
+.asgChip button { background:none; box-shadow:none; padding:0 4px; color:var(--dim); font-size:14px; line-height:1; }
+.asgChip button:hover { color:var(--err); transform:none; filter:none; }
+.matrixWrap { overflow-x:auto; }
+table.matrix { border-collapse:collapse; font-size:11.5px; }
+table.matrix th, table.matrix td { border:1px solid var(--hairline); padding:6px 8px; text-align:center; }
+table.matrix th.hatCol, table.matrix td.hatCol { text-align:left; position:sticky; left:0; background:var(--card); white-space:nowrap; font-weight:600; }
+table.matrix th.appGroup { background:var(--sand-soft); color:var(--accent-ink); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent-ink); cursor:pointer; }
+.taSelect { padding:6px 8px; font-size:12px; width:auto; max-width:100%; }
+.rtScope { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin:1px 0; }
+.rtLab { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap; margin-right:2px; min-width:78px; }
+.rtNone { font-size:11px; color:var(--dim); white-space:nowrap; }
+.rtAdd { display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
+.miniBtn { padding:6px 12px; font-size:11.5px; }
+
+#teamAdminCard{display:none;}
+main.content.taAdmin>#teamAdminCard{display:block;}
+main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdmin>#tiles,main.content.taAdmin>#tilesMsg,main.content.taAdmin>#adminCard{display:none!important;}
+</style>
+</head>
+<body>
+
+<!-- AUTH — signed out / arriving via invite -->
+<div id="authView" class="authWrap hidden">
+
+  <!-- SET PASSWORD (arriving via invite / reset link) -->
+  <div class="card login hidden" id="setPwCard">
+    <div class="loginBrand">
+      <div class="wordmark" role="img" aria-label="Liquid &amp; Larder"></div>
+      <div class="sub">Team Hub</div>
+    </div>
+    <h2>Welcome — set your password</h2>
+    <div class="lead">Choose a password to finish setting up your hub account.</div>
+    <div class="field"><label>New password</label><input id="newPw" type="password"></div>
+    <div class="field"><label>Confirm password</label><input id="newPw2" type="password"></div>
+    <button id="savePw">Save &amp; enter hub</button>
+    <div class="msg" id="pwMsg"></div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="card login hidden" id="loginCard">
+    <div class="loginBrand">
+      <div class="wordmark" role="img" aria-label="Liquid &amp; Larder"></div>
+      <div class="sub">Team Hub</div>
+    </div>
+    <h2>Welcome back</h2>
+    <div class="lead">Sign in to reach your dashboards, pre-authorisations and company metrics.</div>
+    <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@liquidandlarder.com.au"></div>
+    <div class="field"><label>Password</label><input id="password" type="password"></div>
+    <button id="signin">Sign in</button>
+    <div class="forgotRow"><button class="ghost" id="forgot">Forgot password</button></div>
+    <div class="msg" id="loginMsg"></div>
+    <div class="loginFoot">
+      <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+      Access is by invitation only
+    </div>
+  </div>
+</div>
+
+<!-- SIGNED-IN HOME -->
+<div id="homeView" class="hidden">
+  <aside class="side">
+    <div class="sideBrand">
+      <div class="monogram">L&amp;L</div>
+      <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+    </div>
+    <nav class="sideNav" id="sideNav"></nav>
+    <div class="sideUser">
+      <div class="avatar" id="avatar"></div>
+      <div class="meta" id="whoMeta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+      <button class="iconBtn" id="logout" title="Sign out" aria-label="Sign out">
+        <svg viewBox="0 0 24 24"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="mobileBar">
+      <div class="sideBrand" style="padding:0">
+        <div class="monogram">L&amp;L</div>
+        <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+      </div>
+      <button class="ghost" id="logoutM">Sign out</button>
+    </div>
+
+    <div class="pageHead">
+      <div class="hello" id="hello"></div>
+      <div class="date" id="dateLine"></div>
+    </div>
+
+    <div class="kpis hidden" id="kpiStrip"></div>
+
+    <div id="tiles"></div>
+    <div class="msg" id="tilesMsg"></div>
+
+    <!-- ADMIN -->
+    <div class="card adminCard hidden" id="adminCard">
+      <div class="adminHead">
+        <div class="t">User management</div>
+        <div class="sub2">Invite staff and control hub roles. Access is invitation-only.</div>
+      </div>
+      <div class="inviteRow">
+        <div><label>Email</label><input id="invEmail" type="email" placeholder="new@liquidandlarder.com.au"></div>
+        <div><label>Full name</label><input id="invName" placeholder="optional"></div>
+        <div><button id="invite">Send invite</button></div>
+      </div>
+                <div style="margin-top:16px">
+            <label>Hats &amp; venues <span class="dim" style="font-weight:400;text-transform:none;letter-spacing:0">— optional; assign now so they land on the right apps at first login</span></label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">
+              <select id="invHat" class="taSelect"></select>
+              <select id="invVenue" class="taSelect"></select>
+              <button class="ghost miniBtn" id="invAddAsg" type="button">Add hat</button>
+            </div>
+            <div id="invAsgChips" style="margin-top:10px"></div>
+          </div>
+          <div class="msg" id="invMsg"></div>
+      <div style="overflow-x:auto;margin-top:8px"><table>
+        <thead><tr><th>User</th><th>Status</th><th></th></tr></thead>
+        <tbody id="userRows"></tbody>
+      </table></div>
+    </div>
+  
+      <!-- TEAM ADMIN (hat-based permissions — super admin only) -->
+      <div class="card adminCard hidden" id="teamAdminCard">
+        <div class="adminHead">
+          <div class="t">Team admin</div>
+          <div class="sub2">Hats, venue assignments and the permission matrix. Changes here take effect once the hub switches to hat-based access.</div>
+        </div>
+        <div class="taTabs">
+          <button class="taTab active" data-tab="users">Users &amp; hats</button>
+          <button class="taTab" data-tab="hats">Hats</button>
+          <button class="taTab" data-tab="perms">Permissions</button>
+        </div>
+        <div class="taPanel active" id="taUsers"></div>
+        <div class="taPanel" id="taHats"></div>
+        <div class="taPanel" id="taPerms"></div>
+        <div class="msg" id="taMsg"></div>
+      </div>
+</main>
+</div>
+
+<script>
+/* Colours live in core.css v4 / hub.css v7 as tokens — read them, never hardcode
+   (see the HOUSE RULE at the top of core.css). cssa() rebuilds an alpha variant
+   from a channel triple, e.g. cssa('--green-rgb', .06). */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cssa = (n, a) => `rgba(${cssv(n).split(/\s+/).join(',')},${a})`;
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+// Reporting data now goes through the hat-gated reporting-proxy edge function
+// rather than straight to the reporting project with the anon key.
+// Same {data, error} shape as the old dataClient.rpc() so call sites are unchanged.
+async function dataRpc(rpc, args = {}) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { data: null, error: new Error('Not signed in') };
+    const res = await fetch(SUPABASE_URL + '/functions/v1/reporting-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': ANON_KEY,
+        'Authorization': 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify({ rpc, args }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) return { data: null, error: new Error(j.error || 'Report unavailable') };
+    return { data: j.data, error: null };
+  } catch (e) {
+    return { data: null, error: e };
+  }
+}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ROLES = ['staff','reservations','manager','finance','management','admin'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+let myProfile = null;
+
+// Invite/recovery links arrive with a hash like #access_token=...&type=invite
+const arrivedViaInvite = /type=(invite|recovery|signup)/.test(location.hash);
+
+async function adminApi(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  const res = await fetch(ADMIN_FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY,
+      ...(session ? { 'Authorization': 'Bearer ' + session.access_token } : {}) },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+function showOnly(...ids) {
+  const auth = ids.includes('setPwCard') || ids.includes('loginCard');
+  $('authView').classList.toggle('hidden', !auth);
+  $('setPwCard').classList.toggle('hidden', !ids.includes('setPwCard'));
+  $('loginCard').classList.toggle('hidden', !ids.includes('loginCard'));
+  $('homeView').classList.toggle('hidden', !ids.includes('appArea'));
+}
+
+// ---- app icons (by app name; sensible fallback for future tiles) ----
+const ICONS = {
+  'Pre-Authorisations': '<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>',
+  'Return Rate': '<svg viewBox="0 0 24 24"><path d="M4 19 9 13l4 3 7-9"/><path d="M15 7h5v5"/></svg>',
+  'Quality Audits': '<svg viewBox="0 0 24 24"><path d="M9 5h6a2 2 0 0 1 2 2v13H7V7a2 2 0 0 1 2-2Z"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><path d="m9.5 13 2 2 3.5-4"/></svg>',
+  'Gift Cards': '<svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M3 12h18"/><path d="M12 8c-2.5 0-4.5-1.3-4.5-3S9.5 3 12 8c2.5-5 4.5-4.7 4.5-3S14.5 8 12 8Z"/></svg>',
+  'VIPs': '<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
+  'VIP Outreach': '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
+  'Food Costs': '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L6 21Z"/><path d="M9.5 8.5h5"/><path d="M9.5 12.5h5"/></svg>',
+    _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
+  _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+};
+const iconFor = name => ICONS[name] || ICONS._default;
+
+async function main() {
+  // Give supabase-js a moment to consume the URL hash session on invite links
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (session && arrivedViaInvite) { showOnly('setPwCard'); return; }
+  if (!session) { showOnly('loginCard'); return; }
+  await enter();
+}
+
+async function enter() {
+  const { data: { user } } = await sb.auth.getUser();
+  const { data: profile } = await sb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) {
+    showOnly('loginCard');
+    $('loginMsg').textContent = 'Your account does not have hub access. Ask an admin to invite you.';
+    $('loginMsg').className = 'msg err';
+    await sb.auth.signOut();
+    return;
+  }
+  myProfile = profile;
+  const displayName = profile.full_name || profile.email;
+  $('whoName').textContent = displayName;
+  $('whoRole').textContent = profile.is_super_admin ? 'Super admin' : '';
+  $('avatar').textContent = (displayName.match(/\b[a-zA-Z]/g) || [displayName[0] || '?']).slice(0, 2).join('').toUpperCase();
+  showOnly('appArea');
+
+  // Greeting — Sydney time of day
+  const hr = +new Intl.DateTimeFormat('en-AU', { timeZone:'Australia/Sydney', hour:'numeric', hour12:false }).format(new Date());
+  const part = hr < 12 ? 'morning' : hr < 17 ? 'afternoon' : 'evening';
+  const first = (profile.full_name || '').trim().split(/\s+/)[0];
+  $('hello').textContent = 'Good ' + part + (first ? ', ' + first : '');
+  $('dateLine').textContent = new Date().toLocaleDateString('en-AU',
+    { timeZone:'Australia/Sydney', weekday:'long', day:'numeric', month:'long', year:'numeric' }) + ' · Sydney';
+
+  const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
+  if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
+  const SECTION_ORDER = ['Accounts', 'Company metrics', 'Marketing'];
+  const groups = {};
+  (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
+  const sections = Object.keys(groups).sort((a, b) => {
+    const ia = SECTION_ORDER.indexOf(a), ib = SECTION_ORDER.indexOf(b);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
+  });
+
+  // ---- sidebar nav ----
+  const navItem = a => `
+    <a class="navItem" href="${esc(a.url)}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
+      ${iconFor(a.name)}${esc(a.name)}${a.name === 'Pre-Authorisations' ? '<span class="count hidden" id="navCount"></span>' : ''}
+    </a>`;
+  $('sideNav').innerHTML =
+    `<div class="navGroup"><a class="navItem active" href="./">${ICONS._home}Home</a></div>` +
+    sections.map(s => `<div class="navGroup"><div class="g">${esc(s)}</div>${groups[s].map(navItem).join('')}</div>`).join('') +
+    (profile.is_super_admin
+      ? `<div class="navGroup"><div class="g">Admin</div><a class="navItem" href="#adminCard">${ICONS._users}User management</a></div>`
+      : '');
+
+  // ---- tiles ----
+  const tile = a => `
+    <a class="tile" href="${esc(a.url)}"${a.url.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>
+      <span class="go" aria-hidden="true">&#8599;</span>
+      <div class="top"><div class="appIcon">${iconFor(a.name)}</div><div class="name">${esc(a.name)}</div></div>
+      <div class="desc">${esc(a.description || '')}</div>
+      <div class="foot hidden" data-foot="${esc(a.name)}"></div>
+    </a>`;
+  const giftTile = `
+    <a class="tile soon" tabindex="-1" aria-disabled="true">
+      <div class="top"><div class="appIcon">${ICONS['Gift Cards']}</div><div class="name">Gift Cards</div></div>
+      <div class="desc">Sales, redemptions and outstanding balances from the reporting database.</div>
+      <div class="foot"><span class="soonTag">Coming soon</span></div>
+    </a>`;
+  const foodCostsTile = `
+    <a class="tile soon" tabindex="-1" aria-disabled="true">
+      <div class="top"><div class="appIcon">${ICONS['Food Costs']}</div><div class="name">Food Costs</div></div>
+      <div class="desc">Ingredient pricing, recipe costs and margins from the reporting database.</div>
+      <div class="foot"><span class="soonTag">Coming soon</span></div>
+    </a>`;
+  $('tiles').innerHTML = sections.map(s =>
+    `<div class="sectionRow"><div class="t">${esc(s)}</div><div class="rule"></div></div><div class="tiles">`
+    + groups[s].map(tile).join('') + (s === 'Accounts' ? giftTile + foodCostsTile : '') + '</div>'
+  ).join('') || '<span class="dim">No dashboards available for your role yet.</span>';
+
+  if (profile.is_super_admin) { $('adminCard').classList.remove('hidden'); loadUsers(); initInviteAssign(); }
+
+  loadLiveData(apps || []);
+}
+
+// ============================================================
+// Live KPI strip + tile footers. Every loader is best-effort:
+// a failure just leaves that card/footer out.
+// ============================================================
+const kpiParts = {};
+/* Three loaders resolve independently and each used to rebuild the whole strip,
+   which replayed the entrance animation on every card up to three times. Cards
+   are now keyed and reused, so a card already on screen is left alone and only
+   genuinely new or changed ones animate in. */
+function renderKpis() {
+  const strip = $('kpiStrip');
+  const wanted = [];
+  for (const k of ['attention', 'onhold', 'rr', 'quality']) {
+    const html = kpiParts[k];
+    if (!html) continue;
+    let el = Array.prototype.find.call(strip.children, c => c.dataset.kpi === k);
+    if (!el || el.__llHtml !== html) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      el = tmp.firstElementChild;
+      el.dataset.kpi = k;
+      el.__llHtml = html;
+    }
+    wanted.push(el);
+  }
+  wanted.forEach((el, i) => { if (strip.children[i] !== el) strip.insertBefore(el, strip.children[i] || null); });
+  while (strip.children.length > wanted.length) strip.lastElementChild.remove();
+  strip.classList.toggle('hidden', !wanted.length);
+}
+const kpiCard = (label, value, deltaCls, deltaText) =>
+  `<div class="kpi card"><div class="k">${label}</div><div class="v">${value}</div>` +
+  (deltaText ? `<div class="d ${deltaCls}">${deltaText}</div>` : '') + '</div>';
+
+function setFoot(app, html) {
+  const el = document.querySelector(`[data-foot="${CSS.escape(app)}"]`);
+  if (el) { el.innerHTML = html; el.classList.remove('hidden'); }
+}
+
+function sparkline(vals) {
+  if (vals.length < 2) return '';
+  const min = Math.min(...vals), max = Math.max(...vals), span = (max - min) || 1;
+  const pts = vals.map((v, i) => [2 + i * (82 / (vals.length - 1)), 21 - ((v - min) / span) * 15]);
+  const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  return `<svg class="spark" width="86" height="26" viewBox="0 0 86 26" fill="none" aria-hidden="true">
+    <path d="${path}" stroke="${cssv('--ok')}" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="${path} L 84 26 L 2 26 Z" fill="${cssa('--ok-rgb',.09)}"/></svg>`;
+}
+
+function loadLiveData(apps) {
+  const has = n => apps.some(a => a.name === n);
+  if (has('Pre-Authorisations')) loadPreauthStats();
+  if (has('Return Rate')) loadReturnRateStats();
+  if (has('Quality Audits')) loadQualityStats(); if (has('VIPs')) loadVipStats();
+  if (has('VIP Outreach')) loadOutreachStats();
+  if (has('Actual vs Forecast Covers')) loadForecastStats();
+}
+
+// Combined (all venues) TOTAL covers vs forecast, last completed week
+async function loadForecastStats() {
+  try {
+    const names = ['The Gidley', 'Bistecca', "Alfie's"];
+    const results = await Promise.all(names.map(n => dataRpc('get_actual_vs_forecast', { p_venue: n })));
+    const map = {};
+    results.forEach(({ data }) => (data || []).forEach(r => {
+      const t = map[r.week_ending] = map[r.week_ending] || { ac:null, fc:null };
+      if (r.covers_actual != null)   t.ac = (t.ac == null ? 0 : t.ac) + (+r.covers_actual);
+      if (r.covers_forecast != null) t.fc = (t.fc == null ? 0 : t.fc) + (+r.covers_forecast);
+    }));
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date());
+    const weeks = Object.keys(map).filter(w => w < today && map[w].ac).sort();
+    if (!weeks.length) return;
+    const last = weeks[weeks.length - 1], row = map[last];
+    const spark = sparkline(weeks.slice(-12).map(w => map[w].ac));
+    const covers = new Intl.NumberFormat('en-AU').format(row.ac);
+    if (row.fc) {
+      const v = (row.ac - row.fc) / row.fc * 100;
+      const txt = (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+      setFoot('Actual vs Forecast Covers',
+        `<span class="dot ${v >= 0 ? 'ok' : 'warn'}"></span><b>${txt}</b>&nbsp;vs forecast · ${covers} covers` + spark);
+    } else {
+      setFoot('Actual vs Forecast Covers', `<span class="dot ok"></span><b>${covers}</b>&nbsp;covers · last week` + spark);
+    }
+  } catch (_) { /* footer simply not shown */ }
+}
+
+async function loadPreauthStats() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/preauth-staff', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action: 'list', limit: 1000 }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'load failed');
+    const rows = data.requests || [];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date());
+    const sent = rows.filter(r => r.status === 'sent').length;
+    const failed = rows.filter(r => r.status === 'hold_failed').length;
+    const live = rows.filter(r => r.status === 'hold_placed');
+    const toCharge = live.filter(r => r.booking_date < today).length;
+    const need = failed + toCharge;
+    const held = live.reduce((s, r) => s + (r.max_amount_cents || 0), 0);
+    const money = new Intl.NumberFormat('en-AU', { style:'currency', currency:'AUD', maximumFractionDigits:0 }).format(held / 100);
+    const bits = [];
+    if (failed) bits.push(failed + (failed === 1 ? ' hold failed' : ' holds failed'));
+    if (toCharge) bits.push(toCharge + ' to charge');
+    kpiParts.attention = kpiCard('Pre-auths · needs attention', need + '<small>' + (need === 1 ? 'item' : 'items') + '</small>',
+      need ? 'down' : 'up', need ? esc(bits.join(' · ')) : 'Nothing outstanding');
+    kpiParts.onhold = kpiCard('On hold', money, 'flat',
+      live.length + (live.length === 1 ? ' hold live' : ' holds live') + ' · ' + sent + (sent === 1 ? ' link out' : ' links out'));
+    renderKpis();
+    setFoot('Pre-Authorisations',
+      `<span class="dot ${need ? 'warn' : 'ok'}"></span><b>${need ? need + ' need' + (need === 1 ? 's' : '') + ' attention' : 'All clear'}</b>&nbsp;· ${live.length} ${live.length === 1 ? 'hold' : 'holds'} live`);
+    const nc = $('navCount');
+    if (nc && need) { nc.textContent = need; nc.classList.remove('hidden'); }
+  } catch (_) { /* card simply not shown */ }
+}
+
+async function loadReturnRateStats() {
+  try {
+    const fns = ['get_gidley_return_rate', 'get_bistecca_return_rate', 'get_alfies_return_rate'];
+    const results = await Promise.all(fns.map(f => dataRpc(f)));
+    const cur = new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date()).slice(0, 7);
+    const map = {};
+    results.forEach(({ data }) => (data || []).forEach(r => {
+      if (r.month < cur && +r.total_matched >= 50) (map[r.month] = map[r.month] || []).push(+r.pct_12m);
+    }));
+    const months = Object.keys(map).sort();
+    if (!months.length) return;
+    const avg = m => map[m].reduce((s, x) => s + x, 0) / map[m].length;
+    const latest = months[months.length - 1];
+    const v = avg(latest);
+    const prev = months.length > 1 ? avg(months[months.length - 2]) : null;
+    const d = prev === null ? null : v - prev;
+    const cls = d === null || Math.abs(d) < 0.1 ? 'flat' : d > 0 ? 'up' : 'down';
+    const dTxt = d === null ? 'average of all venues'
+      : (d > 0 ? '▲ +' : d < -0.05 ? '▼ ' : '') + d.toFixed(1) + ' pts vs prior month';
+    kpiParts.rr = kpiCard('Group return rate · 12m', v.toFixed(1) + '<small>%</small>', cls, dTxt);
+    renderKpis();
+    setFoot('Return Rate',
+      `<span class="dot ok"></span><b>${v.toFixed(1)}%</b>&nbsp;12-month` + sparkline(months.slice(-12).map(avg)));
+  } catch (_) { /* card simply not shown */ }
+}
+
+async function loadVipStats() {
+  try {
+    var res = await dataRpc('get_vip_tile_summary');
+    if (res.error || !res.data) return;
+    var arr = +res.data.arriving_next_7 || 0;
+    var monthly = (res.data.monthly || []).map(function(m){ return +m.bookings; });
+    setFoot('VIPs', '<span class="dot ok"></span><b>' + arr + ' VIP' + (arr===1?'':'s') + '</b>&nbsp;arriving · next 7 days' + sparkline(monthly.slice(-12)));
+  } catch (e) {}
+}
+
+async function loadOutreachStats() {
+  try {
+    var d0 = new Date(new Intl.DateTimeFormat('en-CA', { timeZone:'Australia/Sydney' }).format(new Date()) + 'T00:00:00');
+    var since = new Date(d0.getTime() - 83 * 86400000);
+    var sinceIso = since.getFullYear() + '-' + String(since.getMonth()+1).padStart(2,'0') + '-' + String(since.getDate()).padStart(2,'0');
+    var res = await sb.from('hub_vip_outreach').select('contacted_on,outcome').gte('contacted_on', sinceIso).limit(5000);
+    if (res.error) return;
+    var rows = res.data || [];
+    if (!rows.length) { setFoot('VIP Outreach', '<span class="dot warn"></span>No calls logged yet'); return; }
+    var weeks = [0,0,0,0,0,0,0,0,0,0,0,0], last30 = 0, spoke30 = 0;
+    rows.forEach(function(r){
+      var diff = Math.round((d0 - new Date(r.contacted_on + 'T00:00:00')) / 86400000);
+      if (diff >= 0 && diff < 30) { last30++; if (r.outcome === 'spoke') spoke30++; }
+      var wi = 11 - Math.floor(diff / 7);
+      if (wi >= 0 && wi < 12) weeks[wi]++;
+    });
+    setFoot('VIP Outreach', '<span class="dot ok"></span><b>' + last30 + ' contacted</b>&nbsp;· last 30 days' + sparkline(weeks));
+  } catch (e) {}
+}
+
+async function loadQualityStats() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/quality-staff', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action: 'dashboard' }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'load failed');
+    const monthly = data.monthly || [];
+    if (!monthly.length) return;
+    const latestMonth = monthly.map(m => m.month).sort().pop();
+    const rows = monthly.filter(m => m.month === latestMonth);
+    const avgScore = rows.reduce((s, r) => s + +r.score, 0) / rows.length;
+    const pass = +(data.settings?.pass_mark ?? 90);
+    const below = rows.filter(r => +r.score < pass).length;
+    const mLabel = MONTHS[+latestMonth.slice(5, 7) - 1];
+    kpiParts.quality = kpiCard('Quality score · ' + esc(mLabel), avgScore.toFixed(1) + '<small>%</small>',
+      below ? 'down' : 'up',
+      below ? '▼ ' + below + (below === 1 ? ' venue' : ' venues') + ' below ' + pass : 'All venues at or above ' + pass);
+    renderKpis();
+    setFoot('Quality Audits',
+      below
+        ? `<span class="dot warn"></span><b>${below} ${below === 1 ? 'venue' : 'venues'}</b>&nbsp;below the ${pass} pass mark`
+        : `<span class="dot ok"></span><b>All venues</b>&nbsp;at or above ${pass}`);
+  } catch (_) { /* card simply not shown */ }
+}
+
+// ---- auth actions ----
+$('signin').onclick = async () => {
+  $('loginMsg').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+  if (error) { $('loginMsg').textContent = error.message; $('loginMsg').className = 'msg err'; return; }
+  enter();
+};
+$('forgot').onclick = async () => {
+  const email = $('email').value.trim();
+  if (!email) { $('loginMsg').textContent = 'Enter your email first.'; $('loginMsg').className = 'msg err'; return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  $('loginMsg').textContent = error ? error.message : 'Reset link sent — check your email.';
+  $('loginMsg').className = 'msg ' + (error ? 'err' : 'ok');
+};
+$('savePw').onclick = async () => {
+  const p1 = $('newPw').value, p2 = $('newPw2').value;
+  if (p1.length < 8) { $('pwMsg').textContent = 'Use at least 8 characters.'; $('pwMsg').className = 'msg err'; return; }
+  if (p1 !== p2) { $('pwMsg').textContent = 'Passwords do not match.'; $('pwMsg').className = 'msg err'; return; }
+  const { error } = await sb.auth.updateUser({ password: p1 });
+  if (error) { $('pwMsg').textContent = error.message; $('pwMsg').className = 'msg err'; return; }
+  history.replaceState(null, '', location.pathname);
+  enter();
+};
+const doLogout = async () => { await sb.auth.signOut(); location.reload(); };
+$('logout').onclick = doLogout;
+$('logoutM').onclick = doLogout;
+
+// ---- admin ----
+$('invite').onclick = async () => {
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    $('invite').disabled = true;
+    await adminApi({
+      action: 'invite', assignments: inviteAsg,
+      email: $('invEmail').value.trim(),
+      full_name: $('invName').value.trim(),
+      redirect_to: location.origin + location.pathname,
+    });
+    m.textContent = 'Invite sent.'; m.className = 'msg ok';
+    $('invEmail').value = ''; $('invName').value = ''; inviteAsg = []; renderInviteAsg();
+    loadUsers();
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { $('invite').disabled = false; }
+};
+
+async function loadUsers() {
+  if (!$('userRows').children.length) {
+    $('userRows').innerHTML = ('<tr><td colspan="3"><div class="ll-sk" style="height:14px"></div></td></tr>').repeat(3);
+  }
+  const { data: users, error } = await sb.from('portal_profiles').select('*').order('created_at');
+  if (error) return;
+  const initials = u => ((u.full_name || u.email).match(/\b[a-zA-Z]/g) || ['?']).slice(0, 2).join('').toUpperCase();
+  $('userRows').innerHTML = (users || []).map(u => `
+    <tr>
+      <td><div class="userCell"><div class="av">${initials(u)}</div>
+        <div><div class="n">${u.full_name ? esc(u.full_name) : esc(u.email)}</div>
+        ${u.full_name ? `<div class="e">${esc(u.email)}</div>` : ''}</div></div></td>
+      <td><span class="chip ${u.active ? 'active' : 'disabled'}">${u.active ? 'Active' : 'Disabled'}</span></td>
+      <td style="white-space:nowrap;text-align:right">
+        ${u.id !== myProfile.id ? `
+          <button class="ghost" onclick="toggleActive('${u.id}', ${!u.active}, this)">${u.active ? 'Disable' : 'Enable'}</button>
+          <button class="danger" onclick="removeUser('${u.id}', '${esc(u.email)}', this)">Remove</button>` : '<span class="dim">you</span>'}
+      </td>
+    </tr>`).join('');
+  }
+
+    // ---- invite: optional hat + venue assignment builder (super admin) ----
+    let inviteAsg = [];
+    let inviteMeta = null;
+    async function initInviteAssign() {
+      try {
+        if (!inviteMeta) {
+          const d = await adminApi({ action: 'hub_data' });
+          inviteMeta = { hats: (d.hats || []).filter(function(h){ return h.active; }).sort(function(a,b){ return (a.department||'').localeCompare(b.department||'') || a.name.localeCompare(b.name); }), venues: d.venues || [] };
+        }
+        if ($('invHat')) $('invHat').innerHTML = inviteMeta.hats.map(function(h){ return '<option value="'+h.id+'">'+esc(h.name)+(h.department?' — '+esc(h.department):'')+'</option>'; }).join('');
+        if ($('invVenue')) $('invVenue').innerHTML = inviteMeta.venues.map(function(v){ return '<option value="'+v.id+'">'+esc(v.name)+'</option>'; }).join('');
+      } catch (e) { /* selects stay empty; hats can be added later in Team admin */ }
+      renderInviteAsg();
+      const add = $('invAddAsg');
+      if (add) add.onclick = function(){
+        const hat_id = $('invHat').value, venue_id = $('invVenue').value;
+        if (!hat_id || !venue_id) return;
+        if (inviteAsg.some(function(a){ return a.hat_id === hat_id && a.venue_id === venue_id; })) return;
+        inviteAsg.push({ hat_id: hat_id, venue_id: venue_id });
+        renderInviteAsg();
+      };
+    }
+    function renderInviteAsg() {
+      const box = $('invAsgChips'); if (!box) return;
+      if (!inviteAsg.length) { box.innerHTML = '<span class="dim" style="font-size:11px">No hats yet — they can also be added later in Team admin.</span>'; return; }
+      const hatName = function(id){ return ((inviteMeta && inviteMeta.hats.find(function(h){return h.id===id;})) || {}).name || '?'; };
+      const venName = function(id){ return ((inviteMeta && inviteMeta.venues.find(function(v){return v.id===id;})) || {}).name || '?'; };
+      box.innerHTML = inviteAsg.map(function(a,i){ return '<span class="asgChip">'+esc(hatName(a.hat_id))+' · '+esc(venName(a.venue_id))+'<button title="Remove" onclick="inviteAsgRemove('+i+')">×</button></span>'; }).join('');
+    }
+    window.inviteAsgRemove = function(i){ inviteAsg.splice(i, 1); renderInviteAsg(); };
+
+    window.toggleActive = async (id, active, btn) => {
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    if (btn) btn.disabled = true;
+    const { error } = await sb.from('portal_profiles').update({ active }).eq('id', id);
+    if (error) throw error;
+    await loadUsers();
+    m.textContent = active ? 'Account enabled.' : 'Account disabled — they can no longer sign in.';
+    m.className = 'msg ok';
+  } catch (e) { m.textContent = e.message || String(e); m.className = 'msg err'; }
+  finally { if (btn) btn.disabled = false; }
+};
+window.removeUser = async (id, email, btn) => {
+  if (!confirm('Remove ' + email + ' entirely? They will no longer be able to sign in.')) return;
+  const m = $('invMsg'); m.textContent = ''; m.className = 'msg';
+  try {
+    if (btn) btn.disabled = true;
+    await adminApi({ action: 'remove', id });
+    await loadUsers();
+    m.textContent = email + ' removed.'; m.className = 'msg ok';
+  } catch (e) { m.textContent = e.message; m.className = 'msg err'; }
+  finally { if (btn) btn.disabled = false; }
+};
+
+// supabase-js fires SIGNED_IN after consuming an invite hash; re-run main then
+sb.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' && arrivedViaInvite) showOnly('setPwCard');
+});
+// ================= TEAM ADMIN (hat-based permissions) =================
+// Super-admin-only, additive layer. Does NOT affect the live role-based
+// system — grants here take effect only after the Phase 2 cutover.
+let taData = null;
+async function initTeamAdmin() {
+  const nav = $('sideNav');
+  if (nav && !document.getElementById('navTeamAdmin')) {
+    nav.insertAdjacentHTML('beforeend',
+      '<div class="navGroup"><div class="g">Team admin</div>' +
+      '<a class="navItem" id="navTeamAdmin" href="#">' + ICONS._users + 'Hats &amp; permissions</a></div>');
+  }
+  $('teamAdminCard').classList.remove('hidden');
+  document.querySelectorAll('.taTab').forEach(t => t.onclick = () => {
+    document.querySelectorAll('.taTab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.taPanel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    $('ta' + ({ users:'Users', hats:'Hats', perms:'Perms' }[t.dataset.tab])).classList.add('active');
+  });
+  const navA = document.getElementById('navTeamAdmin');
+  if (navA) navA.onclick = (e) => { e.preventDefault(); taShow(true); };
+  const homeA = $('sideNav').querySelector('a.navItem');
+  if (homeA) homeA.onclick = (e) => { e.preventDefault(); taShow(false); };
+  document.querySelectorAll('#sideNav a[href="#adminCard"]').forEach(a => { a.onclick = (e) => { e.preventDefault(); taShow(false); const c = $('adminCard'); if (c) c.scrollIntoView({ behavior:'smooth' }); }; });
+  await reloadTeamAdmin();
+  taShow(false);
+}
+function taShow(admin) {
+  const m = document.querySelector('main.content'); if (m) m.classList.toggle('taAdmin', admin);
+  const homeA = $('sideNav').querySelector('a.navItem'); if (homeA) homeA.classList.toggle('active', !admin);
+  const navA = document.getElementById('navTeamAdmin'); if (navA) navA.classList.toggle('active', admin);
+  window.scrollTo(0, 0);
+}
+async function reloadTeamAdmin() {
+  try { taData = await adminApi({ action:'hub_data' }); }
+  catch (e) { taErr(e); return; }
+  renderTaUsers(); renderTaHats(); renderTaPerms();
+  $('taMsg').textContent = '';
+}
+function taErr(e) { $('taMsg').textContent = e.message || String(e); $('taMsg').className = 'msg err'; }
+/* Team admin only ever spoke up when something failed. Success is worth saying
+   on a permissions screen — this is the counterpart, and hub-motion.js turns it
+   into a toast for free. Call it AFTER reloadTeamAdmin(), which clears #taMsg. */
+function taOk(text) { $('taMsg').textContent = text; $('taMsg').className = 'msg ok'; }
+/* the clicked control goes busy while the call is in flight */
+function taBusy(el, on) { if (el) el.disabled = on; }
+function hatById(id) { return (taData.hats || []).find(h => h.id === id); }
+function venueById(id) { return (taData.venues || []).find(v => v.id === id); }
+function deptGroups() {
+  const g = {}; (taData.hats || []).forEach(h => { (g[h.department || '—'] = g[h.department || '—'] || []).push(h); });
+  return Object.keys(g).sort().map(d => [d, g[d]]);
+}
+
+function renderTaUsers() {
+  const activeHats = (taData.hats || []).filter(h => h.active)
+    .sort((a, b) => (a.department || '').localeCompare(b.department || '') || a.name.localeCompare(b.name));
+  const venues = (taData.venues || []);
+  const hatOpts = activeHats.map(h => '<option value="' + h.id + '">' + esc(h.name) + '</option>').join('');
+  const venOpts = venues.map(v => '<option value="' + v.id + '">' + esc(v.name) + '</option>').join('');
+  $('taUsers').innerHTML =
+    '<p class="taHint">Each assignment is a hat at a venue; a person can hold several. Effective access is the union of all their hats’ granted permissions. Super admins bypass the matrix.</p>' +
+    (taData.users || []).map(u => {
+      const chips = (u.assignments || []).map(a => {
+        const h = hatById(a.hat_id), v = venueById(a.venue_id);
+        return '<span class="asgChip">' + esc(h ? h.name : '?') + ' · ' + esc(v ? v.name : '?') +
+          '<button title="Remove" onclick="taRemoveAssign(\'' + a.id + '\', this)">×</button></span>';
+      }).join('') || '<span class="dim" style="font-size:11px">No assignments</span>';
+      return '<div style="padding:14px 0;border-bottom:1px solid var(--hairline)">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">' +
+          '<div class="userCell"><div><div class="n">' + esc(u.full_name || u.email) + '</div>' +
+          '<div class="e">' + esc(u.email) + '</div></div></div>' +
+          '<label style="margin-left:auto;font-size:11.5px;display:flex;align-items:center;gap:6px">' +
+          '<input type="checkbox" ' + (u.is_super_admin ? 'checked' : '') +
+          ' onchange="taToggleSuper(\'' + u.id + '\',this.checked)"> Super admin</label>' +
+        '</div>' +
+        '<div style="margin:6px 0">' + chips + '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<select class="taSelect" id="hatSel_' + u.id + '">' + hatOpts + '</select>' +
+          '<select class="taSelect" id="venSel_' + u.id + '">' + venOpts + '</select>' +
+          '<button class="ghost miniBtn" onclick="taAddAssign(\'' + u.id + '\', this)">Add hat</button>' +
+        '</div></div>';
+    }).join('');
+}
+window.taAddAssign = async (uid, btn) => { try {
+  taBusy(btn, true);
+  await adminApi({ action:'assignment_add', user_id:uid, hat_id:$('hatSel_' + uid).value, venue_id:$('venSel_' + uid).value });
+  await reloadTeamAdmin();
+  taOk('Hat added.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRemoveAssign = async (id, btn) => { try { taBusy(btn, true);
+  await adminApi({ action:'assignment_remove', id }); await reloadTeamAdmin(); taOk('Hat removed.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taToggleSuper = async (uid, val) => { try {
+  await adminApi({ action:'set_super_admin', user_id:uid, value:val }); await reloadTeamAdmin();
+  taOk(val ? 'Super admin granted.' : 'Super admin removed.');
+} catch (e) { taErr(e); await reloadTeamAdmin(); } };
+
+/* Reporting lines are venue-aware: venue_id null = the group-wide default,
+   a row with a venue overrides the default at that venue only.
+   rtLines falls back to the old flat shape so an older portal-admin still renders. */
+function rtLines(h) {
+  return (h.reports_to_lines && h.reports_to_lines.length)
+    ? h.reports_to_lines
+    : (h.reports_to || []).map(function(pid){ return { hat_id: pid, venue_id: null }; });
+}
+function rtParentsFor(h, venueId) {
+  var want = venueId || null;
+  return rtLines(h).filter(function(l){ return (l.venue_id || null) === want; }).map(function(l){ return l.hat_id; });
+}
+function rtCell(h, allHats) {
+  var venues = (taData.venues || []).filter(function(v){ return v.active; });
+  function chip(pid, venueId) {
+    var ph = hatById(pid);
+    return '<span class="asgChip">' + esc(ph ? ph.name : '?') +
+      '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\',\'' + (venueId || '') + '\', this)">×</button></span>';
+  }
+  var everywhere = rtParentsFor(h, null);
+  var out = '<div class="rtScope"><span class="rtLab">Everywhere</span>' +
+    (everywhere.length ? everywhere.map(function(p){ return chip(p, null); }).join('') : '<span class="rtNone">not set</span>') +
+    '</div>';
+  venues.forEach(function(v){
+    var ps = rtParentsFor(h, v.id);
+    if (!ps.length) return;
+    out += '<div class="rtScope"><span class="rtLab">' + esc(v.name) + '</span>' + ps.map(function(p){ return chip(p, v.id); }).join('') + '</div>';
+  });
+  out += '<div class="rtAdd">' +
+    '<select class="taSelect" id="rtVen_' + h.id + '"><option value="">Everywhere</option>' +
+      venues.map(function(v){ return '<option value="' + v.id + '">' + esc(v.name) + ' only</option>'; }).join('') +
+    '</select>' +
+    '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' +
+      '<option value="">+ reports to…</option>' +
+      allHats.filter(function(x){ return x.id !== h.id; }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') +
+    '</select></div>';
+  return out;
+}
+function renderTaHats() {
+  const allHats = (taData.hats || []);
+  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. A hat may report to more than one parent hat. Reporting lines are set <strong>Everywhere</strong> by default; add a venue-only line where that venue differs and it replaces the default at that venue.</p>' +
+    '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
+    '<input id="newHatName" placeholder="New hat name" style="max-width:240px">' +
+    '<input id="newHatDept" placeholder="Department (optional)" style="max-width:220px">' +
+    '<button class="miniBtn" onclick="taCreateHat(this)">Add hat</button></div>';
+  deptGroups().forEach(([dept, hats]) => {
+    html += '<div class="deptHead">' + esc(dept) + '</div>';
+    hats.forEach(h => {
+      html += '<div class="hatRow ' + (h.active ? '' : 'retired') + '">' +
+        '<div><input value="' + esc(h.name) + '" onchange="taRenameHat(\'' + h.id + '\',this.value)" style="font-weight:600">' +
+        (h.jd_link ? ' <a href="' + esc(h.jd_link) + '" target="_blank" rel="noopener" style="font-size:11px">JD ↗</a>' : '') + '</div>' +
+        '<div>' + rtCell(h, allHats) + '</div>' +
+        '<div style="text-align:right">' + (h.active
+          ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\', this)">Retire</button>'
+          : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\', this)">Restore</button>') + '</div>' +
+      '</div>';
+    });
+  });
+  $('taHats').innerHTML = html;
+}
+window.taCreateHat = async (btn) => { try {
+  const name = $('newHatName').value.trim(); if (!name) return;
+  taBusy(btn, true);
+  await adminApi({ action:'hat_create', name, department:$('newHatDept').value.trim() || null });
+  await reloadTeamAdmin();
+  taOk('Hat “' + name + '” created.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRenameHat = async (id, name, el) => { try {
+  await adminApi({ action:'hat_update', id, name:name.trim() });
+  if (window.LL) LL.flash(el);            /* inline rename: a wash, not a toast */
+} catch (e) { taErr(e); } };
+window.taAddParent = async (id, pid) => { if (!pid) return; try {
+  const h = hatById(id);
+  const sel = document.getElementById('rtVen_' + id);
+  const venueId = (sel && sel.value) ? sel.value : null;
+  const s = new Set(rtParentsFor(h, venueId)); s.add(pid);
+  await adminApi({ action:'hat_set_reports_to', hat_id:id, venue_id:venueId, reports_to_hat_ids:[...s] });
+  await reloadTeamAdmin();
+  const v = venueId ? venueById(venueId) : null;
+  taOk(v ? ('Reporting line added at ' + v.name + '.') : 'Reporting line added everywhere.');
+} catch (e) { taErr(e); } };
+window.taRemoveParent = async (id, pid, venueId, btn) => { try { taBusy(btn, true);
+  const h = hatById(id); const v = venueId || null;
+  const s = new Set(rtParentsFor(h, v)); s.delete(pid);
+  await adminApi({ action:'hat_set_reports_to', hat_id:id, venue_id:v, reports_to_hat_ids:[...s] });
+  await reloadTeamAdmin(); taOk('Reporting line removed.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRestoreHat = async (id, btn) => { try { taBusy(btn, true);
+  await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); taOk('Hat restored.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taRetireHat = async (id, name, btn) => {
+  const affected = (taData.users || []).filter(u => (u.assignments || []).some(a => a.hat_id === id)).map(u => u.full_name || u.email);
+  const msg = 'Retire “' + name + '”?\n\n' + (affected.length
+    ? ('These people will lose the access this hat grants:\n• ' + affected.join('\n• '))
+    : 'No one is currently assigned this hat.');
+  if (!confirm(msg)) return;
+  try { taBusy(btn, true);
+    await adminApi({ action:'hat_retire', id }); await reloadTeamAdmin(); taOk('Hat “' + name + '” retired.');
+  } catch (e) { taErr(e); } finally { taBusy(btn, false); }
+};
+
+function renderTaPerms() {
+  const actions = (taData.actions || []).slice().sort((a, b) => a.app_slug.localeCompare(b.app_slug) || a.sort - b.sort);
+  const grantset = new Set((taData.permissions || []).map(p => p.hat_id + '|' + p.action_id));
+  const groups = [];
+  actions.forEach(a => { let g = groups[groups.length - 1]; if (!g || g.slug !== a.app_slug) { g = { slug:a.app_slug, items:[] }; groups.push(g); } g.items.push(a); });
+  const head1 = '<tr><th class="hatCol" rowspan="2">Hat</th>' + groups.map(g => '<th class="appGroup" colspan="' + g.items.length + '">' + esc(g.slug) + '</th>').join('') + '</tr>';
+  const head2 = '<tr>' + actions.map(a => '<th title="' + esc(a.label) + '">' + esc(a.action_key) + '</th>').join('') + '</tr>';
+  let rows = '';
+  deptGroups().forEach(([dept, hats]) => {
+    const live = hats.filter(h => h.active);
+    if (!live.length) return;
+    rows += '<tr><td class="hatCol" style="background:var(--sand-soft)" colspan="' + (actions.length + 1) + '">' + esc(dept) + '</td></tr>';
+    live.forEach(h => {
+      rows += '<tr><td class="hatCol">' + esc(h.name) + '</td>' + actions.map(a => {
+        const on = grantset.has(h.id + '|' + a.id);
+        return '<td><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="taPerm(\'' + h.id + '\',\'' + a.id + '\',this.checked,this)"></td>';
+      }).join('') + '</tr>';
+    });
+  });
+  $('taPerms').innerHTML = '<p class="taHint">Tick to grant a hat an action. A person sees an app’s tile if any of their hats grants any action in it. Retired hats are hidden.</p>' +
+    '<div class="matrixWrap"><table class="matrix"><thead>' + head1 + head2 + '</thead><tbody>' + rows + '</tbody></table></div>';
+}
+window.taPerm = async (hat_id, action_id, granted, box) => { try {
+  await adminApi({ action:'perm_set', hat_id, action_id, granted });
+  if (granted) taData.permissions.push({ hat_id, action_id });
+  else taData.permissions = taData.permissions.filter(p => !(p.hat_id === hat_id && p.action_id === action_id));
+  /* one wash over the cell rather than a toast — someone ticking twenty boxes
+     does not want twenty notifications, but does want to see each one land */
+  if (window.LL && box) LL.flash(box.closest('td') || box);
+} catch (e) { taErr(e); await reloadTeamAdmin(); } };
+
+// Reveal Team admin for super admins after profile loads (wraps enter, additive).
+const _enterOrig = enter;
+enter = async function () {
+  await _enterOrig.apply(this, arguments);
+  try { if (myProfile && myProfile.is_super_admin) await initTeamAdmin(); }
+  catch (e) { console.warn('team admin init failed', e); }
+};
+
+main();
+</script>
+</body>
+</html>
