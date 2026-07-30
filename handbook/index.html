@@ -77,6 +77,15 @@
     color:var(--dim); font-size:14px; line-height:1.8; }
   .doc .callout { background:rgb(var(--tint-rgb) / .08); border:1px solid var(--hairline); border-radius:12px;
     padding:15px 18px; margin:0 0 18px; font-size:13.5px; line-height:1.75; }
+  /* A copyable template — the guest email, a script, anything meant to be
+     lifted verbatim. Selecting multi-paragraph text by hand on a phone is
+     miserable, so the whole block goes to the clipboard in one tap. */
+  .doc .tmpl { position:relative; background:rgb(var(--tint-rgb) / .06); border:1px solid var(--hairline);
+    border-radius:12px; padding:16px 18px 18px; margin:0 0 18px; }
+  .doc .tmpl pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family:'Montserrat',sans-serif;
+    font-size:13.5px; line-height:1.8; color:var(--ink); }
+  .tmplBar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+  .tmplBar .l { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
   .doc figure { margin:0 0 18px; }
   .doc figure img { max-width:100%; border-radius:12px; display:block; }
   .doc figcaption { font-size:11px; color:var(--dim); margin-top:7px; }
@@ -90,6 +99,17 @@
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   @media (max-width:720px) { .grid2 { grid-template-columns:1fr; } }
   .fieldNote { font-size:11px; color:var(--dim); margin:-6px 0 12px; line-height:1.6; }
+
+  /* hub.css v8 styles `input, select` but NOT `textarea`, so an unstyled one
+     renders as a ~180px monospace box that is unusable for writing a policy in.
+     Mirrored here rather than patched into the shared sheet, which would mean
+     re-versioning every page's ?v= for one app's benefit. Move it to hub.css
+     the next time that file is touched for another reason. */
+  textarea { width:100%; padding:11px 13px; background:var(--surface); color:var(--ink);
+    border:1px solid var(--border); border-radius:var(--r-input); font-size:13.5px;
+    font-family:'Montserrat',sans-serif; line-height:1.7; resize:vertical; min-height:220px;
+    transition:border-color .15s, box-shadow .15s; display:block; }
+  textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); background:var(--card); }
   .pickBox { max-height:240px; overflow-y:auto; border:1px solid var(--hairline); border-radius:10px; padding:10px 12px; margin-bottom:6px; }
   .pickBox label { display:flex; align-items:flex-start; gap:9px; font-size:12.5px; font-weight:400;
     color:var(--ink); padding:5px 4px; border-radius:7px; cursor:pointer; text-transform:none; letter-spacing:0; margin:0; }
@@ -257,6 +277,35 @@ function pageRow(p) {
 function wireRows(root) {
   root.querySelectorAll('[data-slug]').forEach(b =>
     b.addEventListener('click', () => go({ view:'page', p: b.dataset.slug })));
+  wireCopy(root);
+}
+
+/* Copy-to-clipboard for template blocks. Falls back to selecting the text if
+   the clipboard API is unavailable, so the button is never a dead end. */
+function wireCopy(root) {
+  root.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const pre = btn.closest('.tmpl').querySelector('pre');
+      const text = pre.innerText;
+      const done = () => {
+        const was = btn.textContent;
+        btn.textContent = 'Copied';
+        setTimeout(() => { btn.textContent = was; }, 1600);
+      };
+      try {
+        await navigator.clipboard.writeText(text);
+        done();
+      } catch (e) {
+        const r = document.createRange();
+        r.selectNodeContents(pre);
+        const sel = getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+        btn.textContent = 'Press ' + (navigator.platform.includes('Mac') ? '⌘C' : 'Ctrl+C');
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2600);
+      }
+    });
+  });
 }
 
 function render() {
@@ -361,6 +410,11 @@ function renderBody(body, assets) {
     if (b.type === 'ol')      return `<ol>${(b.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ol>`;
     if (b.type === 'callout') return `<div class="callout">${text}</div>`;
     if (b.type === 'quote')   return `<blockquote>${text}</blockquote>`;
+    if (b.type === 'copy')    return `<div class="tmpl">
+      <div class="tmplBar">
+        <span class="l">${esc(b.label || 'Template')}</span>
+        <button class="ghost noprint" data-copy type="button">Copy</button>
+      </div><pre>${text}</pre></div>`;
     return `<p>${text}</p>`;
   }).join('');
   const figs = (assets || []).map(a =>
@@ -629,7 +683,10 @@ async function adminEdit(id) {
     b.type === 'h2' ? '## ' + (b.text || '') :
     b.type === 'h3' ? '### ' + (b.text || '') :
     b.type === 'ul' ? (b.items || []).map(i => '- ' + i).join('\n') :
-    b.type === 'callout' ? '> ' + (b.text || '') : (b.text || '')).join('\n\n');
+    b.type === 'callout' ? '> ' + (b.text || '') :
+    b.type === 'quote' ? '> ' + (b.text || '') :
+    b.type === 'copy' ? `[copy${b.label ? ': ' + b.label : ''}]\n` + (b.text || '') :
+    (b.text || '')).join('\n\n');
 
   $('screen').innerHTML = `
     <div class="pageHead"><h2>${id ? 'Edit page' : 'New page'}</h2>
@@ -660,7 +717,9 @@ async function adminEdit(id) {
       </div>
       <label for="fBody">Body</label>
       <p class="fieldNote">Plain text. <code>##</code> for a heading, <code>###</code> for a small heading,
-        <code>-</code> for a bullet, <code>&gt;</code> for a callout. Blank line between blocks.</p>
+        <code>-</code> for a bullet, <code>&gt;</code> for a callout. Blank line between blocks.<br>
+        <code>[copy: Guest email]</code> on its own line starts a copyable template — everything under it,
+        line breaks and all, gets a Copy button on the page.</p>
       <textarea id="fBody" rows="16" placeholder="Write the page here.">${esc(asText)}</textarea>
     </div>
 
@@ -786,6 +845,14 @@ const qRowHtml = (v) => `<div class="qRow">
 function parseBody(text) {
   const blocks = [];
   for (const chunk of String(text || '').split(/\n\s*\n/)) {
+    // [copy] or [copy: Guest email] — everything after the marker is kept
+    // verbatim, line breaks and all, and gets a Copy button when rendered.
+    const marker = chunk.match(/^\s*\[copy(?::\s*([^\]]+))?\]\s*\n?/i);
+    if (marker) {
+      const bodyText = chunk.slice(marker[0].length).replace(/\s+$/, '');
+      if (bodyText) blocks.push({ type:'copy', label: (marker[1] || '').trim() || null, text: bodyText });
+      continue;
+    }
     const lines = chunk.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
     if (lines.every(l => l.startsWith('- '))) {
@@ -842,7 +909,7 @@ async function adminReview(id) {
     </div>
     <div class="card">
       <div class="cardTitle">The page</div>
-      <article class="doc">${renderBody(d.version.body, [])}</article>
+      <article class="doc" id="reviewDoc">${renderBody(d.version.body, [])}</article>
     </div>
     ${d.questions.length ? `<div class="card">
       <div class="cardTitle">Check questions</div>
@@ -859,6 +926,7 @@ async function adminReview(id) {
           : `<p class="fieldNote">You can see this, but approving it is somebody else's call.</p>`}
     </div>`;
   wireAdminNav($('screen'));
+  wireCopy($('screen'));
   $('screen').querySelectorAll('[data-edit]').forEach(b =>
     b.addEventListener('click', () => go({ view:'admin', admin:'edit', id: b.dataset.edit })));
   if ($('doApprove')) {
