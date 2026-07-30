@@ -188,6 +188,10 @@ table.matrix th.hatCol, table.matrix td.hatCol { text-align:left; position:stick
 table.matrix th.appGroup { background:var(--sand-soft); color:var(--accent-ink); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
 table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent-ink); cursor:pointer; }
 .taSelect { padding:6px 8px; font-size:12px; width:auto; max-width:100%; }
+.rtScope { display:flex; flex-wrap:wrap; align-items:center; gap:4px; margin:1px 0; }
+.rtLab { font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap; margin-right:2px; min-width:78px; }
+.rtNone { font-size:11px; color:var(--dim); white-space:nowrap; }
+.rtAdd { display:flex; flex-wrap:wrap; gap:6px; margin-top:5px; }
 .miniBtn { padding:6px 12px; font-size:11.5px; }
 
 #teamAdminCard{display:none;}
@@ -907,9 +911,47 @@ window.taToggleSuper = async (uid, val) => { try {
   taOk(val ? 'Super admin granted.' : 'Super admin removed.');
 } catch (e) { taErr(e); await reloadTeamAdmin(); } };
 
+/* Reporting lines are venue-aware: venue_id null = the group-wide default,
+   a row with a venue overrides the default at that venue only.
+   rtLines falls back to the old flat shape so an older portal-admin still renders. */
+function rtLines(h) {
+  return (h.reports_to_lines && h.reports_to_lines.length)
+    ? h.reports_to_lines
+    : (h.reports_to || []).map(function(pid){ return { hat_id: pid, venue_id: null }; });
+}
+function rtParentsFor(h, venueId) {
+  var want = venueId || null;
+  return rtLines(h).filter(function(l){ return (l.venue_id || null) === want; }).map(function(l){ return l.hat_id; });
+}
+function rtCell(h, allHats) {
+  var venues = (taData.venues || []).filter(function(v){ return v.active; });
+  function chip(pid, venueId) {
+    var ph = hatById(pid);
+    return '<span class="asgChip">' + esc(ph ? ph.name : '?') +
+      '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\',\'' + (venueId || '') + '\', this)">×</button></span>';
+  }
+  var everywhere = rtParentsFor(h, null);
+  var out = '<div class="rtScope"><span class="rtLab">Everywhere</span>' +
+    (everywhere.length ? everywhere.map(function(p){ return chip(p, null); }).join('') : '<span class="rtNone">not set</span>') +
+    '</div>';
+  venues.forEach(function(v){
+    var ps = rtParentsFor(h, v.id);
+    if (!ps.length) return;
+    out += '<div class="rtScope"><span class="rtLab">' + esc(v.name) + '</span>' + ps.map(function(p){ return chip(p, v.id); }).join('') + '</div>';
+  });
+  out += '<div class="rtAdd">' +
+    '<select class="taSelect" id="rtVen_' + h.id + '"><option value="">Everywhere</option>' +
+      venues.map(function(v){ return '<option value="' + v.id + '">' + esc(v.name) + ' only</option>'; }).join('') +
+    '</select>' +
+    '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' +
+      '<option value="">+ reports to…</option>' +
+      allHats.filter(function(x){ return x.id !== h.id; }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') +
+    '</select></div>';
+  return out;
+}
 function renderTaHats() {
   const allHats = (taData.hats || []);
-  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. Reports-to may list more than one parent hat (Ctrl/Cmd-click).</p>' +
+  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. A hat may report to more than one parent hat. Reporting lines are set <strong>Everywhere</strong> by default; add a venue-only line where that venue differs and it replaces the default at that venue.</p>' +
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
     '<input id="newHatName" placeholder="New hat name" style="max-width:240px">' +
     '<input id="newHatDept" placeholder="Department (optional)" style="max-width:220px">' +
@@ -917,12 +959,10 @@ function renderTaHats() {
   deptGroups().forEach(([dept, hats]) => {
     html += '<div class="deptHead">' + esc(dept) + '</div>';
     hats.forEach(h => {
-      const parentOpts = allHats.filter(x => x.id !== h.id)
-        .map(x => '<option value="' + x.id + '" ' + ((h.reports_to || []).includes(x.id) ? 'selected' : '') + '>' + esc(x.name) + '</option>').join('');
       html += '<div class="hatRow ' + (h.active ? '' : 'retired') + '">' +
         '<div><input value="' + esc(h.name) + '" onchange="taRenameHat(\'' + h.id + '\',this.value)" style="font-weight:600">' +
         (h.jd_link ? ' <a href="' + esc(h.jd_link) + '" target="_blank" rel="noopener" style="font-size:11px">JD ↗</a>' : '') + '</div>' +
-        '<div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px">' + (h.reports_to || []).map(function(pid){ var ph = hatById(pid); return '<span class="asgChip">' + esc(ph ? ph.name : '?') + '<button title="Remove" onclick="taRemoveParent(\'' + h.id + '\',\'' + pid + '\', this)">×</button></span>'; }).join('') + '<select class="taSelect" style="min-width:150px" onchange="taAddParent(\'' + h.id + '\',this.value);this.value=\'\'">' + '<option value="">+ reports to…</option>' + allHats.filter(function(x){ return x.id !== h.id && !(h.reports_to || []).includes(x.id); }).map(function(x){ return '<option value="' + x.id + '">' + esc(x.name) + '</option>'; }).join('') + '</select></div>' +
+        '<div>' + rtCell(h, allHats) + '</div>' +
         '<div style="text-align:right">' + (h.active
           ? '<button class="ghost miniBtn" onclick="taRetireHat(\'' + h.id + '\',\'' + esc(h.name).replace(/'/g, "\\'") + '\', this)">Retire</button>'
           : '<button class="ghost miniBtn" onclick="taRestoreHat(\'' + h.id + '\', this)">Restore</button>') + '</div>' +
@@ -942,8 +982,22 @@ window.taRenameHat = async (id, name, el) => { try {
   await adminApi({ action:'hat_update', id, name:name.trim() });
   if (window.LL) LL.flash(el);            /* inline rename: a wash, not a toast */
 } catch (e) { taErr(e); } };
-window.taAddParent = async (id, pid) => { if (!pid) return; try { const h = hatById(id); const s = new Set(h.reports_to || []); s.add(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); taOk('Reporting line added.'); } catch (e) { taErr(e); } };
-window.taRemoveParent = async (id, pid, btn) => { try { taBusy(btn, true); const h = hatById(id); const s = new Set(h.reports_to || []); s.delete(pid); await adminApi({ action:'hat_set_reports_to', hat_id:id, reports_to_hat_ids:[...s] }); await reloadTeamAdmin(); taOk('Reporting line removed.'); } catch (e) { taErr(e); } finally { taBusy(btn, false); } };
+window.taAddParent = async (id, pid) => { if (!pid) return; try {
+  const h = hatById(id);
+  const sel = document.getElementById('rtVen_' + id);
+  const venueId = (sel && sel.value) ? sel.value : null;
+  const s = new Set(rtParentsFor(h, venueId)); s.add(pid);
+  await adminApi({ action:'hat_set_reports_to', hat_id:id, venue_id:venueId, reports_to_hat_ids:[...s] });
+  await reloadTeamAdmin();
+  const v = venueId ? venueById(venueId) : null;
+  taOk(v ? ('Reporting line added at ' + v.name + '.') : 'Reporting line added everywhere.');
+} catch (e) { taErr(e); } };
+window.taRemoveParent = async (id, pid, venueId, btn) => { try { taBusy(btn, true);
+  const h = hatById(id); const v = venueId || null;
+  const s = new Set(rtParentsFor(h, v)); s.delete(pid);
+  await adminApi({ action:'hat_set_reports_to', hat_id:id, venue_id:v, reports_to_hat_ids:[...s] });
+  await reloadTeamAdmin(); taOk('Reporting line removed.');
+} catch (e) { taErr(e); } finally { taBusy(btn, false); } };
 window.taRestoreHat = async (id, btn) => { try { taBusy(btn, true);
   await adminApi({ action:'hat_restore', id }); await reloadTeamAdmin(); taOk('Hat restored.');
 } catch (e) { taErr(e); } finally { taBusy(btn, false); } };
