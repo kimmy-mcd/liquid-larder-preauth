@@ -585,7 +585,7 @@ async function adminQueue() {
     standardising: 'Being standardised',
     failed: 'Failed',
     submitter_review: 'Yours to review',
-    awaiting_approval: 'Waiting on an approver',
+    awaiting_approval: 'Waiting on the founders',
     standardised: 'Standardised',
   };
   $('screen').innerHTML = `
@@ -825,13 +825,13 @@ async function adminEdit(id) {
   });
   $('sendApproval').addEventListener('click', async (e) => {
     const reach = $('reachBox').dataset.count;
-    if (!confirm(`This page will reach ${reach || 'an unknown number of'} people. Send it for approval?`)) return;
+    if (!confirm(`This page will reach ${reach || 'an unknown number of'} people.\n\nIt goes to the founders to approve. Nothing reaches anyone until they publish it.\n\nSend it?`)) return;
     e.currentTarget.disabled = true;
     try {
       const vid = await persist();
       await api({ action:'send_for_approval', version_id: vid });
       go({ view:'admin' });
-      say('Sent for approval.');
+      say('Sent to the founders. It reaches nobody until they publish it.');
     } catch (err) { say(err.message, 'err'); }
     finally { e.currentTarget.disabled = false; }
   });
@@ -958,7 +958,7 @@ async function adminReview(id) {
         : d.can_approve
           ? `<div class="qActions"><button id="doApprove">Approve and publish</button>
              <button class="ghost" id="doReject">Send back</button></div>`
-          : `<p class="fieldNote">You can see this, but approving it is somebody else's call.</p>`}
+          : `<p class="fieldNote">You can see this, but publishing it is the founders' call.</p>`}
     </div>`;
   wireAdminNav($('screen'));
   wireCopy($('screen'));
