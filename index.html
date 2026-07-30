@@ -180,6 +180,16 @@
     aside.side { width:212px; flex:0 0 212px; padding:22px 13px 18px; }
     .sideBrand { gap:10px; padding:0 6px 20px; }
     main.content { padding:30px 28px 64px; }
+    /* The rail footer wraps by design — hub.css sets flex-wrap on .sideUser so
+       the theme control gets a line of its own. At a 212px rail the name's
+       min-content width no longer left room for the sign-out icon, and a wrap
+       container drops the overflowing item to a new line rather than shrinking
+       anything, so the icon fell below the name. Tighten the avatar and gap and
+       give the name a zero flex-basis: it now shrinks (with its existing
+       ellipsis) instead of forcing the wrap. */
+    .sideUser { gap:9px; }
+    .sideUser .avatar { width:32px; height:32px; flex:0 0 32px; }
+    .sideUser .meta { flex:1 1 0; }
   }
   @media (max-width:700px) {
     /* Off-canvas drawer. The rail keeps its place in the DOM — and therefore all
