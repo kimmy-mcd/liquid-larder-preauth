@@ -448,6 +448,7 @@ const ICONS = {
   'VIPs': '<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
   'VIP Outreach': '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
   'Food Costs': '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L6 21Z"/><path d="M9.5 8.5h5"/><path d="M9.5 12.5h5"/></svg>',
+  'Handbook': '<svg viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13H5.5A1.5 1.5 0 0 0 4 18.5Z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H19"/><path d="M8 7.5h7"/><path d="M8 11h7"/></svg>',
     _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
   _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
   _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
@@ -490,7 +491,9 @@ async function enter() {
 
   const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
   if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
-  const SECTION_ORDER = ['Accounts', 'Company metrics', 'Marketing'];
+  // Handbook leads: for most of the team it is the only app they open, and the
+  // spec's answer to "should it be a separate site" was to put it first here.
+  const SECTION_ORDER = ['Handbook', 'Accounts', 'Company metrics', 'Marketing'];
   const groups = {};
   (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
   const sections = Object.keys(groups).sort((a, b) => {
@@ -590,6 +593,7 @@ function sparkline(vals) {
 
 function loadLiveData(apps) {
   const has = n => apps.some(a => a.name === n);
+  if (has('Handbook')) loadHandbookStats();
   if (has('Pre-Authorisations')) loadPreauthStats();
   if (has('Return Rate')) loadReturnRateStats();
   if (has('Quality Audits')) loadQualityStats(); if (has('VIPs')) loadVipStats();
@@ -623,6 +627,28 @@ async function loadForecastStats() {
       setFoot('Actual vs Forecast Covers', `<span class="dot ok"></span><b>${covers}</b>&nbsp;covers · last week` + spark);
     }
   } catch (_) { /* footer simply not shown */ }
+}
+
+// Handbook tile footer: how much this person still has to read. Deliberately
+// quiet when they are up to date — a nagging badge on a page you have finished
+// is how people learn to ignore badges.
+async function loadHandbookStats() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const res = await fetch(SUPABASE_URL + '/functions/v1/handbook-staff', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY,
+                 'Authorization': 'Bearer ' + session.access_token },
+      body: JSON.stringify({ action: 'home' }),
+    });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!d || !d.progress || !d.progress.total) return;
+    setFoot('Handbook', d.unread
+      ? `<span class="soonTag" style="background:rgb(var(--err-rgb) / .10); color:var(--err)">${d.unread} to read</span>`
+      : `<span class="dim">${d.progress.done} of ${d.progress.total} read</span>`);
+  } catch (e) { /* the tile is still useful without a footer */ }
 }
 
 async function loadPreauthStats() {
