@@ -1,4 +1,14 @@
 /* Liquid & Larder — core styles shared by every page (guest + staff). */
+/* v5 (30 Jul 2026): light AND dark. The :root block is the light theme, unchanged from
+   v4 apart from two new tokens (--accent-ink, --chart-accent) that resolve to values
+   already in use, so light renders exactly as it did. The [data-theme="dark"] block at
+   the foot is the confirmed "Deep forest + Linen" palette.
+   Which theme applies is decided by an inline script in each page's <head>, BEFORE these
+   stylesheets load, so there is never a light frame in front of a dark page. That script
+   resolves the stored preference (system | light | dark) to a concrete data-theme on
+   <html>; the user's choice itself lives in localStorage under "ll-theme".
+   The guest page has no such script and no data-theme, so it stays light on purpose —
+   it is a payment-trust surface seen once, and its terms snapshot pairs with a known look. */
 /* v4 (30 Jul 2026): colour tokens. Every colour in the hub now resolves through the
    :root block below — there is no raw hex or rgba() anywhere else in core.css, hub.css
    or any page's <style> block. Values are byte-for-byte what v3 rendered, so v4 is a
@@ -39,15 +49,91 @@
   --shadow-modal:0 14px 44px rgb(0 0 0 / .22);
   --ring:0 0 0 3px rgb(var(--green-rgb) / .14);
 
+  /* --- the brand colour as TEXT or an ICON rather than as a surface ------
+         Card titles, tile names, app-icon strokes, the wordmark mask, the back
+         pill. In light this is --green's value; in dark the two must diverge,
+         because the surface stays a deep green while the text has to lift. ---- */
+  --accent-ink:#1d3e3b;
+
+  /* --- the channels used for INTERACTIVE TINTS: hover washes, track fills,
+         selected rows, chip hover borders. Identical to --green-rgb in light,
+         so nothing changes; in dark it becomes the warm sand, because a 7%
+         wash of the dark green over a dark card is invisible. -------------- */
+  --tint-rgb:29 62 59;
+
+  /* --- the two ambient corner glows, as whole colours so dark can dial them
+         right down rather than inherit a bright sand haze. ----------------- */
+  --glow-a:rgb(var(--sand-rgb) / .5);
+  --glow-b:rgb(var(--green-rgb) / .09);
+
+  /* --- the primary data series. Deliberately NOT --accent-ink: dark's brand
+         text is a warm off-white, and a warm off-white data line would wash
+         out against the card. ------------------------------------------------ */
+  --chart-accent:#1d3e3b;
+
   --r-card:16px; --r-input:10px;
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   DARK — "Deep forest" surfaces with "Linen" brand text. Confirmed 30 Jul 2026
+   after reviewing three candidates on the hub's own components. Every pairing
+   below clears WCAG 2.1: text and chip inks at 4.5:1, decorative at 3:1.
+   Only the values change; not one selector in the hub knows this block exists.
+   ========================================================================== */
+:root[data-theme="dark"] {
+  /* --- base palette ----------------------------------------------------- */
+  --bg:#0f1c1a; --card:#162723; --ink:#e9eae0; --dim:#9dada3;
+  --green:#2a6055;          /* the brand SURFACE: button gradients, active nav, row anchor */
+  --green-hi:#38776a;       /* the lighter stop of that gradient */
+  --sand:#c6b59a; --sand-soft:#1f312c;
+  --err:#e88d70; --ok:#71c98c; --info:#82b3d9;
+
+  /* --- channel triples --------------------------------------------------- */
+  --bg-rgb:15 28 26; --card-rgb:22 39 35; --ink-rgb:233 234 224; --dim-rgb:157 173 163;
+  --green-rgb:42 96 85; --sand-rgb:198 181 154;
+  --err-rgb:232 141 112; --ok-rgb:113 201 140; --info-rgb:130 179 217;
+
+  /* --- surfaces and lines ----------------------------------------------- */
+  --surface:#1c2f2b; --surface-hover:#213631; --sand-hi:#2a4139; --sand-cream:#23342c;
+  --rule:#233830; --rule-hi:#2f473e; --border:#2f473e;
+  --hairline:rgb(var(--sand-rgb) / .15);   /* warm, not green — a green hairline vanishes here */
+
+  /* --- painted ON the green brand surface. Still light, because the button
+         surface is still a deep green: nothing flips. ----------------------- */
+  --on-accent:#f3f2e9; --on-accent-soft:#d5c9b0; --on-accent-warm:#e8dec8;
+
+  /* --- brand text / icons: LINEN. 11.4:1 on a card. Note it sits close in
+         lightness to --ink, so headings read as a warmer white rather than as
+         a distinct hue — the hierarchy comes from Gilda Display and the size.
+         That is the intended look, chosen over a lifted sage which read teal. */
+  --accent-ink:#e4dccb;
+
+  /* --- interactive tints go warm, so a hover wash is actually visible ---- */
+  --tint-rgb:198 181 154;
+
+  /* --- the ambient glows, dialled down: a 50% sand blur would fog the page */
+  --glow-a:rgb(var(--sand-rgb) / .06);
+  --glow-b:rgb(var(--green-rgb) / .38);
+
+  /* --- overlays and elevation. Shadows do almost nothing on a dark surface,
+         so elevation is carried by --hairline and the surface ladder; these
+         remain only so cards and modals still have an edge. ----------------- */
+  --overlay:rgb(5 14 13 / .68);
+  --shadow-card:0 1px 2px rgb(0 0 0 / .30), 0 14px 40px -12px rgb(0 0 0 / .58);
+  --shadow-btn:0 2px 6px rgb(0 0 0 / .42), inset 0 1px 0 rgb(255 255 255 / .07);
+  --shadow-modal:0 18px 54px rgb(0 0 0 / .64);
+  --ring:0 0 0 3px rgb(var(--sand-rgb) / .22);
+
+  color-scheme: dark;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
 body { background:var(--bg); color:var(--ink); font-family:'Montserrat',sans-serif;
        -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
 /* ambient brand-tinted glows */
 body::before, body::after { content:''; position:fixed; border-radius:50%; filter:blur(90px); z-index:-1; pointer-events:none; }
-body::before { width:620px; height:620px; top:-260px; right:-160px; background:rgb(var(--sand-rgb) / .5); }
-body::after { width:520px; height:520px; bottom:-240px; left:-180px; background:rgb(var(--green-rgb) / .09); }
+body::before { width:620px; height:620px; top:-260px; right:-160px; background:var(--glow-a); }
+body::after { width:520px; height:520px; bottom:-240px; left:-180px; background:var(--glow-b); }
 .card { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); }
 button { border:none; border-radius:999px; cursor:pointer;
   background:linear-gradient(180deg, var(--green-hi), var(--green)); color:var(--on-accent);

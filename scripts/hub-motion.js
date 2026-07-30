@@ -1,6 +1,13 @@
 /* ===========================================================================
-   Liquid & Larder — hub motion layer  (v1, 28 Jul 2026)
-   Paired with the "v6 — motion layer" block in /styles/hub.css.
+   Liquid & Larder — hub motion layer  (v2, 30 Jul 2026)
+   Paired with the "v6 — motion layer" and "v8 — theme control" blocks in
+   /styles/hub.css.
+
+   v2 adds the theme control. It is injected rather than written into each page,
+   the same bargain as the rest of this layer: eleven pages get the control and
+   none of them needed a markup change. The theme itself is NOT set here — the
+   inline script in each <head> does that before first paint, because this file
+   is deferred and would arrive too late to stop a flash.
 
    Applied automatically, no page changes needed:
      · KPI values count up on first render and flash green when they change
@@ -355,10 +362,98 @@
     }, true);
   }
 
+
+  /* ---------- theme control (System / Light / Dark) ----------------------
+     The <head> script has already resolved data-theme before first paint, and
+     the user's own choice is in localStorage under "ll-theme". All this does is
+     draw the switch, write the choice, and keep "system" honest by listening
+     for OS changes. Injected into the topbar, or the sidebar footer on the home
+     page; if a page has neither it is simply skipped (the 404 page). --------- */
+
+  var THEME_KEY = 'll-theme';
+  var ICONS = {
+    system: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 20h8"/><path d="M12 17v3"/></svg>',
+    light:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>',
+    dark:   '<svg viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"/></svg>'
+  };
+  var LABEL = { system:'Match my device', light:'Light', dark:'Dark' };
+
+  function readPref() {
+    try { var v = localStorage.getItem(THEME_KEY); return (v === 'light' || v === 'dark') ? v : 'system'; }
+    catch (e) { return 'system'; }
+  }
+  function systemIsDark() {
+    return window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  function applyPref(pref) {
+    var dark = pref === 'dark' || (pref !== 'light' && systemIsDark());
+    var r = document.documentElement;
+    r.setAttribute('data-theme', dark ? 'dark' : 'light');
+    r.setAttribute('data-theme-pref', pref);
+    try { if (pref === 'system') localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, pref); }
+    catch (e) {}
+    syncControls(pref);
+  }
+  function syncControls(pref) {
+    var all = document.querySelectorAll('.ll-theme button');
+    for (var i = 0; i < all.length; i++)
+      all[i].setAttribute('aria-pressed', all[i].getAttribute('data-theme-set') === pref ? 'true' : 'false');
+  }
+  function buildControl() {
+    var pref = readPref();
+    var wrap = document.createElement('div');
+    wrap.className = 'll-theme';
+    wrap.setAttribute('role', 'group');
+    wrap.setAttribute('aria-label', 'Colour theme');
+    ['system', 'light', 'dark'].forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('data-theme-set', k);
+      b.setAttribute('aria-pressed', pref === k ? 'true' : 'false');
+      b.setAttribute('title', LABEL[k]);
+      b.setAttribute('aria-label', LABEL[k]);
+      b.innerHTML = ICONS[k];
+      wrap.appendChild(b);
+    });
+    wrap.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button[data-theme-set]') : null;
+      if (b) applyPref(b.getAttribute('data-theme-set'));
+    });
+    return wrap;
+  }
+  function mountControl() {
+    if (document.querySelector('.ll-theme')) return;      /* already mounted */
+    /* The home page keeps it in the sidebar footer next to Sign out; every
+       other staff page has a .topbar .bar. */
+    var host = document.querySelector('.sideUser') || document.querySelector('.topbar .bar');
+    if (!host) return;
+    if (host.classList.contains('bar')) {
+      /* .bar is justify-content:space-between, so push the title block left and
+         everything after it packs to the right alongside the new control. */
+      var first = host.firstElementChild;
+      if (first) first.style.marginRight = 'auto';
+    }
+    host.appendChild(buildControl());
+    /* The home page also has a compact mobile bar, shown when the sidebar is not. */
+    var mob = document.querySelector('.mobileBar');
+    if (mob && !mob.querySelector('.ll-theme')) mob.insertBefore(buildControl(), mob.lastElementChild);
+    syncControls(readPref());
+  }
+  function watchSystem() {
+    if (!window.matchMedia) return;
+    var mq = matchMedia('(prefers-color-scheme: dark)');
+    var onChange = function () { if (readPref() === 'system') applyPref('system'); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+  LL.theme = { get: readPref, set: applyPref };
+
   /* ---------- boot ------------------------------------------------------- */
-  function tick() { scanKpis(); scanSparks(); bridgeMsgs(); pruneObservers(); }
+  function tick() { mountControl(); scanKpis(); scanSparks(); bridgeMsgs(); pruneObservers(); }
 
   function boot() {
+    mountControl();
+    watchSystem();
     tick();
     /* Pages render their data asynchronously, so watch the document for new
        .kpis / svg.spark arriving. Debounced to one pass per frame. */

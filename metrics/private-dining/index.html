@@ -9,15 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=4">
-<link rel="stylesheet" href="/styles/hub.css?v=7">
-<script defer src="/scripts/hub-motion.js?v=1"></script>
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root { --page-w:1144px; --barA:var(--green); --barB:var(--ok); --barC:var(--info); --barD:var(--chart-clay); --barE:var(--err); --barF:var(--chart-stone); }
+  :root { --page-w:1144px; --barA:var(--chart-accent); --barB:var(--ok); --barC:var(--info); --barD:var(--chart-clay); --barE:var(--err); --barF:var(--chart-stone); }
   .hidden { display:none; }
   .who { display:flex; align-items:center; gap:12px; }
-  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
+  .who .back { font-size:11px; color:var(--accent-ink); text-decoration:none; background:var(--sand-soft);
     padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
   .who .back:hover { background:var(--sand-hi); }
   .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
@@ -28,7 +34,7 @@
   @media (max-width:700px) { .who .meta { display:none; } }
 
   .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
-  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); margin-bottom:6px; }
   .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; max-width:640px; }
 
   .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:24px; }
@@ -45,7 +51,7 @@
   .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
   .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgb(var(--sand-rgb) / 0)); }
   .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
-  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--accent-ink); }
   .kpi .val .u { font-size:17px; color:var(--dim); font-family:'Montserrat',sans-serif; margin-left:2px; }
   .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:9px; }
 
@@ -53,7 +59,7 @@
   @media (max-width:900px) { .grid2 { grid-template-columns:1fr; } }
   .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px; }
   .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:20px; }
-  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); }
   .panelHead .sub { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
 
   .rooms { display:flex; flex-direction:column; gap:14px; }
@@ -61,14 +67,14 @@
   .room .top { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
   .room .nm { font-size:12.5px; font-weight:600; color:var(--ink); }
   .room .ct { font-size:12px; color:var(--dim); font-variant-numeric:tabular-nums; }
-  .room .ct b { color:var(--green); font-weight:600; font-size:13px; }
+  .room .ct b { color:var(--accent-ink); font-weight:600; font-size:13px; }
   .room .rmeta { font-size:10.5px; color:var(--dim); margin-top:2px; font-variant-numeric:tabular-nums; }
   .track { height:8px; background:var(--rule); border-radius:999px; overflow:hidden; }
   .track > span { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,var(--green-hi),var(--green)); }
 
   .dow { display:grid; grid-template-columns:repeat(7,1fr); gap:12px; }
   .dow .col { text-align:center; }
-  .dow .n { font-size:12.5px; font-weight:600; color:var(--green); margin-bottom:7px; font-variant-numeric:tabular-nums; }
+  .dow .n { font-size:12.5px; font-weight:600; color:var(--accent-ink); margin-bottom:7px; font-variant-numeric:tabular-nums; }
   .dow .barbox { height:150px; display:flex; align-items:flex-end; }
   .dow .bar { width:100%; background:linear-gradient(180deg,var(--green-hi),var(--green)); border-radius:6px 6px 0 0; min-height:3px; transition:height .2s; }
   .dow .col.weekend .bar { background:linear-gradient(180deg,var(--barD),var(--chart-clay-deep)); }
@@ -83,20 +89,20 @@
   table.guests .rk { color:var(--dim); font-variant-numeric:tabular-nums; width:22px; }
   table.guests .gn { font-weight:600; color:var(--ink); }
   table.guests .gc { font-size:10.5px; color:var(--dim); margin-top:2px; }
-  table.guests td.num b { color:var(--green); font-weight:600; }
+  table.guests td.num b { color:var(--accent-ink); font-weight:600; }
   table.roomstbl td:first-child { font-weight:600; color:var(--ink); }
-  table.roomstbl tr.tot td { border-top:2px solid var(--hairline); border-bottom:none; font-weight:600; color:var(--green); padding-top:13px; }
+  table.roomstbl tr.tot td { border-top:2px solid var(--hairline); border-bottom:none; font-weight:600; color:var(--accent-ink); padding-top:13px; }
   table.roomstbl tr.tot td:first-child { color:var(--dim); font-size:9px; letter-spacing:.13em; text-transform:uppercase; }
 
   table.roomstbl tbody tr.clk { cursor:pointer; }
   table.roomstbl tbody tr.clk:hover td { background:var(--surface); }
-  table.roomstbl tbody tr.clk td:first-child { color:var(--green); }
+  table.roomstbl tbody tr.clk td:first-child { color:var(--accent-ink); }
   table.roomstbl tbody tr.clk td:first-child::after { content:' ›'; color:var(--dim); font-weight:400; }
 
-  .modal { position:fixed; inset:0; background:rgb(var(--green-rgb) / .30); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
+  .modal { position:fixed; inset:0; background:var(--overlay); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
   .modalCard { background:var(--card); border-radius:var(--r-card); box-shadow:var(--shadow-modal); width:100%; max-width:860px; padding:24px 26px; }
   .modalHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
-  .modalHead .mt { font-family:'Gilda Display',serif; font-size:21px; color:var(--green); }
+  .modalHead .mt { font-family:'Gilda Display',serif; font-size:21px; color:var(--accent-ink); }
   .modalHead .ms { font-size:11.5px; color:var(--dim); margin-top:5px; }
   .modalHead button { border:none; background:var(--sand-soft); width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:17px; line-height:1; color:var(--dim); flex:none; }
   .modalHead button:hover { background:var(--sand-hi); }
@@ -109,7 +115,7 @@
   table.bk tr:last-child td { border-bottom:none; }
   table.bk .bn { font-weight:600; color:var(--ink); }
   table.bk .bc { font-size:10.5px; color:var(--dim); margin-top:2px; }
-  table.bk td.num b { color:var(--green); font-weight:600; }
+  table.bk td.num b { color:var(--accent-ink); font-weight:600; }
   .pill { display:inline-block; font-size:9px; letter-spacing:.07em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:999px; }
   .pill.completed { background:rgb(var(--ok-rgb) / .12); color:var(--ok); }
   .pill.upcoming { background:rgb(var(--info-rgb) / .14); color:var(--info); }

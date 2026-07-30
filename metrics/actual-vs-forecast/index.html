@@ -9,16 +9,22 @@
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=4">
-<link rel="stylesheet" href="/styles/hub.css?v=7">
-<script defer src="/scripts/hub-motion.js?v=1"></script>
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root { --page-w:1144px; --fc:var(--chart-clay); --ac:var(--green); }
+  :root { --page-w:1144px; --fc:var(--chart-clay); --ac:var(--chart-accent); }
   .hidden { display:none; }
   .who { display:flex; align-items:center; gap:12px; }
-  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
+  .who .back { font-size:11px; color:var(--accent-ink); text-decoration:none; background:var(--sand-soft);
     padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
   .who .back:hover { background:var(--sand-hi); }
   .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
@@ -29,7 +35,7 @@
   @media (max-width:700px) { .who .meta { display:none; } }
 
   .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:22px; }
-  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); margin-bottom:6px; }
   .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; }
 
   .venueSeg { display:inline-flex; background:var(--card); border:1px solid var(--hairline); box-shadow:var(--shadow-card);
@@ -43,7 +49,7 @@
   .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
   .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgb(var(--sand-rgb) / 0)); }
   .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
-  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--accent-ink); }
   .kpi .val .u { font-size:18px; color:var(--dim); font-family:'Montserrat',sans-serif; }
   .kpi .delta { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
   .kpi .delta.up { background:rgb(var(--ok-rgb) / .12); color:var(--ok); }
@@ -53,7 +59,7 @@
 
   .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px; }
   .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:18px; }
-  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); }
 
   .seg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; }
   .seg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif;

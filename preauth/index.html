@@ -10,16 +10,22 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=4">
-<link rel="stylesheet" href="/styles/hub.css?v=7">
-<script defer src="/scripts/hub-motion.js?v=1"></script>
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
 <style>
   :root { --page-w:1144px; }
-  .sub a { color:var(--green); text-decoration:none; }
+  .sub a { color:var(--accent-ink); text-decoration:none; }
   .sub a:hover { text-decoration:underline; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:16px; }
   td { padding:14px 10px; }
-  td a { color:var(--green); font-weight:500; }
+  td a { color:var(--accent-ink); font-weight:500; }
   .chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 12px; font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
   .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
   .chip.sent { background:rgb(var(--dim-rgb) / .10); color:var(--dim); }
@@ -154,7 +160,7 @@ $('create').onclick = async () => {
     });
     const link = PAY_URL + '?t=' + request.token;
     await navigator.clipboard.writeText(link).catch(() => {});
-    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--green);font-weight:500">' + esc(link) + '</span>';
+    m.innerHTML = 'Created — link copied to clipboard:<br><span style="color:var(--accent-ink);font-weight:500">' + esc(link) + '</span>';
     m.className = 'msg ok';
     ['gname','gemail','gphone','bdate','maxamt','notes','inotes'].forEach(id => $(id).value = '');
     loadList();

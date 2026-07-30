@@ -11,7 +11,7 @@
   --chart-stone:#9a8f7a;      /* muted stone series: totals line, F bars, secondary axis labels */
   --chart-nodata:#cccccc;     /* a bar or point with no data behind it */
   --err-soft:#c08a6e;         /* first stop of the low-score gradient, runs into --err */
-  --dim-soft:#9aa19d;         /* the year sub-label under a chart axis */
+  --dim-soft:#8b938e;         /* the year sub-label under a chart axis (v8: was #9aa19d, 2.64:1 on --card — now 3.15:1) */
   --dot-off:#cfc8bb;          /* an inactive chip's dot */
 
   /* --- gold / warn family ---------------------------------------------- */
@@ -19,9 +19,33 @@
 
   /* --- VIP tier chips --------------------------------------------------- */
   --tier-plat-bg:#e6e8ec;   --tier-plat-ink:#5b6472;   --tier-plat-bd:#cfd4dc;
-  --tier-gold-bg:#f6e9c6;   --tier-gold-ink:#8a6a12;   --tier-gold-bd:#e6d29a;
+  --tier-gold-bg:#f6e9c6;   --tier-gold-ink:#7d5f0e;   --tier-gold-bd:#e6d29a;  /* v8: ink was #8a6a12, 4.19:1 — now 4.95:1 */
   --tier-silver-bg:#e9edf1; --tier-silver-ink:#5c6b78; --tier-silver-bd:#d3dbe2;
   --tier-bronze-bg:#f0e0d0; --tier-bronze-ink:#8a5a2c; --tier-bronze-bd:#e0c8ad;
+}
+
+/* ==========================================================================
+   v8 (30 Jul 2026) — dark theme, staff layer. The base palette's dark block
+   lives in core.css v5; this is the staff-only half. Two light values were
+   also corrected here for contrast, marked inline above.
+   ========================================================================== */
+:root[data-theme="dark"] {
+  /* --- chart / data-viz palette ----------------------------------------- */
+  --chart-clay:#dba475; --chart-clay-deep:#ba8551; --chart-stone:#b5aa93;
+  --chart-nodata:#3f4f4a; --err-soft:#daa082; --dim-soft:#78897f; --dot-off:#46564f;
+
+  /* --- gold / warn family ---------------------------------------------- */
+  --gold:#dbae5f; --gold-rgb:219 174 95; --gold-ink:#e9c68a;
+
+  /* --- VIP tier chips --------------------------------------------------- */
+  --tier-plat-bg:#26313a;   --tier-plat-ink:#c4cdd9;   --tier-plat-bd:#374551;
+  --tier-gold-bg:#2e2f1d;   --tier-gold-ink:#e6ca8e;   --tier-gold-bd:#434427;
+  --tier-silver-bg:#232f33; --tier-silver-ink:#bdccd7; --tier-silver-bd:#35434a;
+  --tier-bronze-bg:#2f2a1f; --tier-bronze-ink:#e1b690; --tier-bronze-bd:#45392b;
+
+  /* --- the primary data series, lifted so it reads on a dark card (7.4:1).
+         core.css sets the light value; this is the dark one. --------------- */
+  --chart-accent:#82bfae;
 }
 body { padding:0 0 60px; }
 .topbar { position:sticky; top:0; z-index:40; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
@@ -30,20 +54,20 @@ body { padding:0 0 60px; }
   display:flex; justify-content:space-between; align-items:center; gap:14px; }
 .wrap { max-width:var(--page-w,1004px); margin:0 auto; padding:0 22px; animation:rise .5s ease both; }
 @keyframes rise { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
-h1.logo { width:172px; height:20px; background:var(--green);
+h1.logo { width:172px; height:20px; background:var(--accent-ink);
   -webkit-mask:url(/assets/wordmark.svg) no-repeat left center / contain;
   mask:url(/assets/wordmark.svg) no-repeat left center / contain; }
 .sub { color:var(--dim); font-size:10px; letter-spacing:.24em; text-transform:uppercase; margin-top:5px; }
 .card { padding:28px; margin-bottom:26px; }
-.cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:20px; color:var(--green); }
+.cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:20px; color:var(--accent-ink); }
 label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.16em; color:var(--dim);
   margin-bottom:6px; font-weight:600; }
 input, select { width:100%; padding:11px 13px; background:var(--surface); color:var(--ink);
   border:1px solid var(--border); border-radius:var(--r-input); font-size:13.5px; font-family:'Montserrat',sans-serif;
   transition:border-color .15s, box-shadow .15s; }
-input:focus, select:focus { outline:none; border-color:var(--green); box-shadow:var(--ring); background:var(--card); }
+input:focus, select:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); background:var(--card); }
 button { padding:12px 26px; font-size:11px; }
-button.ghost { background:var(--sand-soft); color:var(--green); box-shadow:none; padding:7px 16px; font-size:10px; }
+button.ghost { background:var(--sand-soft); color:var(--accent-ink); box-shadow:none; padding:7px 16px; font-size:10px; }
 button.ghost:hover { transform:none; filter:none; background:var(--sand-hi); }
 button.danger { background:rgb(var(--err-rgb) / .10); color:var(--err); box-shadow:none; padding:7px 16px; font-size:10px; }
 button.danger:hover { transform:none; filter:none; background:rgb(var(--err-rgb) / .16); }
@@ -58,7 +82,7 @@ tbody tr:last-child td { border-bottom:none; }
 .dim { color:var(--dim); font-size:11px; }
 
 /* v4: shared prominent back-link pill, used across app pages (quality, preauth, finance, metrics) */
-a.back { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; letter-spacing:.04em; transition:background .15s; }
+a.back { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--accent-ink); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; letter-spacing:.04em; transition:background .15s; }
 a.back:hover { background:var(--sand-hi); }
 
 /* v5: shared responsive rules — keep every staff page inside the phone viewport.
@@ -159,7 +183,7 @@ button.ll-busy { color:transparent !important; position:relative; pointer-events
 button.ll-busy .ll-spin { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
 button.ll-busy .ll-spin i { display:block; width:14px; height:14px; border-radius:50%;
   border:2px solid rgb(var(--card-rgb) / .28); border-top-color:var(--on-accent); animation:llSpin .7s linear infinite; }
-button.ghost.ll-busy .ll-spin i { border-color:rgb(var(--green-rgb) / .22); border-top-color:var(--green); }
+button.ghost.ll-busy .ll-spin i { border-color:rgb(var(--tint-rgb) / .22); border-top-color:var(--accent-ink); }
 @keyframes llSpin { to { transform:rotate(360deg); } }
 button.ll-done { color:transparent !important; background:var(--ok) !important; position:relative; }
 button.ll-done .ll-tick { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
@@ -174,7 +198,7 @@ button.ll-done .ll-tick svg { width:16px; height:16px; stroke:var(--on-accent); 
 table:not(.matrix) tbody tr td:first-child { position:relative; }
 table:not(.matrix) tbody tr td:first-child::before {
   content:''; position:absolute; left:0; top:6px; bottom:6px; width:2px; border-radius:2px;
-  background:var(--green); transform:scaleY(0); transform-origin:center;
+  background:var(--accent-ink); transform:scaleY(0); transform-origin:center;
   transition:transform var(--t-med) var(--e-out);
 }
 table:not(.matrix) tbody tr:hover td:first-child::before { transform:scaleY(1); }
@@ -247,3 +271,23 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
     scroll-behavior:auto !important;
   }
 }
+
+/* ==========================================================================
+   v8 — the theme control (System / Light / Dark)
+   hub-motion.js injects this into each page's topbar, so no page needs markup.
+   Prefixed .ll- like the rest of the shared layer, and built from tokens only.
+   ========================================================================== */
+.ll-theme { display:inline-flex; align-items:center; gap:2px; flex:none;
+  background:var(--sand-soft); border-radius:999px; padding:3px; }
+.ll-theme button { border:none; background:transparent; box-shadow:none; cursor:pointer;
+  width:28px; height:28px; padding:0; border-radius:999px; display:flex; align-items:center;
+  justify-content:center; color:var(--dim); transition:background var(--t-fast), color var(--t-fast); }
+.ll-theme button svg { width:15px; height:15px; fill:none; stroke:currentColor;
+  stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.ll-theme button:hover { transform:none; filter:none; background:var(--sand-hi); color:var(--accent-ink); }
+.ll-theme button[aria-pressed="true"] { background:var(--card); color:var(--accent-ink);
+  box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
+:root[data-theme="dark"] .ll-theme button[aria-pressed="true"] { box-shadow:0 1px 3px rgb(0 0 0 / .35); }
+/* the home page puts it in the sidebar footer, where space is tighter */
+.sideUser .ll-theme { margin-left:auto; }
+@media (max-width:400px) { .ll-theme button { width:26px; height:26px; } }

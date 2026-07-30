@@ -10,9 +10,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=4">
-<link rel="stylesheet" href="/styles/hub.css?v=7">
-<script defer src="/scripts/hub-motion.js?v=1"></script>
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
 <style>
   /* v4 home shell — sidebar app layout. Shared stylesheets untouched; all overrides live here. */
   body { min-height:100vh; padding:0; }
@@ -22,12 +28,12 @@
   .authWrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
   .login { width:100%; max-width:410px; padding:44px 40px 36px; border-radius:22px; margin:0; animation:rise .55s ease both; }
   @keyframes rise { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-  .wordmark { width:196px; height:23px; background:var(--green);
+  .wordmark { width:196px; height:23px; background:var(--accent-ink);
     -webkit-mask:url(/assets/wordmark.svg) no-repeat left center / contain;
     mask:url(/assets/wordmark.svg) no-repeat left center / contain; }
   .loginBrand { display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
   .loginBrand .sub { color:var(--dim); font-size:10px; letter-spacing:.30em; text-transform:uppercase; font-weight:600; margin:0; }
-  .login h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:24px; color:var(--green); margin-bottom:6px; }
+  .login h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:24px; color:var(--accent-ink); margin-bottom:6px; }
   .login .lead { color:var(--dim); font-size:12.5px; line-height:1.7; margin-bottom:24px; }
   .login .field { margin-bottom:16px; }
   .login button:not(.ghost) { width:100%; margin-top:6px; }
@@ -47,7 +53,7 @@
     font-family:'Gilda Display',serif; font-size:15px;
     box-shadow:0 2px 8px rgb(var(--green-rgb) / .25), inset 0 1px 0 rgb(var(--card-rgb) / .14); }
   .sideBrand .t { line-height:1.25; }
-  .sideBrand .t .n { font-family:'Gilda Display',serif; font-size:15px; color:var(--green); }
+  .sideBrand .t .n { font-family:'Gilda Display',serif; font-size:15px; color:var(--accent-ink); }
   .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
   nav.sideNav { flex:1; overflow-y:auto; }
   .navGroup { margin-bottom:22px; }
@@ -56,7 +62,7 @@
     color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
   a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
     stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
-  a.navItem:hover { background:rgb(var(--green-rgb) / .07); }
+  a.navItem:hover { background:rgb(var(--tint-rgb) / .07); }
   a.navItem.active { background:var(--green); color:var(--on-accent); box-shadow:0 2px 8px rgb(var(--green-rgb) / .28); }
   a.navItem.active svg { stroke:var(--on-accent-soft); }
   a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gold);
@@ -69,7 +75,7 @@
   .sideUser .meta .n { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sideUser .meta .r { font-size:9.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em; font-weight:600; }
   button.iconBtn { margin-left:auto; background:none; box-shadow:none; padding:7px; border-radius:8px; color:var(--dim); }
-  button.iconBtn:hover { background:rgb(var(--green-rgb) / .07); color:var(--green); transform:none; filter:none; }
+  button.iconBtn:hover { background:rgb(var(--tint-rgb) / .07); color:var(--accent-ink); transform:none; filter:none; }
   button.iconBtn svg { width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; display:block; }
 
   main.content { flex:1; min-width:0; padding:34px 44px 70px; max-width:1180px; }
@@ -77,7 +83,7 @@
 
   /* ---------- page header ---------- */
   .pageHead { margin-bottom:26px; animation:rise .5s ease both; }
-  .pageHead .hello { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); }
+  .pageHead .hello { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); }
   .pageHead .date { color:var(--dim); font-size:12.5px; margin-top:6px; }
 
   /* ---------- KPI strip ---------- */
@@ -100,13 +106,13 @@
   a.tile { position:relative; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--hairline);
     border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px 20px; color:var(--ink);
     text-decoration:none; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-  a.tile:hover { transform:translateY(-3px); border-color:rgb(var(--green-rgb) / .22);
+  a.tile:hover { transform:translateY(-3px); border-color:rgb(var(--tint-rgb) / .22);
     box-shadow:0 4px 10px rgb(var(--green-rgb) / .07), 0 24px 56px -12px rgb(var(--green-rgb) / .18); }
   a.tile .top { display:flex; align-items:flex-start; gap:14px; margin-bottom:13px; }
   .appIcon { width:42px; height:42px; border-radius:12px; flex:0 0 42px; display:flex; align-items:center; justify-content:center;
     background:var(--sand-soft); border:1px solid rgb(var(--sand-rgb) / .7); }
-  .appIcon svg { width:19px; height:19px; stroke:var(--green); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
-  a.tile .name { font-family:'Gilda Display',serif; font-size:18.5px; color:var(--green); line-height:1.2; padding-top:2px; padding-right:22px; }
+  .appIcon svg { width:19px; height:19px; stroke:var(--accent-ink); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  a.tile .name { font-family:'Gilda Display',serif; font-size:18.5px; color:var(--accent-ink); line-height:1.2; padding-top:2px; padding-right:22px; }
   a.tile .desc { color:var(--dim); font-size:12.5px; line-height:1.65; flex:1; }
   a.tile .foot { display:flex; align-items:center; gap:8px; margin-top:16px; padding-top:14px;
     border-top:1px solid var(--hairline); font-size:11.5px; color:var(--dim); min-height:37px; }
@@ -116,7 +122,7 @@
   .dot.ok { background:var(--ok); box-shadow:0 0 0 3px rgb(var(--ok-rgb) / .15); }
   .spark { margin-left:auto; }
   a.tile .go { position:absolute; top:20px; right:20px; width:26px; height:26px; border-radius:50%;
-    background:var(--sand-soft); color:var(--green); display:flex; align-items:center; justify-content:center;
+    background:var(--sand-soft); color:var(--accent-ink); display:flex; align-items:center; justify-content:center;
     font-size:13px; opacity:0; transform:translate(-4px,4px); transition:opacity .18s, transform .18s; }
   a.tile:hover .go { opacity:1; transform:none; }
   a.tile.soon { border-style:dashed; background:rgb(var(--card-rgb) / .55); box-shadow:none; cursor:default; }
@@ -128,14 +134,14 @@
   /* ---------- admin ---------- */
   .adminCard { margin-top:40px; padding:28px; }
   .adminHead { margin-bottom:22px; }
-  .adminHead .t { font-family:'Gilda Display',serif; font-size:19px; color:var(--green); }
+  .adminHead .t { font-family:'Gilda Display',serif; font-size:19px; color:var(--accent-ink); }
   .adminHead .sub2 { color:var(--dim); font-size:12px; margin-top:4px; }
   .inviteRow { display:grid; grid-template-columns:1.4fr 1.2fr auto; gap:12px; align-items:end; }
   .inviteRow button { padding:12px 22px; }
   td { padding:11px 10px; }
   .userCell { display:flex; align-items:center; gap:11px; }
   .userCell .av { width:30px; height:30px; border-radius:50%; flex:0 0 30px; background:var(--sand-soft);
-    color:var(--green); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; }
+    color:var(--accent-ink); display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:600; }
   .userCell .n { font-weight:600; font-size:12.5px; }
   .userCell .e { color:var(--dim); font-size:11px; }
   .chip { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; border-radius:999px; padding:4px 11px; }
@@ -164,8 +170,8 @@
 /* ---------- team admin (hat system, super-admin only) ---------- */
 .taTabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-bottom:20px; }
 .taTab { padding:10px 16px; font-size:12.5px; font-weight:600; color:var(--dim); background:none; box-shadow:none; border-radius:8px 8px 0 0; cursor:pointer; }
-.taTab:hover { color:var(--green); background:rgb(var(--green-rgb) / .05); transform:none; filter:none; }
-.taTab.active { color:var(--green); border-bottom:2px solid var(--green); }
+.taTab:hover { color:var(--accent-ink); background:rgb(var(--tint-rgb) / .05); transform:none; filter:none; }
+.taTab.active { color:var(--accent-ink); border-bottom:2px solid var(--accent-ink); }
 .taPanel { display:none; }
 .taPanel.active { display:block; }
 .taHint { color:var(--dim); font-size:11.5px; margin:0 0 16px; line-height:1.6; }
@@ -179,8 +185,8 @@
 table.matrix { border-collapse:collapse; font-size:11.5px; }
 table.matrix th, table.matrix td { border:1px solid var(--hairline); padding:6px 8px; text-align:center; }
 table.matrix th.hatCol, table.matrix td.hatCol { text-align:left; position:sticky; left:0; background:var(--card); white-space:nowrap; font-weight:600; }
-table.matrix th.appGroup { background:var(--sand-soft); color:var(--green); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
-table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--green); cursor:pointer; }
+table.matrix th.appGroup { background:var(--sand-soft); color:var(--accent-ink); font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+table.matrix input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent-ink); cursor:pointer; }
 .taSelect { padding:6px 8px; font-size:12px; width:auto; max-width:100%; }
 .miniBtn { padding:6px 12px; font-size:11.5px; }
 

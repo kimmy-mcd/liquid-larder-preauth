@@ -9,15 +9,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=4">
-<link rel="stylesheet" href="/styles/hub.css?v=7">
-<script defer src="/scripts/hub-motion.js?v=1"></script>
+<!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
+     frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
+     <html> holds what that resolved to. Kept inline and tiny on purpose — an external
+     file would be a second round trip in front of first paint. Paired with
+     /scripts/hub-motion.js, which draws the control and writes the preference. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
   :root { --page-w:1144px; }
   .hidden { display:none !important; }
   .who { display:flex; align-items:center; gap:12px; }
-  .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
+  .who .back { font-size:11px; color:var(--accent-ink); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
   .who .back:hover { background:var(--sand-hi); }
   .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green)); color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
   .who .meta { text-align:right; line-height:1.35; }
@@ -26,7 +32,7 @@
   @media (max-width:700px){ .who .meta { display:none; } }
 
   .pageHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom:20px; }
-  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--green); margin-bottom:6px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); margin-bottom:6px; }
   .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.6; max-width:640px; }
 
   /* view switch */
@@ -46,7 +52,7 @@
   .chipbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:18px; }
   .chipbar .lead { font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-right:2px; }
   .vchip { border:1px solid var(--hairline); background:var(--card); color:var(--dim); font-size:11px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer; transition:all .14s; box-shadow:none; letter-spacing:.02em; }
-  .vchip:hover { border-color:rgb(var(--green-rgb) / .25); }
+  .vchip:hover { border-color:rgb(var(--tint-rgb) / .25); }
   .vchip.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); border-color:transparent; }
   .fchip { border:1px solid var(--hairline); background:var(--card); color:var(--dim); font-size:11px; font-weight:600; padding:7px 14px; border-radius:999px; cursor:pointer; box-shadow:none; }
   .fchip.on { background:rgb(var(--gold-rgb) / .13); color:var(--gold-ink); border-color:rgb(var(--gold-rgb) / .35); }
@@ -55,13 +61,13 @@
   .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
   .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgb(var(--sand-rgb) / 0)); }
   .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
-  .kpi .val { font-family:'Gilda Display',serif; font-size:34px; line-height:1; color:var(--green); }
+  .kpi .val { font-family:'Gilda Display',serif; font-size:34px; line-height:1; color:var(--accent-ink); }
   .kpi .val .u { font-size:15px; color:var(--dim); font-family:'Montserrat',sans-serif; margin-left:2px; }
   .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:9px; }
 
   .panel { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:22px 24px; margin-bottom:20px; }
   .panelHead { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:14px; margin-bottom:18px; }
-  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--green); }
+  .panelHead .t { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); }
   .panelHead .sub { font-size:10.5px; color:var(--dim); letter-spacing:.03em; }
 
   /* guest table */
@@ -69,8 +75,8 @@
   table.vt th { text-align:left; font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; padding:0 10px 11px; border-bottom:1px solid var(--hairline); white-space:nowrap; }
   table.vt th.num, table.vt td.num { text-align:right; font-variant-numeric:tabular-nums; }
   table.vt th.sortable { cursor:pointer; user-select:none; }
-  table.vt th.sortable:hover { color:var(--green); }
-  table.vt th .arrow { color:var(--green); font-size:8px; }
+  table.vt th.sortable:hover { color:var(--accent-ink); }
+  table.vt th .arrow { color:var(--accent-ink); font-size:8px; }
   table.vt td { padding:11px 10px; border-bottom:1px solid var(--rule); vertical-align:top; }
   table.vt tr:last-child td { border-bottom:none; }
   table.vt tbody tr.clk { cursor:pointer; }
@@ -78,7 +84,7 @@
   table.vt .rk { color:var(--dim); font-variant-numeric:tabular-nums; width:22px; }
   table.vt .gn { font-weight:600; color:var(--ink); }
   table.vt .gc { font-size:10.5px; color:var(--dim); margin-top:2px; }
-  table.vt td.num b { color:var(--green); font-weight:600; }
+  table.vt td.num b { color:var(--accent-ink); font-weight:600; }
   table.vt .note { color:var(--dim); font-size:11px; line-height:1.5; max-width:230px; }
   .up { color:var(--info); font-weight:600; }
   .lapsedTag { color:var(--err); font-size:9.5px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
@@ -96,7 +102,7 @@
   .outreachBox { border-top:1px solid var(--hairline); margin-top:16px; padding-top:14px; }
   .outreachBox .oh { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:11px; }
   .outreachBox .oh .l { font-size:9px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:600; }
-  .outreachBox .oh a { font-size:10.5px; color:var(--green); font-weight:600; text-decoration:none; }
+  .outreachBox .oh a { font-size:10.5px; color:var(--accent-ink); font-weight:600; text-decoration:none; }
   .outreachBox .oh a:hover { text-decoration:underline; }
   .oitem { display:grid; grid-template-columns:92px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule); }
   .oitem:last-child { border-bottom:none; }
@@ -115,10 +121,10 @@
   .tier.crit { background:rgb(var(--err-rgb) / .12); color:var(--err); border:1px solid rgb(var(--err-rgb) / .25); }
 
   /* modal */
-  .modal { position:fixed; inset:0; background:rgb(var(--green-rgb) / .30); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
+  .modal { position:fixed; inset:0; background:var(--overlay); display:flex; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:60; overflow:auto; }
   .modalCard { background:var(--card); border-radius:var(--r-card); box-shadow:var(--shadow-modal); width:100%; max-width:880px; padding:24px 26px; }
   .modalHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:14px; }
-  .modalHead .mt { font-family:'Gilda Display',serif; font-size:22px; color:var(--green); }
+  .modalHead .mt { font-family:'Gilda Display',serif; font-size:22px; color:var(--accent-ink); }
   .modalHead .ms { font-size:11.5px; color:var(--dim); margin-top:6px; line-height:1.6; }
   .modalHead button { border:none; background:var(--sand-soft); width:34px; height:34px; border-radius:50%; cursor:pointer; font-size:17px; line-height:1; color:var(--dim); flex:none; }
   .modalHead button:hover { background:var(--sand-hi); }
@@ -134,7 +140,7 @@
   table.bk tr:last-child td { border-bottom:none; }
   table.bk .bn { font-weight:600; color:var(--ink); }
   table.bk .bc { font-size:10.5px; color:var(--dim); margin-top:2px; }
-  table.bk td.num b { color:var(--green); font-weight:600; }
+  table.bk td.num b { color:var(--accent-ink); font-weight:600; }
   .pill { display:inline-block; font-size:9px; letter-spacing:.07em; text-transform:uppercase; font-weight:600; padding:3px 9px; border-radius:999px; }
   .pill.completed { background:rgb(var(--ok-rgb) / .12); color:var(--ok); }
   .pill.upcoming { background:rgb(var(--info-rgb) / .14); color:var(--info); }
@@ -143,7 +149,7 @@
   /* monthly bar chart */
   .months { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:8px; align-items:end; min-height:160px; }
   .months .mcol { text-align:center; display:flex; flex-direction:column; justify-content:flex-end; height:180px; }
-  .months .mn { font-size:10.5px; color:var(--green); font-weight:600; font-variant-numeric:tabular-nums; margin-bottom:6px; }
+  .months .mn { font-size:10.5px; color:var(--accent-ink); font-weight:600; font-variant-numeric:tabular-nums; margin-bottom:6px; }
   .months .mbar { width:100%; background:linear-gradient(180deg,var(--green-hi),var(--green)); border-radius:5px 5px 0 0; min-height:3px; transition:height .2s; }
   .months .ml { font-size:9px; letter-spacing:.04em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-top:8px; }
 
@@ -154,13 +160,13 @@
   /* arriving soon */
   .arrHead { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; }
   .arrVenue { margin-bottom:24px; }
-  .arrVenue > .vh { font-family:'Gilda Display',serif; font-size:17px; color:var(--green); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:baseline; }
+  .arrVenue > .vh { font-family:'Gilda Display',serif; font-size:17px; color:var(--accent-ink); margin-bottom:10px; padding-bottom:7px; border-bottom:1px solid var(--hairline); display:flex; justify-content:space-between; align-items:baseline; }
   .arrVenue > .vh .c { font-size:10.5px; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
   .acard { display:grid; grid-template-columns:78px 1fr; gap:16px; padding:14px 0; border-bottom:1px solid var(--rule); }
   .arrVenue .acard:last-child { border-bottom:none; }
   .acard .tm .t { font-size:16px; font-weight:600; color:var(--ink); font-variant-numeric:tabular-nums; }
   .acard .tm .p { font-size:10.5px; color:var(--dim); margin-top:4px; }
-  .acard .tm .tb { font-size:10.5px; color:var(--green); font-weight:600; margin-top:3px; }
+  .acard .tm .tb { font-size:10.5px; color:var(--accent-ink); font-weight:600; margin-top:3px; }
   .acard .tm .dt { font-size:10px; color:var(--dim); margin-top:3px; }
   .acard .nm { font-size:14px; font-weight:600; color:var(--ink); }
   .acard .chipline { margin-top:4px; }
@@ -170,10 +176,10 @@
   .acard .bknote { font-size:11.5px; color:var(--ink); line-height:1.55; margin-top:8px; background:rgb(var(--info-rgb) / .07); border-left:3px solid var(--info); border-radius:0 8px 8px 0; padding:8px 12px; white-space:pre-wrap; }
   .acard .bknote .lbl { display:block; font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--info); font-weight:700; margin-bottom:4px; }
   .acard .anote .lbl { display:block; font-size:8.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); font-weight:700; margin-bottom:4px; }
-  .printBtn { border:1px solid var(--hairline); background:var(--card); color:var(--green); font-size:11px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; }
+  .printBtn { border:1px solid var(--hairline); background:var(--card); color:var(--accent-ink); font-size:11px; font-weight:600; padding:9px 16px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; }
   .printBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
   .printHead { display:none; }
-  .printHead h3 { font-family:'Gilda Display',serif; font-size:21px; color:var(--green); }
+  .printHead h3 { font-family:'Gilda Display',serif; font-size:21px; color:var(--accent-ink); }
   .printHead .d { font-size:11px; color:var(--dim); margin-top:4px; }
   @media print {
     body::before, body::after { display:none; }
@@ -839,7 +845,7 @@ function renderArrivals(list){
   const byV={}; shown.forEach(a=>{ (byV[a.date]=byV[a.date]||[]).push(a); });
   $('arrContent').innerHTML=Object.keys(byV).sort().map(v=>{
     const rows=byV[v].slice().sort((a,b)=>((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||'')));
-    return '<div class="arrVenue"><div class="vh"><span>'+esc(fmtDate(v))+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(a=>arrCard(a).replace('<div class="chipline">','<div class="acVenue" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--green);font-weight:600;margin:0 0 6px;">'+esc(a.venue||'')+'</div><div class="chipline">')).join('')+'</div>';
+    return '<div class="arrVenue"><div class="vh"><span>'+esc(fmtDate(v))+'</span><span class="c">'+rows.length+' arriving</span></div>'+rows.map(a=>arrCard(a).replace('<div class="chipline">','<div class="acVenue" style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-ink);font-weight:600;margin:0 0 6px;">'+esc(a.venue||'')+'</div><div class="chipline">')).join('')+'</div>';
   }).join('');
 }
 $('arrSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{ $('arrSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); arrDays=+b.dataset.d; loadArrivals(); });
