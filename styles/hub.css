@@ -288,6 +288,10 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
 .ll-theme button[aria-pressed="true"] { background:var(--card); color:var(--accent-ink);
   box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
 :root[data-theme="dark"] .ll-theme button[aria-pressed="true"] { box-shadow:0 1px 3px rgb(0 0 0 / .35); }
-/* the home page puts it in the sidebar footer, where space is tighter */
-.sideUser .ll-theme { margin-left:auto; }
+/* The home page's sidebar footer is one tight flex row — avatar, name, sign-out.
+   Squeezing the control in beside them truncated the name to an ellipsis and
+   wrapped the role onto two lines, so give it a line of its own underneath.
+   .sideUser sets no flex-wrap of its own, so this wins without a specificity fight. */
+.sideUser { flex-wrap:wrap; }
+.sideUser .ll-theme { flex:0 0 100%; margin-left:0; margin-top:12px; justify-content:center; }
 @media (max-width:400px) { .ll-theme button { width:26px; height:26px; } }
