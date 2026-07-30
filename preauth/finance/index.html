@@ -10,8 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/hub.css?v=6">
+<link rel="stylesheet" href="/styles/core.css?v=4">
+<link rel="stylesheet" href="/styles/hub.css?v=7">
 <script defer src="/scripts/hub-motion.js?v=1"></script>
 <style>
   :root { --page-w:1244px; }
@@ -23,14 +23,14 @@
   .num { text-align:right; white-space:nowrap; }
   .chip { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:3px 10px; font-size:9px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
   .chip::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; flex:none; }
-  .chip.sent { background:rgba(100,108,104,.10); color:var(--dim); }
-  .chip.card_saved, .chip.charged { background:rgba(66,112,74,.10); color:var(--ok); }
-  .chip.hold_placed, .chip.refunded { background:rgba(62,106,138,.10); color:var(--info); }
-  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgba(164,78,51,.10); color:var(--err); }
-  .chip.released { background:rgba(100,108,104,.08); color:var(--dim); }
+  .chip.sent { background:rgb(var(--dim-rgb) / .10); color:var(--dim); }
+  .chip.card_saved, .chip.charged { background:rgb(var(--ok-rgb) / .10); color:var(--ok); }
+  .chip.hold_placed, .chip.refunded { background:rgb(var(--info-rgb) / .10); color:var(--info); }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgb(var(--err-rgb) / .10); color:var(--err); }
+  .chip.released { background:rgb(var(--dim-rgb) / .08); color:var(--dim); }
   select.inline, input.inline { width:100%; padding:8px 9px; font-size:12px; }
   .totals { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
-  .totals .box { background:linear-gradient(135deg, var(--sand-soft), #faf6ec); border-radius:14px; padding:16px 18px; }
+  .totals .box { background:linear-gradient(135deg, var(--sand-soft), var(--sand-cream)); border-radius:14px; padding:16px 18px; }
   .totals .box .v { font-size:22px; font-family:'Gilda Display',serif; margin-top:4px; color:var(--green); }
   .totals .box .d { font-size:11px; color:var(--dim); margin-top:6px; }
   @media (max-width:700px) { .desktop-only { display:none; } }

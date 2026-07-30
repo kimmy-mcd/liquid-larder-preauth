@@ -10,8 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/hub.css?v=6">
+<link rel="stylesheet" href="/styles/core.css?v=4">
+<link rel="stylesheet" href="/styles/hub.css?v=7">
 <script defer src="/scripts/hub-motion.js?v=1"></script>
 <style>
   :root { --page-w:1144px; }
@@ -22,26 +22,26 @@
   td a { color:var(--green); font-weight:500; }
   .chip { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 12px; font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; white-space:nowrap; }
   .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; flex:none; }
-  .chip.sent { background:rgba(100,108,104,.10); color:var(--dim); }
-  .chip.card_saved, .chip.charged { background:rgba(66,112,74,.10); color:var(--ok); }
-  .chip.hold_placed, .chip.refunded { background:rgba(62,106,138,.10); color:var(--info); }
+  .chip.sent { background:rgb(var(--dim-rgb) / .10); color:var(--dim); }
+  .chip.card_saved, .chip.charged { background:rgb(var(--ok-rgb) / .10); color:var(--ok); }
+  .chip.hold_placed, .chip.refunded { background:rgb(var(--info-rgb) / .10); color:var(--info); }
   /* a hold that is live — funds authorised, not yet charged or released — is the
      one genuinely in-progress state on this page, so its dot breathes.
      prefers-reduced-motion in hub.css switches this off with everything else. */
   .chip.hold_placed::before { animation:llHoldLive 2.6s var(--e-out) infinite; }
-  @keyframes llHoldLive { 0%,100% { box-shadow:0 0 0 0 rgba(62,106,138,.45); }
-                          50%     { box-shadow:0 0 0 5px rgba(62,106,138,0); } }
-  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgba(164,78,51,.10); color:var(--err); }
-  .chip.released { background:rgba(100,108,104,.08); color:var(--dim); }
+  @keyframes llHoldLive { 0%,100% { box-shadow:0 0 0 0 rgb(var(--info-rgb) / .45); }
+                          50%     { box-shadow:0 0 0 5px rgb(var(--info-rgb) / 0); } }
+  .chip.hold_failed, .chip.cancelled, .chip.expired { background:rgb(var(--err-rgb) / .10); color:var(--err); }
+  .chip.released { background:rgb(var(--dim-rgb) / .08); color:var(--dim); }
   select.inline { width:auto; padding:8px 12px; font-size:11px; }
-  #overlay { display:none; position:fixed; inset:0; background:rgba(22,48,46,.40); z-index:50; align-items:center; justify-content:center; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+  #overlay { display:none; position:fixed; inset:0; background:var(--overlay); z-index:50; align-items:center; justify-content:center; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
   #overlay .card { max-width:460px; width:92%; margin:0; max-height:90vh; overflow-y:auto; border-radius:20px; animation:pop .25s ease both; }
   @keyframes pop { from { opacity:0; transform:scale(.97) translateY(8px); } to { opacity:1; transform:none; } }
   #overlay .row { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-bottom:1px solid var(--hairline); font-size:13px; }
   #overlay .row span:first-child { color:var(--dim); }
   #overlay .row span:last-child { font-weight:500; text-align:right; }
   #overlay label { margin-top:16px; }
-  .warn { background:rgba(164,78,51,.08); color:var(--err); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.55; margin-top:10px; }
+  .warn { background:rgb(var(--err-rgb) / .08); color:var(--err); border-radius:10px; padding:10px 12px; font-size:12px; line-height:1.55; margin-top:10px; }
   @media (max-width:700px) { .desktop-only { display:none; } }
 </style>
 </head>
@@ -233,7 +233,7 @@ window.noteDlg = id => {
     <div class="cardTitle">Internal notes</div>
     ${dlgHeader(r)}
     <label>Internal notes (staff only)</label>
-    <textarea id="inoteBox" rows="4" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--r-input);border:1px solid #e6dfd2;background:#fbfaf7;resize:vertical">${esc(r.internal_notes || '')}</textarea>
+    <textarea id="inoteBox" rows="4" style="width:100%;font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--r-input);border:1px solid var(--border);background:var(--surface);resize:vertical">${esc(r.internal_notes || '')}</textarea>
     <p class="dim" style="font-size:12px;margin:10px 0 0">Never shown to the customer, in emails, or on the receipt.</p>
     <div style="margin-top:18px; display:flex; gap:10px">
       <button id="inoteGo">Save notes</button>

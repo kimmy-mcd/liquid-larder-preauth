@@ -10,8 +10,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/hub.css?v=6">
+<link rel="stylesheet" href="/styles/core.css?v=4">
+<link rel="stylesheet" href="/styles/hub.css?v=7">
 <script defer src="/scripts/hub-motion.js?v=1"></script>
 <style>
   /* v4 home shell — sidebar app layout. Shared stylesheets untouched; all overrides live here. */
@@ -39,13 +39,13 @@
   #homeView { display:flex; min-height:100vh; }
   aside.side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh;
     display:flex; flex-direction:column; padding:26px 18px 20px;
-    border-right:1px solid var(--hairline); background:rgba(250,248,244,.6); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+    border-right:1px solid var(--hairline); background:rgb(var(--bg-rgb) / .6); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
   .sideBrand { display:flex; align-items:center; gap:12px; padding:0 8px 24px; }
   .monogram { width:38px; height:38px; border-radius:11px; flex:0 0 38px;
-    background:linear-gradient(150deg, var(--green-hi), var(--green)); color:#e9dfce;
+    background:linear-gradient(150deg, var(--green-hi), var(--green)); color:var(--on-accent-warm);
     display:flex; align-items:center; justify-content:center;
     font-family:'Gilda Display',serif; font-size:15px;
-    box-shadow:0 2px 8px rgba(29,62,59,.25), inset 0 1px 0 rgba(255,255,255,.14); }
+    box-shadow:0 2px 8px rgb(var(--green-rgb) / .25), inset 0 1px 0 rgb(var(--card-rgb) / .14); }
   .sideBrand .t { line-height:1.25; }
   .sideBrand .t .n { font-family:'Gilda Display',serif; font-size:15px; color:var(--green); }
   .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
@@ -56,20 +56,20 @@
     color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
   a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
     stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
-  a.navItem:hover { background:rgba(29,62,59,.07); }
-  a.navItem.active { background:var(--green); color:#faf8f4; box-shadow:0 2px 8px rgba(29,62,59,.28); }
-  a.navItem.active svg { stroke:#dcd1c0; }
-  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:#9a6b2f;
-    background:rgba(154,107,47,.12); border-radius:999px; padding:2px 8px; }
+  a.navItem:hover { background:rgb(var(--green-rgb) / .07); }
+  a.navItem.active { background:var(--green); color:var(--on-accent); box-shadow:0 2px 8px rgb(var(--green-rgb) / .28); }
+  a.navItem.active svg { stroke:var(--on-accent-soft); }
+  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gold);
+    background:rgb(var(--gold-rgb) / .12); border-radius:999px; padding:2px 8px; }
   .sideUser { border-top:1px solid var(--hairline); padding-top:16px; display:flex; align-items:center; gap:11px; }
   .avatar { width:36px; height:36px; border-radius:50%; flex:0 0 36px;
-    background:linear-gradient(135deg, var(--green-hi), var(--green)); color:#faf8f4;
+    background:linear-gradient(135deg, var(--green-hi), var(--green)); color:var(--on-accent);
     display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
   .sideUser .meta { line-height:1.3; min-width:0; }
   .sideUser .meta .n { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .sideUser .meta .r { font-size:9.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.16em; font-weight:600; }
   button.iconBtn { margin-left:auto; background:none; box-shadow:none; padding:7px; border-radius:8px; color:var(--dim); }
-  button.iconBtn:hover { background:rgba(29,62,59,.07); color:var(--green); transform:none; filter:none; }
+  button.iconBtn:hover { background:rgb(var(--green-rgb) / .07); color:var(--green); transform:none; filter:none; }
   button.iconBtn svg { width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; display:block; }
 
   main.content { flex:1; min-width:0; padding:34px 44px 70px; max-width:1180px; }
@@ -89,22 +89,22 @@
   .kpi .d { font-size:11px; margin-top:8px; font-weight:600; }
   .kpi .d.up { color:var(--ok); } .kpi .d.down { color:var(--err); } .kpi .d.flat { color:var(--dim); font-weight:500; }
   .kpi::after { content:''; position:absolute; left:20px; right:20px; bottom:0; height:2px;
-    background:linear-gradient(90deg, var(--sand), rgba(220,209,192,0)); }
+    background:linear-gradient(90deg, var(--sand), rgb(var(--sand-rgb) / 0)); }
 
   /* ---------- sections + tiles ---------- */
   .sectionRow { display:flex; align-items:center; gap:14px; margin:34px 0 16px; }
   .sectionRow:first-child { margin-top:0; }
   .sectionRow .t { font-size:10.5px; letter-spacing:.28em; text-transform:uppercase; color:var(--dim); font-weight:600; white-space:nowrap; }
-  .sectionRow .rule { flex:1; height:1px; background:linear-gradient(90deg, var(--hairline), rgba(29,62,59,0)); }
+  .sectionRow .rule { flex:1; height:1px; background:linear-gradient(90deg, var(--hairline), rgb(var(--green-rgb) / 0)); }
   .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:18px; }
   a.tile { position:relative; display:flex; flex-direction:column; background:var(--card); border:1px solid var(--hairline);
     border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:24px 26px 20px; color:var(--ink);
     text-decoration:none; overflow:hidden; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
-  a.tile:hover { transform:translateY(-3px); border-color:rgba(29,62,59,.22);
-    box-shadow:0 4px 10px rgba(29,62,59,.07), 0 24px 56px -12px rgba(29,62,59,.18); }
+  a.tile:hover { transform:translateY(-3px); border-color:rgb(var(--green-rgb) / .22);
+    box-shadow:0 4px 10px rgb(var(--green-rgb) / .07), 0 24px 56px -12px rgb(var(--green-rgb) / .18); }
   a.tile .top { display:flex; align-items:flex-start; gap:14px; margin-bottom:13px; }
   .appIcon { width:42px; height:42px; border-radius:12px; flex:0 0 42px; display:flex; align-items:center; justify-content:center;
-    background:var(--sand-soft); border:1px solid rgba(220,209,192,.7); }
+    background:var(--sand-soft); border:1px solid rgb(var(--sand-rgb) / .7); }
   .appIcon svg { width:19px; height:19px; stroke:var(--green); stroke-width:1.7; fill:none; stroke-linecap:round; stroke-linejoin:round; }
   a.tile .name { font-family:'Gilda Display',serif; font-size:18.5px; color:var(--green); line-height:1.2; padding-top:2px; padding-right:22px; }
   a.tile .desc { color:var(--dim); font-size:12.5px; line-height:1.65; flex:1; }
@@ -112,14 +112,14 @@
     border-top:1px solid var(--hairline); font-size:11.5px; color:var(--dim); min-height:37px; }
   a.tile .foot b { color:var(--ink); font-weight:600; }
   .dot { width:7px; height:7px; border-radius:50%; flex:0 0 7px; }
-  .dot.warn { background:#9a6b2f; box-shadow:0 0 0 3px rgba(154,107,47,.15); }
-  .dot.ok { background:var(--ok); box-shadow:0 0 0 3px rgba(66,112,74,.15); }
+  .dot.warn { background:var(--gold); box-shadow:0 0 0 3px rgb(var(--gold-rgb) / .15); }
+  .dot.ok { background:var(--ok); box-shadow:0 0 0 3px rgb(var(--ok-rgb) / .15); }
   .spark { margin-left:auto; }
   a.tile .go { position:absolute; top:20px; right:20px; width:26px; height:26px; border-radius:50%;
     background:var(--sand-soft); color:var(--green); display:flex; align-items:center; justify-content:center;
     font-size:13px; opacity:0; transform:translate(-4px,4px); transition:opacity .18s, transform .18s; }
   a.tile:hover .go { opacity:1; transform:none; }
-  a.tile.soon { border-style:dashed; background:rgba(255,255,255,.55); box-shadow:none; cursor:default; }
+  a.tile.soon { border-style:dashed; background:rgb(var(--card-rgb) / .55); box-shadow:none; cursor:default; }
   a.tile.soon:hover { transform:none; box-shadow:none; border-color:var(--hairline); }
   a.tile.soon .name, a.tile.soon .desc, a.tile.soon .appIcon { opacity:.55; }
   .soonTag { margin-left:auto; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600;
@@ -140,8 +140,8 @@
   .userCell .e { color:var(--dim); font-size:11px; }
   .chip { display:inline-flex; align-items:center; gap:6px; font-size:10.5px; font-weight:600; border-radius:999px; padding:4px 11px; }
   .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
-  .chip.active { color:var(--ok); background:rgba(66,112,74,.10); }
-  .chip.disabled { color:var(--err); background:rgba(164,78,51,.10); }
+  .chip.active { color:var(--ok); background:rgb(var(--ok-rgb) / .10); }
+  .chip.disabled { color:var(--err); background:rgb(var(--err-rgb) / .10); }
 
   /* ---------- responsive ---------- */
   @media (max-width:920px) {
@@ -164,7 +164,7 @@
 /* ---------- team admin (hat system, super-admin only) ---------- */
 .taTabs { display:flex; gap:4px; border-bottom:1px solid var(--hairline); margin-bottom:20px; }
 .taTab { padding:10px 16px; font-size:12.5px; font-weight:600; color:var(--dim); background:none; box-shadow:none; border-radius:8px 8px 0 0; cursor:pointer; }
-.taTab:hover { color:var(--green); background:rgba(29,62,59,.05); transform:none; filter:none; }
+.taTab:hover { color:var(--green); background:rgb(var(--green-rgb) / .05); transform:none; filter:none; }
 .taTab.active { color:var(--green); border-bottom:2px solid var(--green); }
 .taPanel { display:none; }
 .taPanel.active { display:block; }
@@ -311,6 +311,11 @@ main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdm
 </div>
 
 <script>
+/* Colours live in core.css v4 / hub.css v7 as tokens — read them, never hardcode
+   (see the HOUSE RULE at the top of core.css). cssa() rebuilds an alpha variant
+   from a channel triple, e.g. cssa('--green-rgb', .06). */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cssa = (n, a) => `rgba(${cssv(n).split(/\s+/).join(',')},${a})`;
 const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const ADMIN_FN = SUPABASE_URL + '/functions/v1/portal-admin';
@@ -515,8 +520,8 @@ function sparkline(vals) {
   const pts = vals.map((v, i) => [2 + i * (82 / (vals.length - 1)), 21 - ((v - min) / span) * 15]);
   const path = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
   return `<svg class="spark" width="86" height="26" viewBox="0 0 86 26" fill="none" aria-hidden="true">
-    <path d="${path}" stroke="#42704a" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="${path} L 84 26 L 2 26 Z" fill="rgba(66,112,74,.09)"/></svg>`;
+    <path d="${path}" stroke="${cssv('--ok')}" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="${path} L 84 26 L 2 26 Z" fill="${cssa('--ok-rgb',.09)}"/></svg>`;
 }
 
 function loadLiveData(apps) {

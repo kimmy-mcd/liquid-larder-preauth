@@ -1,13 +1,44 @@
 /* Liquid & Larder — core styles shared by every page (guest + staff). */
-/* v3: warm paper base, brand green + sand as accents. */
+/* v4 (30 Jul 2026): colour tokens. Every colour in the hub now resolves through the
+   :root block below — there is no raw hex or rgba() anywhere else in core.css, hub.css
+   or any page's <style> block. Values are byte-for-byte what v3 rendered, so v4 is a
+   pure refactor with no visual change; it exists so a second (dark) set of these tokens
+   can be dropped in later without touching a single page.
+   HOUSE RULE: a raw colour literal outside this block is a bug. Need an opacity?
+   Use the channel triples — rgb(var(--green-rgb) / .08) — never rgba(29,62,59,.08). */
 :root {
+  /* --- base palette ----------------------------------------------------- */
   --bg:#faf8f4; --card:#ffffff; --ink:#242c2a; --dim:#646c68;
   --green:#1d3e3b; --green-hi:#28524d; --sand:#dcd1c0; --sand-soft:#f2ecdf;
   --err:#a44e33; --ok:#42704a; --info:#3e6a8a;
-  --hairline:rgba(29,62,59,.08);
-  --shadow-card:0 1px 2px rgba(29,62,59,.04), 0 12px 40px -8px rgba(29,62,59,.10);
-  --shadow-btn:0 2px 6px rgba(29,62,59,.30), inset 0 1px 0 rgba(255,255,255,.12);
-  --ring:0 0 0 3px rgba(29,62,59,.14);
+
+  /* --- the same palette as space-separated channels, so any opacity can be
+         written as rgb(var(--x-rgb) / .08) --------------------------------- */
+  --bg-rgb:250 248 244; --card-rgb:255 255 255; --ink-rgb:36 44 42; --dim-rgb:100 108 104;
+  --green-rgb:29 62 59; --sand-rgb:220 209 192;
+  --err-rgb:164 78 51; --ok-rgb:66 112 74; --info-rgb:62 106 138;
+
+  /* --- surfaces and lines ----------------------------------------------- */
+  --surface:#fbfaf7;        /* inset surface: inputs, textareas, sub-panels, data-table row hover */
+  --surface-hover:#faf7f0;  /* generic table row hover (hub.css) */
+  --sand-hi:#eae2cf;        /* hover state of --sand-soft: ghost buttons, back pill, app icon */
+  --sand-cream:#faf6ec;     /* warm second stop of the sand gradient on amount / total boxes */
+  --rule:#f0ece3;           /* light divider inside data tables, and the skeleton base */
+  --rule-hi:#f8f5ee;        /* skeleton shimmer highlight */
+  --border:#e6dfd2;         /* solid control border, stronger than --hairline */
+  --hairline:rgb(var(--green-rgb) / .08);
+
+  /* --- painted ON the green brand surface: buttons, active nav, avatars.
+         These must stay light whatever the theme, so they are NOT --bg. ---- */
+  --on-accent:#faf8f4; --on-accent-soft:#dcd1c0; --on-accent-warm:#e9dfce;
+
+  /* --- overlays and elevation ------------------------------------------- */
+  --overlay:rgb(22 48 46 / .40);   /* full-screen modal scrim */
+  --shadow-card:0 1px 2px rgb(var(--green-rgb) / .04), 0 12px 40px -8px rgb(var(--green-rgb) / .10);
+  --shadow-btn:0 2px 6px rgb(var(--green-rgb) / .30), inset 0 1px 0 rgb(var(--card-rgb) / .12);
+  --shadow-modal:0 14px 44px rgb(0 0 0 / .22);
+  --ring:0 0 0 3px rgb(var(--green-rgb) / .14);
+
   --r-card:16px; --r-input:10px;
 }
 * { box-sizing:border-box; margin:0; padding:0; }
@@ -15,11 +46,11 @@ body { background:var(--bg); color:var(--ink); font-family:'Montserrat',sans-ser
        -webkit-font-smoothing:antialiased; position:relative; overflow-x:hidden; }
 /* ambient brand-tinted glows */
 body::before, body::after { content:''; position:fixed; border-radius:50%; filter:blur(90px); z-index:-1; pointer-events:none; }
-body::before { width:620px; height:620px; top:-260px; right:-160px; background:rgba(220,209,192,.5); }
-body::after { width:520px; height:520px; bottom:-240px; left:-180px; background:rgba(29,62,59,.09); }
+body::before { width:620px; height:620px; top:-260px; right:-160px; background:rgb(var(--sand-rgb) / .5); }
+body::after { width:520px; height:520px; bottom:-240px; left:-180px; background:rgb(var(--green-rgb) / .09); }
 .card { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); }
 button { border:none; border-radius:999px; cursor:pointer;
-  background:linear-gradient(180deg, var(--green-hi), var(--green)); color:#faf8f4;
+  background:linear-gradient(180deg, var(--green-hi), var(--green)); color:var(--on-accent);
   font-family:'Montserrat',sans-serif; font-weight:600; letter-spacing:.18em;
   text-transform:uppercase; box-shadow:var(--shadow-btn);
   transition:transform .15s, filter .15s, opacity .15s; }

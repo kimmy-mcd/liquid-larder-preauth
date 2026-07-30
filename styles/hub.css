@@ -1,8 +1,31 @@
 /* Liquid & Larder — styles shared by staff pages only. Load after core.css. */
 /* v3: light paper theme only (dark theme retired with the v3 refresh). */
+/* v7 (30 Jul 2026): colour tokens. No raw hex or rgba() below this point — the
+   staff-only tokens live in the :root block that follows; the base palette lives in
+   core.css v4. See the HOUSE RULE at the top of core.css. */
+
+:root {
+  /* --- chart / data-viz palette (metrics + Quality) --------------------- */
+  --chart-clay:#b08968;       /* warm tan series: forecast line, 1-month return, weekday bars */
+  --chart-clay-deep:#9a7350;  /* second stop of the weekend bar gradient */
+  --chart-stone:#9a8f7a;      /* muted stone series: totals line, F bars, secondary axis labels */
+  --chart-nodata:#cccccc;     /* a bar or point with no data behind it */
+  --err-soft:#c08a6e;         /* first stop of the low-score gradient, runs into --err */
+  --dim-soft:#9aa19d;         /* the year sub-label under a chart axis */
+  --dot-off:#cfc8bb;          /* an inactive chip's dot */
+
+  /* --- gold / warn family ---------------------------------------------- */
+  --gold:#9a6b2f; --gold-rgb:154 107 47; --gold-ink:#8a5a24;
+
+  /* --- VIP tier chips --------------------------------------------------- */
+  --tier-plat-bg:#e6e8ec;   --tier-plat-ink:#5b6472;   --tier-plat-bd:#cfd4dc;
+  --tier-gold-bg:#f6e9c6;   --tier-gold-ink:#8a6a12;   --tier-gold-bd:#e6d29a;
+  --tier-silver-bg:#e9edf1; --tier-silver-ink:#5c6b78; --tier-silver-bd:#d3dbe2;
+  --tier-bronze-bg:#f0e0d0; --tier-bronze-ink:#8a5a2c; --tier-bronze-bd:#e0c8ad;
+}
 body { padding:0 0 60px; }
 .topbar { position:sticky; top:0; z-index:40; backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-  background:rgba(250,248,244,.75); border-bottom:1px solid var(--hairline); margin-bottom:38px; }
+  background:rgb(var(--bg-rgb) / .75); border-bottom:1px solid var(--hairline); margin-bottom:38px; }
 .topbar .bar { max-width:var(--page-w,1004px); margin:0 auto; padding:16px 22px;
   display:flex; justify-content:space-between; align-items:center; gap:14px; }
 .wrap { max-width:var(--page-w,1004px); margin:0 auto; padding:0 22px; animation:rise .5s ease both; }
@@ -15,28 +38,28 @@ h1.logo { width:172px; height:20px; background:var(--green);
 .cardTitle { font-family:'Gilda Display',serif; font-size:19px; margin-bottom:20px; color:var(--green); }
 label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.16em; color:var(--dim);
   margin-bottom:6px; font-weight:600; }
-input, select { width:100%; padding:11px 13px; background:#fbfaf7; color:var(--ink);
-  border:1px solid #e6dfd2; border-radius:var(--r-input); font-size:13.5px; font-family:'Montserrat',sans-serif;
+input, select { width:100%; padding:11px 13px; background:var(--surface); color:var(--ink);
+  border:1px solid var(--border); border-radius:var(--r-input); font-size:13.5px; font-family:'Montserrat',sans-serif;
   transition:border-color .15s, box-shadow .15s; }
-input:focus, select:focus { outline:none; border-color:var(--green); box-shadow:var(--ring); background:#fff; }
+input:focus, select:focus { outline:none; border-color:var(--green); box-shadow:var(--ring); background:var(--card); }
 button { padding:12px 26px; font-size:11px; }
 button.ghost { background:var(--sand-soft); color:var(--green); box-shadow:none; padding:7px 16px; font-size:10px; }
-button.ghost:hover { transform:none; filter:none; background:#eae2cf; }
-button.danger { background:rgba(164,78,51,.10); color:var(--err); box-shadow:none; padding:7px 16px; font-size:10px; }
-button.danger:hover { transform:none; filter:none; background:rgba(164,78,51,.16); }
+button.ghost:hover { transform:none; filter:none; background:var(--sand-hi); }
+button.danger { background:rgb(var(--err-rgb) / .10); color:var(--err); box-shadow:none; padding:7px 16px; font-size:10px; }
+button.danger:hover { transform:none; filter:none; background:rgb(var(--err-rgb) / .16); }
 .msg { margin-top:12px; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
 th { text-align:left; color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:.16em;
   padding:10px; border-bottom:1px solid var(--hairline); font-weight:600; }
 td { border-bottom:1px solid var(--hairline); vertical-align:middle; }
 tbody tr { transition:background .12s; }
-tbody tr:hover { background:#faf7f0; }
+tbody tr:hover { background:var(--surface-hover); }
 tbody tr:last-child td { border-bottom:none; }
 .dim { color:var(--dim); font-size:11px; }
 
 /* v4: shared prominent back-link pill, used across app pages (quality, preauth, finance, metrics) */
 a.back { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; color:var(--green); text-decoration:none; background:var(--sand-soft); padding:8px 15px; border-radius:999px; letter-spacing:.04em; transition:background .15s; }
-a.back:hover { background:#eae2cf; }
+a.back:hover { background:var(--sand-hi); }
 
 /* v5: shared responsive rules — keep every staff page inside the phone viewport.
    Wide tables sit in an overflow-x:auto wrapper so they scroll within their card
@@ -108,7 +131,7 @@ table { max-width:100%; }
 
 /* --- 3. hover life ------------------------------------------------------ */
 .appIcon { transition:transform var(--t-med) var(--e-spring), background var(--t-med); }
-a.tile:hover .appIcon { transform:scale(1.06) rotate(-3deg); background:#eae2cf; }
+a.tile:hover .appIcon { transform:scale(1.06) rotate(-3deg); background:var(--sand-hi); }
 a.tile.soon:hover .appIcon { transform:none; background:var(--sand-soft); }
 a.navItem svg { transition:transform var(--t-med) var(--e-spring), stroke var(--t-fast); }
 a.navItem:hover svg { transform:scale(1.12) rotate(-4deg); }
@@ -122,7 +145,7 @@ a.tile::after {
   content:''; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:0;
   border-radius:inherit; transition:opacity var(--t-med);
   background:radial-gradient(340px circle at var(--ll-mx,50%) var(--ll-my,50%),
-                             rgba(220,209,192,.42), transparent 62%);
+                             rgb(var(--sand-rgb) / .42), transparent 62%);
 }
 a.tile:hover::after { opacity:1; }
 a.tile.soon::after { display:none; }
@@ -135,12 +158,12 @@ button:disabled:active { transform:none; }
 button.ll-busy { color:transparent !important; position:relative; pointer-events:none; }
 button.ll-busy .ll-spin { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
 button.ll-busy .ll-spin i { display:block; width:14px; height:14px; border-radius:50%;
-  border:2px solid rgba(255,255,255,.28); border-top-color:#faf8f4; animation:llSpin .7s linear infinite; }
-button.ghost.ll-busy .ll-spin i { border-color:rgba(29,62,59,.22); border-top-color:var(--green); }
+  border:2px solid rgb(var(--card-rgb) / .28); border-top-color:var(--on-accent); animation:llSpin .7s linear infinite; }
+button.ghost.ll-busy .ll-spin i { border-color:rgb(var(--green-rgb) / .22); border-top-color:var(--green); }
 @keyframes llSpin { to { transform:rotate(360deg); } }
 button.ll-done { color:transparent !important; background:var(--ok) !important; position:relative; }
 button.ll-done .ll-tick { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-button.ll-done .ll-tick svg { width:16px; height:16px; stroke:#faf8f4; stroke-width:2.6; fill:none;
+button.ll-done .ll-tick svg { width:16px; height:16px; stroke:var(--on-accent); stroke-width:2.6; fill:none;
   stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:26; stroke-dashoffset:26;
   animation:llDraw .32s var(--e-out) .05s forwards; }
 @keyframes llDraw { to { stroke-dashoffset:0; } }
@@ -160,15 +183,15 @@ table:not(.matrix) tbody tr:hover td:first-child::before { transform:scaleY(1); 
 button:focus-visible, a:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
   outline:none; box-shadow:var(--ring); animation:llBloom .45s var(--e-out);
 }
-@keyframes llBloom { from { box-shadow:0 0 0 0 rgba(29,62,59,.34); } to { box-shadow:var(--ring); } }
+@keyframes llBloom { from { box-shadow:0 0 0 0 rgb(var(--green-rgb) / .34); } to { box-shadow:var(--ring); } }
 
 /* --- 8. live status dot ------------------------------------------------- */
 .dot.live { animation:llBreathe 2.6s var(--e-out) infinite; }
-@keyframes llBreathe { 0%,100% { box-shadow:0 0 0 0 rgba(66,112,74,.38); } 50% { box-shadow:0 0 0 6px rgba(66,112,74,0); } }
+@keyframes llBreathe { 0%,100% { box-shadow:0 0 0 0 rgb(var(--ok-rgb) / .38); } 50% { box-shadow:0 0 0 6px rgb(var(--ok-rgb) / 0); } }
 
 /* --- 9. value-change flash (added by hub-motion.js) --------------------- */
 .ll-flash { animation:llFlash .95s var(--e-out); border-radius:6px; }
-@keyframes llFlash { 0% { background:rgba(66,112,74,.20); } 100% { background:transparent; } }
+@keyframes llFlash { 0% { background:rgb(var(--ok-rgb) / .20); } 100% { background:transparent; } }
 
 /* --- 10. sparkline draw-on ----------------------------------------------
    Covers both shapes in use: <path stroke> on the home tiles and <polyline
@@ -184,7 +207,7 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
 @keyframes llAppear { to { opacity:1; } }
 
 /* --- 11. skeleton placeholders ------------------------------------------ */
-.ll-sk { border-radius:8px; background:linear-gradient(90deg,#f0ece3 25%,#f8f5ee 37%,#f0ece3 63%);
+.ll-sk { border-radius:8px; background:linear-gradient(90deg,var(--rule) 25%,var(--rule-hi) 37%,var(--rule) 63%);
   background-size:400% 100%; animation:llShim 1.35s ease infinite; }
 @keyframes llShim { 0% { background-position:100% 0; } 100% { background-position:-100% 0; } }
 .ll-skRow { display:flex; align-items:center; gap:13px; padding:11px 0; border-bottom:1px solid var(--hairline); }
@@ -194,7 +217,7 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
   display:flex; flex-direction:column; gap:10px; align-items:flex-end; pointer-events:none; }
 .ll-toast { pointer-events:auto; display:flex; align-items:center; gap:11px;
   background:var(--card); border:1px solid var(--hairline); border-left:3px solid var(--ok);
-  border-radius:12px; box-shadow:0 8px 30px -6px rgba(29,62,59,.22); padding:13px 18px;
+  border-radius:12px; box-shadow:0 8px 30px -6px rgb(var(--green-rgb) / .22); padding:13px 18px;
   font-size:12.5px; color:var(--ink); min-width:230px; max-width:min(360px,80vw);
   animation:llToastIn .42s var(--e-spring) both; }
 .ll-toast.err { border-left-color:var(--err); }
@@ -212,7 +235,7 @@ svg.spark path:not([stroke]) { opacity:0; animation:llAppear .5s ease .55s forwa
 /* --- 13. a shadow under the topbar once you've scrolled ----------------- */
 @supports (animation-timeline: scroll()) {
   .topbar { animation:llStuck linear both; animation-timeline:scroll(root); animation-range:0 70px; }
-  @keyframes llStuck { to { box-shadow:0 6px 22px -16px rgba(29,62,59,.55); } }
+  @keyframes llStuck { to { box-shadow:0 6px 22px -16px rgb(var(--green-rgb) / .55); } }
 }
 
 /* --- 14. the escape hatch ----------------------------------------------- */

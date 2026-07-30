@@ -9,20 +9,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=3">
-<link rel="stylesheet" href="/styles/hub.css?v=6">
+<link rel="stylesheet" href="/styles/core.css?v=4">
+<link rel="stylesheet" href="/styles/hub.css?v=7">
 <script defer src="/scripts/hub-motion.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root { --page-w:1144px; --fc:#b08968; --ac:#1d3e3b; }
+  :root { --page-w:1144px; --fc:var(--chart-clay); --ac:var(--green); }
   .hidden { display:none; }
   .who { display:flex; align-items:center; gap:12px; }
   .who .back { font-size:11px; color:var(--green); text-decoration:none; background:var(--sand-soft);
     padding:8px 15px; border-radius:999px; font-weight:600; letter-spacing:.04em; }
-  .who .back:hover { background:#eae2cf; }
+  .who .back:hover { background:var(--sand-hi); }
   .avatar { width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg,var(--green-hi),var(--green));
-    color:#faf8f4; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+    color:var(--on-accent); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
   .who .meta { text-align:right; line-height:1.35; }
   .who .meta .n { font-size:12.5px; font-weight:600; }
   .who .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; }
@@ -37,17 +37,17 @@
   .venueSeg button { border:none; background:transparent; color:var(--dim); font-family:'Gilda Display',serif;
     font-size:14px; padding:9px 20px; border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; letter-spacing:.01em;
     text-transform:none; font-weight:400; }
-  .venueSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+  .venueSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); box-shadow:0 2px 6px rgb(var(--green-rgb) / .24); }
 
   .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-bottom:26px; }
   .kpi { background:var(--card); border:1px solid var(--hairline); border-radius:var(--r-card); box-shadow:var(--shadow-card); padding:20px 22px; position:relative; overflow:hidden; }
-  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgba(220,209,192,0)); }
+  .kpi::before { content:''; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg,var(--sand),rgb(var(--sand-rgb) / 0)); }
   .kpi .lab { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; margin-bottom:10px; }
   .kpi .val { font-family:'Gilda Display',serif; font-size:38px; line-height:1; color:var(--green); }
   .kpi .val .u { font-size:18px; color:var(--dim); font-family:'Montserrat',sans-serif; }
   .kpi .delta { display:inline-block; margin-top:10px; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; letter-spacing:.02em; }
-  .kpi .delta.up { background:rgba(66,112,74,.12); color:var(--ok); }
-  .kpi .delta.down { background:rgba(164,78,51,.12); color:var(--err); }
+  .kpi .delta.up { background:rgb(var(--ok-rgb) / .12); color:var(--ok); }
+  .kpi .delta.down { background:rgb(var(--err-rgb) / .12); color:var(--err); }
   .kpi .delta.flat { background:var(--sand-soft); color:var(--dim); }
   .kpi .subnote { font-size:10.5px; color:var(--dim); margin-top:8px; }
 
@@ -59,11 +59,11 @@
   .seg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif;
     font-weight:600; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:8px 15px;
     border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
-  .seg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:#faf8f4; box-shadow:0 2px 6px rgba(29,62,59,.24); }
+  .seg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); box-shadow:0 2px 6px rgb(var(--green-rgb) / .24); }
 
   .chips { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:16px; }
   .chip { display:inline-flex; align-items:center; gap:7px; font-size:11.5px; font-weight:500; color:var(--ink);
-    background:#fbfaf7; border:1px solid #e6dfd2; padding:7px 13px; border-radius:999px; user-select:none; }
+    background:var(--surface); border:1px solid var(--border); padding:7px 13px; border-radius:999px; user-select:none; }
   .chip .dot { width:11px; height:11px; border-radius:50%; flex:none; }
 
   .tfbar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:18px; }
@@ -154,6 +154,7 @@ async function dataRpc(rpc, args = {}) {
 
 const $ = id => document.getElementById(id);
 const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cssa = (n, a) => `rgba(${cssv(n).split(/\s+/).join(',')},${a})`;
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -392,9 +393,9 @@ function render(win) {
   return renderWeekly(win);
 }
 
-function baseX() { return { ticks:{ maxTicksLimit:16, maxRotation:45, font:{size:11}, color:'#646c68' }, grid:{ display:false } }; }
+function baseX() { return { ticks:{ maxTicksLimit:16, maxRotation:45, font:{size:11}, color:cssv('--dim') }, grid:{ display:false } }; }
 function niceMax(v, step) { return Math.max(step, Math.ceil(v*1.12/step)*step); }
-function yAxis(max, step) { return { min:0, max:niceMax(max,step), ticks:{font:{size:11},color:'#646c68',callback:v=>v.toLocaleString()}, grid:{color:'rgba(29,62,59,0.06)'} }; }
+function yAxis(max, step) { return { min:0, max:niceMax(max,step), ticks:{font:{size:11},color:cssv('--dim'),callback:v=>v.toLocaleString()}, grid:{color:cssa('--green-rgb',0.06)} }; }
 
 // DAILY — actual covers per day + even-pace forecast line (weekly forecast ÷ 7)
 function renderDaily(win) {
@@ -412,7 +413,7 @@ function renderDaily(win) {
   chart = new Chart($('chart'), {
     data:{ labels, datasets:ds },
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:cssa('--green-rgb',0.94), padding:11, cornerRadius:8, usePointStyle:true,
         callbacks:{ title:i=>{ const d=days[i[0].dataIndex]; return DOW[d.getDay()]+' '+fmtDM(d); },
           label:i => '  ' + i.dataset.label + ': ' + Math.round(i.parsed.y).toLocaleString() + (i.dataset.label==='Actual'?' covers':' /day') } } },
       scales:{ x:baseX(), y:yAxis(maxv,50) } }
@@ -475,15 +476,15 @@ function renderVariance(win) {
   const labels = rows.map(r => fmtDM(parseD(r.wk)));
   const vals = rows.map(r => (r.ac!=null && r.fc!=null && r.fc!==0) ? r.vp : null);
   chart = new Chart($('chart'), { type:'bar', data:{ labels, datasets:[{ label:'Variance %', data:vals,
-      backgroundColor:vals.map(v => v==null?'#ccc':(v>=0?cssv('--ok'):cssv('--err'))), borderRadius:2, maxBarThickness:22 }] },
+      backgroundColor:vals.map(v => v==null?cssv('--chart-nodata'):(v>=0?cssv('--ok'):cssv('--err'))), borderRadius:2, maxBarThickness:22 }] },
     options:{ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8,
+      plugins:{ legend:{display:false}, tooltip:{ backgroundColor:cssa('--green-rgb',0.94), padding:11, cornerRadius:8,
         callbacks:{ title:i=>'Week ending '+fmtDMY(parseD(rows[i[0].dataIndex].wk)), label:i => '  ' + (i.parsed.y>0?'+':'') + i.parsed.y.toFixed(1) + '% vs forecast' } } },
-      scales:{ x:baseX(), y:{ ticks:{ callback:v=>(v>0?'+':'')+v+'%', font:{size:11}, color:'#646c68' }, grid:{color:'rgba(29,62,59,0.06)'} } } } });
+      scales:{ x:baseX(), y:{ ticks:{ callback:v=>(v>0?'+':'')+v+'%', font:{size:11}, color:cssv('--dim') }, grid:{color:cssa('--green-rgb',0.06)} } } } });
 }
 
 function weekTip(rows, cumulative) {
-  return { backgroundColor:'rgba(29,62,59,0.94)', titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12}, padding:11, cornerRadius:8, usePointStyle:true,
+  return { backgroundColor:cssa('--green-rgb',0.94), titleFont:{size:12.5,weight:'600'}, bodyFont:{size:12}, padding:11, cornerRadius:8, usePointStyle:true,
     callbacks:{
       title: i => 'Week ending ' + fmtDMY(parseD(rows[i[0].dataIndex].wk)),
       label: i => { const v = i.parsed.y; return v==null ? '  '+i.dataset.label+': n/a' : '  '+i.dataset.label+': '+Math.round(v).toLocaleString()+' covers'; },
@@ -492,7 +493,7 @@ function weekTip(rows, cumulative) {
         if (r.note) o.push('  '+r.note); return o; } } };
 }
 function cumTip(days) {
-  return { backgroundColor:'rgba(29,62,59,0.94)', padding:11, cornerRadius:8, usePointStyle:true,
+  return { backgroundColor:cssa('--green-rgb',0.94), padding:11, cornerRadius:8, usePointStyle:true,
     callbacks:{ title:i=>{ const d=days[i[0].dataIndex]; return DOW[d.getDay()]+' '+fmtDM(d); },
       label:i => i.parsed.y==null ? '  '+i.dataset.label+': —' : '  '+i.dataset.label+': '+Math.round(i.parsed.y).toLocaleString()+' covers' } };
 }

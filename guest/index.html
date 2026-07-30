@@ -10,7 +10,7 @@
 <script src="https://js.stripe.com/v3/"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
-<link rel="stylesheet" href="/styles/core.css?v=3">
+<link rel="stylesheet" href="/styles/core.css?v=4">
 <style>
   body { min-height:100vh; display:flex; justify-content:center; padding:48px 18px; }
   .wrap { width:100%; max-width:480px; animation:rise .5s ease both; }
@@ -26,7 +26,7 @@
   .row:last-of-type { border-bottom:none; }
   .row span:first-child { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; padding-top:4px; white-space:nowrap; }
   .row span:last-child { text-align:right; font-weight:500; }
-  .amountBox { background:linear-gradient(135deg, var(--sand-soft), #faf6ec); border-radius:14px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px; }
+  .amountBox { background:linear-gradient(135deg, var(--sand-soft), var(--sand-cream)); border-radius:14px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; margin:14px 0 6px; }
   .amountBox .lbl { color:var(--dim); text-transform:uppercase; letter-spacing:.12em; font-size:10.5px; }
   .amount { font-family:'Gilda Display',serif; font-size:28px; color:var(--green); }
   .terms { font-size:12px; color:var(--dim); line-height:1.75; margin:20px 0 16px; }
@@ -135,6 +135,9 @@ async function init() {
     clientSecret: client_secret,
     appearance: {
       theme: 'flat',
+      /* Stripe's Elements run in a cross-origin iframe and cannot read this page's CSS
+         custom properties, so these stay literal. The guest page is deliberately fixed
+         light — see core.css v4 — so there is nothing here for a theme to switch. */
       variables: {
         colorPrimary: '#1d3e3b', colorBackground: '#fbfaf7', colorText: '#242c2a',
         colorTextSecondary: '#646c68', colorTextPlaceholder: '#a9aeab',
