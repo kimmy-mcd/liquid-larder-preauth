@@ -928,10 +928,19 @@ function rtParentsFor(h, venueId) {
   var want = venueId || null;
   return rtLines(h).filter(function(l){ return (l.venue_id || null) === want; }).map(function(l){ return l.hat_id; });
 }
+/* Only hats in Venue Operations are worn at a trading site, so only they get
+   venue rows. Every other department is a group role based at Head Office and
+   just needs one line. Matched on the department NAME, not its number, so
+   renumbering the departments doesn't silently turn the venue rows off. */
+function isVenueBased(h) {
+  return /venue operations/i.test(h.department || '');
+}
 function rtCell(h, allHats) {
   /* Trading venues only — Head Office is not where a floor hat reports, and a
      venue that closes just gets active=false and drops out of every hat here. */
-  var venues = (taData.venues || []).filter(function(v){ return v.active && !v.is_head_office; });
+  var venues = isVenueBased(h)
+    ? (taData.venues || []).filter(function(v){ return v.active && !v.is_head_office; })
+    : [];
   function chips(pids, venueId) {
     return pids.map(function(pid){
       var ph = hatById(pid);
@@ -948,21 +957,25 @@ function rtCell(h, allHats) {
       '</select>';
   }
   var all = rtParentsFor(h, null);
-  var out = '<div class="rtScope"><span class="rtLab">All venues</span>' +
+  var out = '<div class="rtScope"><span class="rtLab">' + (venues.length ? 'All venues' : 'Reports to') + '</span>' +
     (all.length ? chips(all, null) : '<span class="rtNone">not set</span>') + picker(null) + '</div>';
+  if (!venues.length) return out;
   var n = venues.filter(function(v){ return rtParentsFor(h, v.id).length; }).length;
   out += '<div class="vBlock"><div class="vHead">By venue' + (n ? ' — ' + n + (n === 1 ? ' exception' : ' exceptions') : '') + '</div>';
   venues.forEach(function(v){
     var ps = rtParentsFor(h, v.id);
+    /* With no group line to inherit, "same as all venues" would mean "nobody" —
+       say so plainly instead, or an unfilled hat reads as filled in. */
     out += '<div class="vRow"><span class="vName">' + esc(v.name) + '</span>' +
-      (ps.length ? chips(ps, v.id) : '<span class="vInherit">same as all venues</span>') +
+      (ps.length ? chips(ps, v.id)
+                 : '<span class="vInherit">' + (all.length ? 'same as all venues' : 'not set') + '</span>') +
       picker(v.id) + '</div>';
   });
   return out + '</div>';
 }
 function renderTaHats() {
   const allHats = (taData.hats || []);
-  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. A hat may report to more than one parent hat. Set <strong>All venues</strong> once and every venue follows it — a line names the hat someone reports to, and the venue comes from the person, so Bar Team at Bistecca reports to the Bistecca supervisor. Give a venue its own line only where that site genuinely differs.</p>' +
+  let html = '<p class="taHint">Add, rename or retire hats. Retiring keeps history but removes any access the hat grants. A hat may report to more than one parent hat. Venue Operations hats are worn at a site, so they show a line per venue: set <strong>All venues</strong> once and every venue follows it, because a line names the hat someone reports to and the venue comes from the person — Bar Team at Bistecca reports to the Bistecca supervisor. Give a venue its own line only where that site genuinely differs. Every other department is a group role and just has the one line.</p>' +
     '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
     '<input id="newHatName" placeholder="New hat name" style="max-width:240px">' +
     '<input id="newHatDept" placeholder="Department (optional)" style="max-width:220px">' +
