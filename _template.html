@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New app — Liquid &amp; Larder</title>
+
+<!-- ==========================================================================
+     STARTER TEMPLATE for a new Team Hub page. Copy this file, rename it, and
+     replace the marked sections. Everything above the "YOUR PAGE" comment is
+     the shared contract: leave it alone and the page inherits both themes, the
+     theme control, the motion layer and the toast/feedback bridge for free.
+
+     Three things are easy to get wrong. They are marked ⚠ below.
+     Not routed anywhere and linked from nothing — it is reference, not a page.
+     ========================================================================== -->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+
+<!-- ⚠ 1 of 3 — THE THEME SCRIPT. Copy verbatim, and keep it ABOVE both
+     stylesheet links. It resolves the stored preference to a concrete
+     data-theme on <html> before first paint, which is what stops a dark page
+     flashing light. It has to be inline: an external file would be a second
+     round trip in front of first paint, which is the flash you are avoiding.
+     Leave it out and the page renders light for everyone, silently, including
+     for someone who chose dark everywhere else. Nothing will warn you.
+     (hub-motion.js does now carry a late fallback, but it fires after paint,
+     so you get a visible flip. Not a substitute for having this here.) -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
+
+<style>
+  /* ======================= YOUR PAGE STARTS HERE =======================
+     House rule: NO raw colour literals. Every colour comes from a token, and
+     an opacity is written rgb(var(--x-rgb) / .08), never rgba(29,62,59,.08).
+     A page with hardcoded hex will not theme.
+
+     ⚠ 2 of 3 — the brand colour has two tokens and they are not
+     interchangeable:
+       --accent-ink   the brand colour as TEXT, an ICON or a MASK
+                      (headings, tile names, icon strokes, the wordmark, links)
+       --green        the brand colour as a SURFACE, and only that
+                      (button gradients, the active nav item)
+     Use --green for a heading and it is 1.9:1 on a dark card — effectively
+     invisible. Use --accent-ink for a button background and the label
+     disappears instead.
+
+     ⚠ 3 of 3 — two more that catch people out:
+       --chart-accent  the primary data series. NOT --accent-ink, which is a
+                       warm off-white in dark and would wash out a line.
+       --tint-rgb      hover washes, track fills, selected rows, chip hover
+                       borders. NOT --green-rgb, whose dark value is invisible
+                       as a 7% wash over a dark card.
+
+     The full token list is the :root blocks in core.css v5 and hub.css v8.
+     ==================================================================== */
+
+  /* page width, if this page wants something other than the 1004px default */
+  :root { --page-w:1144px; }
+
+  .pageHead { margin-bottom:26px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px;
+    color:var(--accent-ink); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.7; }
+
+  /* an example of each rule above, so you can see the shape of it */
+  .exampleRow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  .exampleTile { background:var(--surface); border:1px solid var(--hairline);
+    border-radius:12px; padding:14px 16px; font-size:12.5px; color:var(--ink); }
+  .exampleTile:hover { background:rgb(var(--tint-rgb) / .07); }   /* tint, not green-rgb */
+  .exampleTile b { color:var(--accent-ink); }                     /* ink, not green */
+</style>
+</head>
+
+<body>
+<!-- The topbar is not decoration: hub-motion.js mounts the theme control into
+     `.topbar .bar`, so a page with this structure gets the switch for free.
+     (The home page's `.sideUser` is the other recognised host. A page with
+     neither is skipped silently — that is why 404.html has no control.) -->
+<header class="topbar">
+  <div class="bar">
+    <div>
+      <h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
+      <div class="sub"><a href="../" class="back">&larr; Hub</a> &nbsp;·&nbsp; New App</div>
+    </div>
+    <button class="ghost" id="refresh">Refresh</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Outcomes go in a .msg element with `ok` / `err`. The feedback bridge in
+       hub-motion.js watches for that convention and toasts them for you, and
+       gives any button that disables itself a spinner and a tick. Follow the
+       convention and you get all of it without writing a line. -->
+  <div class="msg" id="pageMsg"></div>
+
+  <div class="pageHead">
+    <h2>New App</h2>
+    <p>Replace this. The heading above uses <code>--accent-ink</code>, which is the brand
+       green in light and a warm linen in dark.</p>
+  </div>
+
+  <div class="card">
+    <div class="cardTitle">A card</div>
+    <div class="exampleRow">
+      <div class="exampleTile">Hover me — the wash uses <b>--tint-rgb</b></div>
+      <button id="doThing">Do the thing</button>
+      <button class="ghost">Secondary</button>
+    </div>
+    <label for="someField">A field</label>
+    <input id="someField" placeholder="Inherits the theme, including the focus ring">
+  </div>
+
+  <!-- Wide tables belong inside an overflow-x:auto wrapper, or the page breaks
+       out of the phone viewport. See the v5 block in hub.css. -->
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Column</th><th>Another</th></tr></thead>
+      <tbody>
+        <tr><td>Row</td><td>Value</td></tr>
+        <tr><td>Row</td><td>Value</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+/* ======================= YOUR SCRIPT STARTS HERE =======================
+   Colours read from JS — Chart.js configs, canvas fillStyle, inline SVG built
+   in a template string — must read the token, never a literal, or they will
+   not follow the theme. These two helpers are the convention; copy them.
+
+   NOTE cssa() emits comma-form rgba() on purpose. Canvas and SVG accept either
+   syntax, but Chart.js parses colours with its own library and the modern
+   space/slash form is unproven there. Do not "modernise" this. */
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const cssa = (n, a) => `rgba(${cssv(n).split(/\s+/).join(',')},${a})`;
+
+/* Supabase: same pattern as every other page. Fill in from an existing one. */
+// const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const msg = document.getElementById('pageMsg');
+
+document.getElementById('doThing').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  btn.disabled = true;                      // the bridge turns this into a spinner
+  try {
+    await new Promise(r => setTimeout(r, 600));
+    /* Write the outcome AFTER any reload settles — a reloader that clears this
+       same element in the same task will wipe the message. That bit is easy to
+       get wrong; see the motion layer notes. */
+    msg.className = 'msg ok';
+    msg.textContent = 'That worked.';
+  } catch (err) {
+    msg.className = 'msg err';
+    msg.textContent = 'That did not work: ' + err.message;
+  } finally {
+    btn.disabled = false;                   // re-enabling completes the tick
+  }
+});
+
+document.getElementById('refresh').addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>

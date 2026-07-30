@@ -371,6 +371,27 @@
      page; if a page has neither it is simply skipped (the 404 page). --------- */
 
   var THEME_KEY = 'll-theme';
+
+  /* ---------- late fallback ------------------------------------------------
+     A page that forgot the inline <head> script has no data-theme, so it would
+     render light for everyone, silently, whatever they chose. This catches that.
+     It CANNOT prevent a flash — this file is deferred, so the page has already
+     painted light by the time we get here and the user sees it flip. It is a
+     safety net, not a substitute: every page still needs the head script.
+     The console warning is there so the omission gets noticed and fixed. ---- */
+  (function () {
+    var r = document.documentElement;
+    if (r.getAttribute('data-theme')) return;             /* head script did its job */
+    var pref = 'system';
+    try { var v = localStorage.getItem(THEME_KEY); if (v === 'light' || v === 'dark') pref = v; } catch (e) {}
+    var dark = pref === 'dark' ||
+      (pref !== 'light' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+    r.setAttribute('data-theme', dark ? 'dark' : 'light');
+    r.setAttribute('data-theme-pref', pref);
+    if (window.console && console.warn) console.warn(
+      '[hub] This page is missing the inline theme script in <head>, so it painted ' +
+      'light before the theme was applied. Copy the block from /_template.html.');
+  })();
   var ICONS = {
     system: '<svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 20h8"/><path d="M12 17v3"/></svg>',
     light:  '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M18.7 5.3l-1.4 1.4M6.7 17.3l-1.4 1.4"/></svg>',
