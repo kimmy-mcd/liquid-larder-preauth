@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Handbook — Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
+<style>
+  :root { --page-w:1004px; }
+  .hidden { display:none !important; }
+
+  /* ---- shared bits ---- */
+  .pageHead { margin-bottom:24px; }
+  .pageHead h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:29px; color:var(--accent-ink); margin-bottom:6px; }
+  .pageHead p { color:var(--dim); font-size:12.5px; line-height:1.7; max-width:62ch; }
+  .tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:22px; border-bottom:1px solid var(--hairline); }
+  .tabs button { background:none; border:none; border-bottom:2px solid transparent; border-radius:0;
+    padding:9px 14px; font-size:12.5px; font-weight:500; color:var(--dim); cursor:pointer; box-shadow:none; }
+  .tabs button:hover { color:var(--ink); background:rgb(var(--tint-rgb) / .06); }
+  .tabs button.on { color:var(--accent-ink); border-bottom-color:var(--accent-ink); }
+
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:10px; font-weight:600;
+    letter-spacing:.1em; text-transform:uppercase; padding:4px 11px; border-radius:999px; white-space:nowrap; }
+  .chip::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .chip.done    { background:rgb(var(--ok-rgb) / .12);   color:var(--ok); }
+  .chip.todo    { background:rgb(var(--err-rgb) / .10);  color:var(--err); }
+  .chip.waiting { background:rgb(var(--tint-rgb) / .10); color:var(--dim); }
+  .chip.must    { background:rgb(var(--err-rgb) / .10);  color:var(--err); }
+  .chip.plain   { background:rgb(var(--tint-rgb) / .07); color:var(--dim); }
+  .chip.outside { background:rgb(var(--tint-rgb) / .07); color:var(--dim); }
+
+  /* ---- progress ---- */
+  .prog { display:flex; align-items:center; gap:14px; margin:4px 0 2px; }
+  .progTrack { flex:1; height:8px; border-radius:999px; background:rgb(var(--tint-rgb) / .12); overflow:hidden; }
+  .progFill { height:100%; border-radius:999px; background:var(--green); transition:width .5s ease; }
+  .progNum { font-size:12px; color:var(--dim); white-space:nowrap; }
+
+  /* ---- page lists ---- */
+  .pageList { display:grid; gap:10px; }
+  .pageRow { display:flex; align-items:flex-start; justify-content:space-between; gap:14px;
+    padding:15px 17px; border:1px solid var(--hairline); border-radius:12px; background:var(--surface);
+    cursor:pointer; transition:background .15s ease, box-shadow .15s ease; text-align:left; width:100%; }
+  .pageRow:hover { background:rgb(var(--tint-rgb) / .06); box-shadow:0 4px 16px rgb(var(--green-rgb) / .08); }
+  .pageRow:focus-visible { outline:none; box-shadow:var(--ring); }
+  .pageRow .t { font-size:14px; color:var(--accent-ink); font-weight:500; margin-bottom:3px; }
+  .pageRow .s { font-size:12px; color:var(--dim); line-height:1.6; }
+  .pageRow .r { display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex:none; }
+
+  .catGrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .catCard { padding:16px 18px; border:1px solid var(--hairline); border-radius:12px; background:var(--surface);
+    cursor:pointer; text-align:left; width:100%; transition:background .15s ease; }
+  .catCard:hover { background:rgb(var(--tint-rgb) / .06); }
+  .catCard .n { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink); margin-bottom:6px; }
+  .catCard .c { font-size:11px; color:var(--dim); }
+
+  /* ---- the reading page ---- */
+  .doc { max-width:70ch; }
+  .doc h1 { font-family:'Gilda Display',serif; font-weight:400; font-size:32px; color:var(--accent-ink); margin-bottom:8px; line-height:1.25; }
+  .doc .lede { color:var(--dim); font-size:13.5px; line-height:1.7; margin-bottom:6px; }
+  .docMeta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:14px 0 26px;
+    padding-bottom:16px; border-bottom:1px solid var(--hairline); font-size:11px; color:var(--dim); }
+  .doc h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:21px; color:var(--accent-ink); margin:30px 0 10px; }
+  .doc h3 { font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin:24px 0 8px; }
+  .doc p  { font-size:14.5px; line-height:1.8; margin-bottom:15px; }
+  .doc ul, .doc ol { margin:0 0 16px 20px; }
+  .doc li { font-size:14.5px; line-height:1.8; margin-bottom:7px; }
+  .doc blockquote { margin:0 0 16px; padding:2px 0 2px 16px; border-left:2px solid rgb(var(--tint-rgb) / .35);
+    color:var(--dim); font-size:14px; line-height:1.8; }
+  .doc .callout { background:rgb(var(--tint-rgb) / .08); border:1px solid var(--hairline); border-radius:12px;
+    padding:15px 18px; margin:0 0 18px; font-size:13.5px; line-height:1.75; }
+  .doc figure { margin:0 0 18px; }
+  .doc figure img { max-width:100%; border-radius:12px; display:block; }
+  .doc figcaption { font-size:11px; color:var(--dim); margin-top:7px; }
+
+  .endCard { margin-top:34px; padding:20px 22px; border:1px solid var(--hairline); border-radius:14px; background:var(--surface); }
+  .endCard .h { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); margin-bottom:6px; }
+  .endCard .b { font-size:12.5px; color:var(--dim); line-height:1.7; margin-bottom:14px; }
+  .relRow { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin-top:22px; }
+
+  /* ---- forms / admin ---- */
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:720px) { .grid2 { grid-template-columns:1fr; } }
+  .fieldNote { font-size:11px; color:var(--dim); margin:-6px 0 12px; line-height:1.6; }
+  .pickBox { max-height:240px; overflow-y:auto; border:1px solid var(--hairline); border-radius:10px; padding:10px 12px; margin-bottom:6px; }
+  .pickBox label { display:flex; align-items:flex-start; gap:9px; font-size:12.5px; font-weight:400;
+    color:var(--ink); padding:5px 4px; border-radius:7px; cursor:pointer; text-transform:none; letter-spacing:0; margin:0; }
+  .pickBox label:hover { background:rgb(var(--tint-rgb) / .07); }
+  .pickBox input { width:auto; margin:2px 0 0; }
+  .pickDept { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--dim); margin:12px 4px 4px; }
+  .pickDept:first-child { margin-top:0; }
+
+  .reach { border:1px solid var(--hairline); border-radius:12px; padding:15px 17px; background:rgb(var(--tint-rgb) / .05); }
+  .reach .big { font-size:22px; font-family:'Gilda Display',serif; color:var(--accent-ink); }
+  .reach ul { margin:10px 0 0 18px; }
+  .reach li { font-size:12px; color:var(--dim); line-height:1.7; }
+  .reach .warn { color:var(--err); font-size:12px; margin-top:10px; line-height:1.6; }
+
+  .qRow { display:flex; gap:9px; align-items:center; margin-bottom:8px; }
+  .qRow input { margin:0; }
+  .qRow button { flex:none; }
+
+  .stack { display:grid; gap:10px; }
+  .qCard { border:1px solid var(--hairline); border-radius:12px; padding:15px 17px; background:var(--surface); }
+  .qCard .top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:8px; }
+  .qCard .t { font-size:13.5px; color:var(--accent-ink); font-weight:500; }
+  .qCard .m { font-size:11px; color:var(--dim); margin-top:3px; }
+  .qActions { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+
+  .askList { margin:12px 0 0; display:grid; gap:8px; }
+  .askList label { display:flex; gap:9px; align-items:flex-start; font-size:12.5px; font-weight:400;
+    text-transform:none; letter-spacing:0; color:var(--ink); line-height:1.6; margin:0; }
+  .askList input { width:auto; margin:2px 0 0; }
+
+  .empty { text-align:center; padding:40px 20px; color:var(--dim); font-size:13px; line-height:1.7; }
+
+  /* ---- print: the page only, nothing else ---- */
+  @media print {
+    .topbar, .tabs, .endCard, .relRow, #pageMsg, .noprint { display:none !important; }
+    :root { --page-w:100%; }
+    body { background:#fff; }
+    .wrap { padding:0; }
+    .doc { max-width:none; }
+    .doc h1, .doc h2 { color:#000; }
+    .doc p, .doc li { font-size:11pt; line-height:1.55; }
+    .doc h2, .doc h3 { break-after:avoid; }
+    .doc figure, .doc .callout, .doc blockquote { break-inside:avoid; }
+    .printFoot { display:block !important; margin-top:24pt; padding-top:8pt;
+      border-top:1px solid #999; font-size:8pt; color:#444; }
+  }
+  .printFoot { display:none; }
+</style>
+</head>
+
+<body>
+<header class="topbar">
+  <div class="bar">
+    <div>
+      <h1 class="logo" aria-label="Liquid &amp; Larder"></h1>
+      <div class="sub"><a href="/" class="back">&larr; Hub</a> &nbsp;·&nbsp; Handbook</div>
+    </div>
+    <button class="ghost" id="refresh">Refresh</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="msg" id="pageMsg"></div>
+  <div class="tabs noprint" id="tabs"></div>
+  <div id="screen"><div class="empty">Loading…</div></div>
+</div>
+
+<script>
+const cssv = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const SUPABASE_URL = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const FN = SUPABASE_URL + '/functions/v1/handbook-staff';
+
+const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const msg = $('pageMsg');
+
+function say(text, kind) {
+  msg.className = 'msg ' + (kind || 'ok');
+  msg.textContent = text;
+}
+function clearSay() { msg.className = 'msg'; msg.textContent = ''; }
+
+/* ---- URL state. Query params only, so a page is linkable and Back works. ---- */
+function readUrl() {
+  const q = new URLSearchParams(location.search);
+  return { view: q.get('view') || 'home', p: q.get('p') || '', cat: q.get('cat') || '',
+           admin: q.get('admin') || '', id: q.get('id') || '' };
+}
+function go(state, replace) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(state)) if (v) q.set(k, v);
+  const url = location.pathname + (q.toString() ? '?' + q : '');
+  history[replace ? 'replaceState' : 'pushState']({}, '', url);
+  render();
+}
+addEventListener('popstate', render);
+
+let HOME = null;      // home payload, cached across screens
+let META = null;      // admin lookups
+let DRAFT = null;     // policy being edited
+
+async function api(payload) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '/'; throw new Error('Signed out'); }
+  const res = await fetch(FN, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + session.access_token },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = '/'; return; }
+  try {
+    HOME = await api({ action: 'home' });
+    render();
+  } catch (e) { say(e.message, 'err'); $('screen').innerHTML = ''; }
+})();
+
+$('refresh').addEventListener('click', () => location.reload());
+
+/* ================= chrome ================= */
+
+function drawTabs() {
+  const s = readUrl();
+  const t = [
+    { k:'home',   label:'My handbook' },
+    { k:'browse', label:'Browse' },
+  ];
+  if (HOME?.can?.check_off) t.push({ k:'team', label:'My team' });
+  if (HOME?.can?.submit)    t.push({ k:'admin', label:'Admin' });
+  $('tabs').innerHTML = t.map(x =>
+    `<button class="${s.view === x.k ? 'on' : ''}" data-go="${x.k}">${esc(x.label)}</button>`).join('');
+  $('tabs').querySelectorAll('[data-go]').forEach(b =>
+    b.addEventListener('click', () => go({ view: b.dataset.go })));
+}
+
+const stateChip = st => ({
+  todo:               '<span class="chip todo">To read</span>',
+  read:               '<span class="chip done">Read</span>',
+  checked:            '<span class="chip done">Checked off</span>',
+  waiting_on_a_check: '<span class="chip waiting">Waiting on a check</span>',
+}[st] || '');
+
+function pageRow(p) {
+  return `<button class="pageRow" data-slug="${esc(p.slug)}">
+    <span>
+      <span class="t">${esc(p.title)}</span>
+      ${p.summary ? `<span class="s">${esc(p.summary)}</span>` : ''}
+    </span>
+    <span class="r">
+      ${stateChip(p.state)}
+      ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
+      ${p.outside_your_hats ? '<span class="chip outside">Outside your hats</span>' : ''}
+    </span>
+  </button>`;
+}
+function wireRows(root) {
+  root.querySelectorAll('[data-slug]').forEach(b =>
+    b.addEventListener('click', () => go({ view:'page', p: b.dataset.slug })));
+}
+
+function render() {
+  clearSay();
+  drawTabs();
+  const s = readUrl();
+  if (s.view === 'page')   return screenPage(s.p);
+  if (s.view === 'browse') return screenBrowse(s.cat);
+  if (s.view === 'team')   return screenTeam();
+  if (s.view === 'admin')  return screenAdmin(s.admin, s.id);
+  return screenHome();
+}
+
+/* ================= reader ================= */
+
+async function screenHome() {
+  const d = HOME = await api({ action: 'home' });
+  const mine = d.pages.filter(p => !p.outside_your_hats);
+  const todo = mine.filter(p => p.state === 'todo' || p.state === 'waiting_on_a_check');
+  const done = mine.filter(p => p.state === 'read' || p.state === 'checked');
+  const pct = d.progress.total ? Math.round(d.progress.done / d.progress.total * 100) : 0;
+
+  $('screen').innerHTML = `
+    <div class="pageHead">
+      <h2>Your handbook</h2>
+      <p>Everything here is aimed at the hats you wear. Read a page and it is marked off;
+         a <b>must know</b> page also needs a quick check by whoever you report to.</p>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">Where you are up to</div>
+      <div class="prog">
+        <div class="progTrack"><div class="progFill" style="width:${pct}%"></div></div>
+        <div class="progNum">${d.progress.done} of ${d.progress.total}</div>
+      </div>
+      ${d.progress.caught_up
+        ? `<p class="fieldNote" style="margin-top:12px">${esc(d.settings?.celebration_copy || 'You are all caught up. Nice work.')}</p>`
+        : `<p class="fieldNote" style="margin-top:12px">${todo.length} still to go.</p>`}
+    </div>
+
+    ${todo.length ? `<div class="card">
+      <div class="cardTitle">To read</div>
+      <div class="pageList" id="todoList">${todo.map(pageRow).join('')}</div>
+    </div>` : ''}
+
+    ${done.length ? `<div class="card">
+      <div class="cardTitle">Done</div>
+      <div class="pageList" id="doneList">${done.map(pageRow).join('')}</div>
+    </div>` : ''}
+
+    ${!mine.length ? `<div class="card"><div class="empty">
+      Nothing is aimed at your hats yet. When a page is published for you it will appear here.
+    </div></div>` : ''}`;
+  wireRows($('screen'));
+}
+
+async function screenBrowse(catId) {
+  const d = await api({ action: 'browse' });
+  const byCat = new Map();
+  for (const p of d.pages) {
+    const k = p.category_id || 'uncategorised';
+    byCat.set(k, [...(byCat.get(k) || []), p]);
+  }
+  if (!catId) {
+    const cats = d.categories.filter(c => (byCat.get(c.id) || []).length);
+    $('screen').innerHTML = `
+      <div class="pageHead">
+        <h2>Browse</h2>
+        <p>Every page you can open, by category. Pages aimed at other hats are not listed.</p>
+      </div>
+      ${cats.length ? `<div class="catGrid">${cats.map(c => {
+        const n = (byCat.get(c.id) || []).length;
+        const cc = d.counts[c.id];
+        return `<button class="catCard" data-cat="${esc(c.id)}">
+          <span class="n">${esc(c.name)}</span>
+          <span class="c">${n} page${n === 1 ? '' : 's'}${cc ? ` · ${cc.done}/${cc.total} done` : ''}</span>
+        </button>`;
+      }).join('')}</div>` : '<div class="card"><div class="empty">No pages published yet.</div></div>'}`;
+    $('screen').querySelectorAll('[data-cat]').forEach(b =>
+      b.addEventListener('click', () => go({ view:'browse', cat: b.dataset.cat })));
+    return;
+  }
+  const cat = d.categories.find(c => c.id === catId);
+  const list = byCat.get(catId) || [];
+  $('screen').innerHTML = `
+    <div class="pageHead">
+      <h2>${esc(cat?.name || 'Category')}</h2>
+      <p><a href="?view=browse" class="back">&larr; All categories</a></p>
+    </div>
+    <div class="card"><div class="pageList">${list.map(pageRow).join('') || '<div class="empty">Nothing here.</div>'}</div></div>`;
+  wireRows($('screen'));
+}
+
+/* Body is stored as blocks, never as HTML — nothing authored can inject markup. */
+function renderBody(body, assets) {
+  const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
+  const out = blocks.map(b => {
+    const text = esc(b.text || '');
+    if (b.type === 'h2')      return `<h2>${text}</h2>`;
+    if (b.type === 'h3')      return `<h3>${text}</h3>`;
+    if (b.type === 'ul')      return `<ul>${(b.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+    if (b.type === 'ol')      return `<ol>${(b.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ol>`;
+    if (b.type === 'callout') return `<div class="callout">${text}</div>`;
+    if (b.type === 'quote')   return `<blockquote>${text}</blockquote>`;
+    return `<p>${text}</p>`;
+  }).join('');
+  const figs = (assets || []).map(a =>
+    `<figure><img src="${esc(a.url)}" alt="${esc(a.alt || '')}">${a.alt ? `<figcaption>${esc(a.alt)}</figcaption>` : ''}</figure>`).join('');
+  return out + figs;
+}
+
+async function screenPage(slug) {
+  let d;
+  try { d = await api({ action:'page', slug }); }
+  catch (e) {
+    $('screen').innerHTML = `<div class="card"><div class="empty">
+      That page is not available to you.<br><a href="?view=home" class="back">Back to your handbook</a></div></div>`;
+    return;
+  }
+  const p = d.page;
+  const isDone = p.state === 'read' || p.state === 'checked';
+
+  let afterText = '';
+  if (p.tier === 'must_know' && p.after) {
+    if (p.after.mode === 'self_cleared')
+      afterText = 'This one is yours to confirm — reading it is enough, and it will be recorded against your name.';
+    else if (p.after.mode === 'pending')
+      afterText = `Once you mark this read it goes to <b>${esc(p.after.waiting_hat || 'the hat above you')}</b> for a check. Nobody holds that hat at the moment, so it will sit as outstanding until somebody does. That is not on you.`;
+    else if (p.after.mode === 'manager')
+      afterText = `Once you mark this read, ${esc((p.after.checkers || []).join(' or ') || 'your manager')} will run through a couple of questions with you.`;
+  }
+
+  $('screen').innerHTML = `
+    <article class="doc" id="doc">
+      <h1>${esc(p.title)}</h1>
+      ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}
+      <div class="docMeta">
+        ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
+        ${stateChip(p.state)}
+        ${p.outside_your_hats ? '<span class="chip outside">Outside your hats</span>' : ''}
+        <span>Version ${p.version_no ?? '—'}${p.published_at ? ' · ' + new Date(p.published_at).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : ''}</span>
+      </div>
+      ${renderBody(p.body, p.assets)}
+      <div class="printFoot">Liquid &amp; Larder Handbook · ${esc(p.title)} · version ${p.version_no ?? '—'} · printed ${new Date().toLocaleDateString('en-AU')}</div>
+    </article>
+
+    <div class="endCard noprint" id="endCard">
+      <div class="h">${isDone ? 'You have read this' : 'Finished reading?'}</div>
+      <div class="b">${isDone
+        ? (p.state === 'checked' ? 'This is signed off and up to date.' : afterText || 'Marked as read.')
+        : (afterText || 'Marking it read records that you have seen this version.')}</div>
+      ${isDone ? '' : `<button id="markRead"${p.arm_on_scroll ? ' disabled' : ''}>Mark as read</button>
+        ${p.arm_on_scroll ? '<span class="fieldNote" id="armNote" style="margin-left:10px">Scroll to the end of the page first.</span>' : ''}`}
+      <button class="ghost" onclick="window.print()" style="margin-left:8px">Print</button>
+    </div>
+
+    ${p.related?.length ? `<div class="relRow noprint">
+      ${p.related.map(r => `<button class="catCard" data-slug="${esc(r.slug)}">
+        <span class="n" style="font-size:14px">${esc(r.title)}</span>
+        <span class="c">${esc(r.kind === 'prerequisite' ? 'Read this first' : 'Related')}</span>
+      </button>`).join('')}</div>` : ''}`;
+  wireRows($('screen'));
+
+  // Scroll arming: a must-know page cannot be dismissed from the top of the
+  // screen. The server decides whether to arm, never the browser.
+  if (!isDone && p.arm_on_scroll) {
+    const btn = $('markRead'), note = $('armNote');
+    const check = () => {
+      const end = $('doc').getBoundingClientRect().bottom;
+      if (end - 80 <= innerHeight) {
+        btn.disabled = false;
+        if (note) note.remove();
+        removeEventListener('scroll', check);
+      }
+    };
+    addEventListener('scroll', check, { passive:true });
+    check();
+  }
+  if (!isDone) {
+    $('markRead').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const r = await api({ action:'mark_read', slug });
+        HOME = await api({ action:'home' });
+        render();
+        say(r.self_cleared ? 'Read and confirmed — recorded against your name.'
+          : r.state === 'waiting_on_a_check'
+            ? `Marked read. ${r.waiting_hat ? esc(r.waiting_hat) + ' needs to check you off, and nobody holds that hat yet.' : 'Your manager will check you off.'}`
+            : 'Marked as read.');
+      } catch (err) { btn.disabled = false; say(err.message, 'err'); }
+    });
+  }
+}
+
+/* ================= my team ================= */
+
+async function screenTeam() {
+  const d = await api({ action:'team' });
+  if (!d.waiting.length) {
+    $('screen').innerHTML = `<div class="pageHead"><h2>My team</h2>
+      <p>People who have read a must-know page and are waiting on you to check them off.</p></div>
+      <div class="card"><div class="empty">Nobody is waiting on you.</div></div>`;
+    return;
+  }
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>My team</h2>
+      <p>Run through the questions with them, then sign it off. Every question has to be answered —
+         that is the whole point of a check.</p></div>
+    <div class="stack">${d.waiting.map((w, i) => `
+      <div class="qCard" data-i="${i}">
+        <div class="top">
+          <div>
+            <div class="t">${esc(w.name)}</div>
+            <div class="m">${esc(w.title)}${w.read_at ? ' · read ' + new Date(w.read_at).toLocaleDateString('en-AU') : ''}${w.via_hat ? ' · via ' + esc(w.via_hat) : ''}</div>
+          </div>
+          <span class="chip waiting">Waiting</span>
+        </div>
+        <div class="askList">
+          ${w.questions.map(q => `<label><input type="checkbox" data-q="${esc(q.id)}"> ${esc(q.question)}</label>`).join('')
+            || '<div class="fieldNote">This version has no questions, so it cannot be signed off. Add questions and publish a new version.</div>'}
+        </div>
+        <div class="qActions">
+          <button data-sign="${i}"${w.questions.length ? '' : ' disabled'}>Sign off</button>
+        </div>
+      </div>`).join('')}</div>`;
+
+  $('screen').querySelectorAll('[data-sign]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const i = +e.currentTarget.dataset.sign;
+      const w = d.waiting[i];
+      const card = $('screen').querySelector(`[data-i="${i}"]`);
+      const answers = [...card.querySelectorAll('[data-q]')]
+        .filter(c => c.checked).map(c => ({ question_id: c.dataset.q, ok: true }));
+      if (answers.length !== w.questions.length) {
+        say('Tick every question before signing off.', 'err');
+        return;
+      }
+      e.currentTarget.disabled = true;
+      try {
+        await api({ action:'check_off', user_id: w.user_id, policy_id: w.policy_id, answers });
+        await screenTeam();
+        say(`${w.name} signed off on ${w.title}.`);
+      } catch (err) { e.currentTarget.disabled = false; say(err.message, 'err'); }
+    });
+  });
+}
+
+/* ================= admin ================= */
+
+async function screenAdmin(sub, id) {
+  if (!META) META = await api({ action:'admin_meta' });
+  if (sub === 'edit')    return adminEdit(id);
+  if (sub === 'review')  return adminReview(id);
+  if (sub === 'settings')return adminSettings();
+  return adminQueue();
+}
+
+const adminNav = (on) => `<div class="tabs" style="margin-top:-6px">
+  ${[['','Queue'],['edit','New page'],['settings','Settings']].map(([k, l]) =>
+    `<button class="${on === k ? 'on' : ''}" data-anav="${k}">${l}</button>`).join('')}
+</div>`;
+function wireAdminNav(root) {
+  root.querySelectorAll('[data-anav]').forEach(b =>
+    b.addEventListener('click', () => go({ view:'admin', admin: b.dataset.anav })));
+}
+
+async function adminQueue() {
+  const [q, list] = await Promise.all([api({ action:'queue' }), api({ action:'policy_list' })]);
+  const statusLabel = {
+    awaiting_standardisation: 'Waiting to be standardised',
+    standardising: 'Being standardised',
+    failed: 'Failed',
+    submitter_review: 'Yours to review',
+    awaiting_approval: 'Waiting on an approver',
+    standardised: 'Standardised',
+  };
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>Handbook admin</h2>
+      <p>Anything in flight, and everything published. A Google Doc you submit is turned into a
+         page by hand for now — that is deliberate for v1.</p></div>
+    ${adminNav('')}
+
+    <div class="card">
+      <div class="cardTitle">Submit a Google Doc</div>
+      <label for="docUrl">Doc link</label>
+      <input id="docUrl" placeholder="https://docs.google.com/document/d/…">
+      <label for="docNote">Note for whoever standardises it</label>
+      <input id="docNote" placeholder="Optional">
+      <button id="submitDoc" style="margin-top:12px">Add to the queue</button>
+    </div>
+
+    ${q.submissions.length ? `<div class="card">
+      <div class="cardTitle">Docs waiting</div>
+      <div class="stack">${q.submissions.map(s => `<div class="qCard">
+        <div class="top"><div>
+          <div class="t">${esc(s.note || 'Untitled submission')}</div>
+          <div class="m">${esc(s.doc_url)}</div>
+          ${s.error ? `<div class="m" style="color:var(--err)">${esc(s.error)}</div>` : ''}
+        </div><span class="chip plain">${esc(statusLabel[s.status] || s.status)}</span></div>
+      </div>`).join('')}</div>
+    </div>` : ''}
+
+    ${q.versions.length ? `<div class="card">
+      <div class="cardTitle">In review</div>
+      <div class="stack">${q.versions.map(v => `<div class="qCard">
+        <div class="top"><div>
+          <div class="t">${esc(v.policy?.title || 'Untitled')}</div>
+          <div class="m">Version ${v.version_no}${v.is_material ? '' : ' · minor change'}${v.policy?.tier === 'must_know' ? ' · must know' : ''}</div>
+        </div><span class="chip waiting">${esc(statusLabel[v.status] || v.status)}</span></div>
+        <div class="qActions"><button class="ghost" data-review="${esc(v.id)}">Open</button></div>
+      </div>`).join('')}</div>
+    </div>` : ''}
+
+    <div class="card">
+      <div class="cardTitle">All pages</div>
+      ${list.policies.length ? `<div class="pageList">${list.policies.map(p => `
+        <button class="pageRow" data-edit="${esc(p.id)}">
+          <span><span class="t">${esc(p.title)}</span>
+            <span class="s">${esc(p.slug)}${p.current_version_id ? '' : ' · never published'}</span></span>
+          <span class="r">
+            <span class="chip ${p.status === 'approved' ? 'done' : 'plain'}">${esc(p.status)}</span>
+            ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
+          </span>
+        </button>`).join('')}</div>`
+        : '<div class="empty">Nothing authored yet.</div>'}
+    </div>`;
+
+  wireAdminNav($('screen'));
+  $('screen').querySelectorAll('[data-review]').forEach(b =>
+    b.addEventListener('click', () => go({ view:'admin', admin:'review', id: b.dataset.review })));
+  $('screen').querySelectorAll('[data-edit]').forEach(b =>
+    b.addEventListener('click', () => go({ view:'admin', admin:'edit', id: b.dataset.edit })));
+
+  $('submitDoc').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await api({ action:'submit_doc', doc_url: $('docUrl').value.trim(), note: $('docNote').value.trim() || null });
+      await adminQueue();
+      say('Added to the queue.');
+    } catch (err) { btn.disabled = false; say(err.message, 'err'); }
+  });
+}
+
+function hatPicker(selected) {
+  const byDept = new Map();
+  for (const h of META.hats) byDept.set(h.department || 'Other', [...(byDept.get(h.department || 'Other') || []), h]);
+  return [...byDept.entries()].map(([dept, hats]) =>
+    `<div class="pickDept">${esc(dept)}</div>` +
+    hats.map(h => `<label><input type="checkbox" data-hat="${esc(h.id)}"${selected.includes(h.id) ? ' checked' : ''}> ${esc(h.name)}</label>`).join('')
+  ).join('');
+}
+
+async function adminEdit(id) {
+  let pol = null, hatIds = [], venueIds = [], questions = [], version = null;
+  if (id) {
+    const list = await api({ action:'policy_list' });
+    pol = list.policies.find(p => p.id === id) || null;
+    const latest = pol?.versions?.[0];
+    if (latest) {
+      const v = await api({ action:'version', version_id: latest.id });
+      version = v.version; hatIds = v.hat_ids; venueIds = v.venue_ids;
+      questions = v.questions.map(q => q.question);
+      pol = v.policy;
+    }
+  }
+  const blocks = version?.body?.blocks || [];
+  const asText = blocks.map(b =>
+    b.type === 'h2' ? '## ' + (b.text || '') :
+    b.type === 'h3' ? '### ' + (b.text || '') :
+    b.type === 'ul' ? (b.items || []).map(i => '- ' + i).join('\n') :
+    b.type === 'callout' ? '> ' + (b.text || '') : (b.text || '')).join('\n\n');
+
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>${id ? 'Edit page' : 'New page'}</h2>
+      <p>Write the page, choose exactly who it reaches, then send it for approval.</p></div>
+    ${adminNav('edit')}
+
+    <div class="card">
+      <div class="cardTitle">The page</div>
+      <label for="fTitle">Title</label>
+      <input id="fTitle" value="${esc(pol?.title || '')}" placeholder="What is this page called?">
+      <label for="fSummary">One line summary</label>
+      <input id="fSummary" value="${esc(pol?.summary || '')}" placeholder="Shown in lists and on cards">
+      <div class="grid2">
+        <div>
+          <label for="fCat">Category</label>
+          <select id="fCat">
+            <option value="">— none —</option>
+            ${META.categories.map(c => `<option value="${esc(c.id)}"${pol?.category_id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label for="fTier">Tier</label>
+          <select id="fTier">
+            <option value="standard"${pol?.tier !== 'must_know' ? ' selected' : ''}>Standard — reading it is enough</option>
+            <option value="must_know"${pol?.tier === 'must_know' ? ' selected' : ''}>Must know — needs a check-off</option>
+          </select>
+        </div>
+      </div>
+      <label for="fBody">Body</label>
+      <p class="fieldNote">Plain text. <code>##</code> for a heading, <code>###</code> for a small heading,
+        <code>-</code> for a bullet, <code>&gt;</code> for a callout. Blank line between blocks.</p>
+      <textarea id="fBody" rows="16" placeholder="Write the page here.">${esc(asText)}</textarea>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">Who it reaches</div>
+      <p class="fieldNote"><b>This is the only thing stopping the wrong people reading this page.</b>
+         Check the list on the right before you send it anywhere.</p>
+      <label for="fScope">Audience</label>
+      <select id="fScope">
+        <option value="hats"${pol?.audience_scope !== 'everyone' ? ' selected' : ''}>Specific hats</option>
+        <option value="everyone"${pol?.audience_scope === 'everyone' ? ' selected' : ''}>Everyone</option>
+      </select>
+      <div class="grid2" style="margin-top:14px">
+        <div>
+          <div id="hatWrap">
+            <label>Hats</label>
+            <div class="pickBox" id="hatBox">${hatPicker(hatIds)}</div>
+          </div>
+          <label style="margin-top:12px">Venues</label>
+          <p class="fieldNote">Tick none to mean every venue.</p>
+          <div class="pickBox">
+            ${META.venues.map(v => `<label><input type="checkbox" data-venue="${esc(v.id)}"${venueIds.includes(v.id) ? ' checked' : ''}> ${esc(v.name)}</label>`).join('')}
+          </div>
+        </div>
+        <div>
+          <label>Who that is</label>
+          <div class="reach" id="reachBox"><span class="fieldNote">Choose an audience to see who it reaches.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="qCardWrap">
+      <div class="cardTitle">Check questions</div>
+      <p class="fieldNote">A must-know page needs at least one. The manager asks these before signing someone off,
+         and the answers are recorded against that version.</p>
+      <div id="qList">${questions.map(q => qRowHtml(q)).join('') || qRowHtml('')}</div>
+      <button class="ghost" id="addQ" style="margin-top:6px">Add a question</button>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">Save</div>
+      <label for="fChangelog">What changed</label>
+      <input id="fChangelog" placeholder="Shown to approvers">
+      <label style="text-transform:none; letter-spacing:0; font-weight:400; font-size:12.5px; display:flex; gap:9px; align-items:center; margin-top:10px">
+        <input type="checkbox" id="fMinor" style="width:auto; margin:0"> This is a minor change — do not put it back in everyone's queue
+      </label>
+      <div class="qActions" style="margin-top:14px">
+        <button id="saveDraft">Save draft</button>
+        <button class="ghost" id="sendApproval">Save and send for approval</button>
+      </div>
+    </div>`;
+
+  wireAdminNav($('screen'));
+  const scope = $('fScope'), hatWrap = $('hatWrap');
+  const syncScope = () => { hatWrap.style.display = scope.value === 'everyone' ? 'none' : ''; };
+  scope.addEventListener('change', () => { syncScope(); refreshReach(); });
+  syncScope();
+  $('screen').addEventListener('change', (e) => {
+    if (e.target.matches('[data-hat],[data-venue]')) refreshReach();
+  });
+  $('addQ').addEventListener('click', () => { $('qList').insertAdjacentHTML('beforeend', qRowHtml('')); });
+  $('qList').addEventListener('click', (e) => {
+    if (e.target.matches('[data-delq]')) e.target.closest('.qRow').remove();
+  });
+  refreshReach();
+
+  const collect = () => ({
+    id: pol?.id || null,
+    title: $('fTitle').value.trim(),
+    summary: $('fSummary').value.trim() || null,
+    category_id: $('fCat').value || null,
+    tier: $('fTier').value,
+    audience_scope: $('fScope').value,
+    hat_ids: [...$('screen').querySelectorAll('[data-hat]:checked')].map(c => c.dataset.hat),
+    venue_ids: [...$('screen').querySelectorAll('[data-venue]:checked')].map(c => c.dataset.venue),
+  });
+  const collectQs = () => [...$('qList').querySelectorAll('[data-q]')].map(i => i.value.trim()).filter(Boolean);
+
+  async function persist() {
+    const meta = collect();
+    if (!meta.title) throw new Error('Give it a title first');
+    if (meta.audience_scope === 'hats' && !meta.hat_ids.length) {
+      throw new Error('Pick at least one hat, or set the audience to Everyone');
+    }
+    const saved = await api({ action:'policy_save', ...meta });
+    const vid = await api({
+      action:'version_save',
+      policy_id: saved.policy.id,
+      version_id: version && version.status !== 'published' && version.status !== 'superseded' ? version.id : null,
+      body: { blocks: parseBody($('fBody').value) },
+      changelog: $('fChangelog').value.trim() || null,
+      is_material: !$('fMinor').checked,
+      questions: collectQs(),
+    });
+    return vid.version_id;
+  }
+
+  $('saveDraft').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try { await persist(); say('Saved.'); }
+    catch (err) { say(err.message, 'err'); }
+    finally { e.currentTarget.disabled = false; }
+  });
+  $('sendApproval').addEventListener('click', async (e) => {
+    const reach = $('reachBox').dataset.count;
+    if (!confirm(`This page will reach ${reach || 'an unknown number of'} people. Send it for approval?`)) return;
+    e.currentTarget.disabled = true;
+    try {
+      const vid = await persist();
+      await api({ action:'send_for_approval', version_id: vid });
+      go({ view:'admin' });
+      say('Sent for approval.');
+    } catch (err) { say(err.message, 'err'); }
+    finally { e.currentTarget.disabled = false; }
+  });
+}
+
+const qRowHtml = (v) => `<div class="qRow">
+  <input data-q value="${esc(v)}" placeholder="e.g. When do you need a manager to authorise a refund?">
+  <button class="ghost" data-delq type="button">Remove</button></div>`;
+
+/* "## " heading, "### " small heading, "- " bullet, "> " callout, anything else a paragraph. */
+function parseBody(text) {
+  const blocks = [];
+  for (const chunk of String(text || '').split(/\n\s*\n/)) {
+    const lines = chunk.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    if (lines.every(l => l.startsWith('- '))) {
+      blocks.push({ type:'ul', items: lines.map(l => l.slice(2).trim()) });
+    } else for (const line of lines) {
+      if (line.startsWith('### ')) blocks.push({ type:'h3', text: line.slice(4).trim() });
+      else if (line.startsWith('## ')) blocks.push({ type:'h2', text: line.slice(3).trim() });
+      else if (line.startsWith('> ')) blocks.push({ type:'callout', text: line.slice(2).trim() });
+      else if (line.startsWith('- ')) blocks.push({ type:'ul', items:[line.slice(2).trim()] });
+      else blocks.push({ type:'p', text: line });
+    }
+  }
+  return blocks;
+}
+
+async function refreshReach() {
+  const box = $('reachBox');
+  if (!box) return;
+  const scope = $('fScope').value;
+  const hat_ids = [...$('screen').querySelectorAll('[data-hat]:checked')].map(c => c.dataset.hat);
+  const venue_ids = [...$('screen').querySelectorAll('[data-venue]:checked')].map(c => c.dataset.venue);
+  if (scope === 'hats' && !hat_ids.length) {
+    box.innerHTML = '<span class="fieldNote">No hats picked yet, so this reaches nobody.</span>';
+    box.dataset.count = '0';
+    return;
+  }
+  try {
+    const r = await api({ action:'audience_reach', audience_scope: scope, hat_ids, venue_ids });
+    box.dataset.count = r.count;
+    box.innerHTML = `<div class="big">${r.count} ${r.count === 1 ? 'person' : 'people'}</div>
+      <div class="fieldNote" style="margin:2px 0 0">across ${r.venues} venue${r.venues === 1 ? '' : 's'}, of ${r.active_total} active accounts</div>
+      <ul>${r.people.slice(0, 40).map(p => `<li>${esc(p.name)}${p.via.length ? ` — ${esc(p.via.join(', '))}` : ''}</li>`).join('')}</ul>
+      ${r.people.length > 40 ? `<div class="fieldNote">…and ${r.people.length - 40} more</div>` : ''}
+      ${r.no_hat_assignment ? `<div class="warn">${r.no_hat_assignment} active account${r.no_hat_assignment === 1 ? ' has' : 's have'} no hat assigned, so this will never reach them.</div>` : ''}`;
+  } catch (e) { box.innerHTML = `<span class="fieldNote">${esc(e.message)}</span>`; }
+}
+
+async function adminReview(id) {
+  const d = await api({ action:'version', version_id: id });
+  const hatNames = META.hats.filter(h => d.hat_ids.includes(h.id)).map(h => h.name);
+  const venueNames = META.venues.filter(v => d.venue_ids.includes(v.id)).map(v => v.name);
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>${esc(d.policy.title)}</h2>
+      <p>Version ${d.version.version_no} · ${esc(d.version.status.replace(/_/g, ' '))}
+         ${d.version.is_material ? '' : ' · minor change'}</p></div>
+    ${adminNav('')}
+    <div class="card">
+      <div class="cardTitle">Who it reaches</div>
+      <p style="font-size:12.5px; line-height:1.7">
+        ${d.policy.audience_scope === 'everyone' ? '<b>Everyone</b>' : esc(hatNames.join(', ') || 'nobody')}
+        ${venueNames.length ? ` at ${esc(venueNames.join(', '))}` : ' at every venue'}.
+        ${d.policy.tier === 'must_know' ? ' Needs a check-off.' : ''}
+      </p>
+    </div>
+    <div class="card">
+      <div class="cardTitle">The page</div>
+      <article class="doc">${renderBody(d.version.body, [])}</article>
+    </div>
+    ${d.questions.length ? `<div class="card">
+      <div class="cardTitle">Check questions</div>
+      <ul style="margin-left:18px">${d.questions.map(q => `<li style="font-size:13px; line-height:1.8">${esc(q.question)}</li>`).join('')}</ul>
+    </div>` : ''}
+    <div class="card">
+      <div class="cardTitle">Decision</div>
+      ${d.version.status !== 'awaiting_approval'
+        ? `<p class="fieldNote">This version is <b>${esc(d.version.status.replace(/_/g, ' '))}</b>, so there is nothing to approve right now.</p>
+           <button class="ghost" data-edit="${esc(d.policy.id)}">Edit it</button>`
+        : d.can_approve
+          ? `<div class="qActions"><button id="doApprove">Approve and publish</button>
+             <button class="ghost" id="doReject">Send back</button></div>`
+          : `<p class="fieldNote">You can see this, but approving it is somebody else's call.</p>`}
+    </div>`;
+  wireAdminNav($('screen'));
+  $('screen').querySelectorAll('[data-edit]').forEach(b =>
+    b.addEventListener('click', () => go({ view:'admin', admin:'edit', id: b.dataset.edit })));
+  if ($('doApprove')) {
+    $('doApprove').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        const r = await api({ action:'approve', version_id: id, approve: true });
+        go({ view:'admin' });
+        say(r.material ? 'Published. Everyone it reaches will see it as new.'
+                       : 'Published as a minor change — nobody has to read it again.');
+      } catch (err) { e.currentTarget.disabled = false; say(err.message, 'err'); }
+    });
+    $('doReject').addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try { await api({ action:'approve', version_id: id, approve: false }); go({ view:'admin' }); say('Sent back for another look.'); }
+      catch (err) { e.currentTarget.disabled = false; say(err.message, 'err'); }
+    });
+  }
+}
+
+async function adminSettings() {
+  const s = HOME.settings || {};
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>Settings</h2><p>Applies to the whole Handbook.</p></div>
+    ${adminNav('settings')}
+    <div class="card">
+      <div class="grid2">
+        <div>
+          <label for="sWpm">Reading speed (words per minute)</label>
+          <input id="sWpm" type="number" value="${esc(s.read_wpm ?? 200)}">
+          <p class="fieldNote">Used to estimate how long a page takes.</p>
+        </div>
+        <div>
+          <label for="sRace">Recently-published window (days)</label>
+          <input id="sRace" type="number" value="${esc(s.race_window_days ?? 30)}">
+        </div>
+      </div>
+      <label style="text-transform:none; letter-spacing:0; font-weight:400; font-size:12.5px; display:flex; gap:9px; align-items:center; margin-top:6px">
+        <input type="checkbox" id="sArm" style="width:auto; margin:0"${s.scroll_arm !== false ? ' checked' : ''}>
+        Make people scroll to the end before they can mark a page read
+      </label>
+      <label for="sCopy" style="margin-top:14px">All-caught-up message</label>
+      <input id="sCopy" value="${esc(s.celebration_copy || '')}" placeholder="You are all caught up. Nice work.">
+      <button id="saveSettings" style="margin-top:14px">Save settings</button>
+    </div>`;
+  wireAdminNav($('screen'));
+  $('saveSettings').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      await api({ action:'save_settings', read_wpm:+$('sWpm').value, race_window_days:+$('sRace').value,
+        scroll_arm: $('sArm').checked, celebration_copy: $('sCopy').value.trim() || null });
+      HOME = await api({ action:'home' });
+      say('Settings saved.');
+    } catch (err) { say(err.message, 'err'); }
+    finally { e.currentTarget.disabled = false; }
+  });
+}
+</script>
+</body>
+</html>
