@@ -79,7 +79,30 @@
   button.iconBtn svg { width:15px; height:15px; stroke:currentColor; stroke-width:1.8; fill:none; stroke-linecap:round; stroke-linejoin:round; display:block; }
 
   main.content { flex:1; min-width:0; padding:34px 44px 70px; max-width:1180px; }
+
+  /* ---------- compact header (only appears once the rail collapses) ----------
+     Mirrors the app pages' header: wordmark on top, a pill sitting directly
+     underneath it. On an app page that pill is "← Hub"; here, where you already
+     are the hub, the same pill in the same spot opens the nav instead. Styling
+     is a copy of a.back in hub.css so the two read as one component. */
   .mobileBar { display:none; }
+  .mobileBar .mbTop { display:flex; align-items:center; justify-content:space-between; gap:12px; order:1; }
+  .mobileBar .mbSub { display:flex; align-items:center; gap:12px; margin-top:12px; order:2; }
+  /* hub-motion.js injects the theme control straight into .mobileBar. Keep it
+     last so nothing ever comes between the wordmark and the pill beneath it;
+     the script below then tucks it into the pill row. */
+  .mobileBar > .ll-theme { order:3; margin-top:12px; }
+  .mobileBar .mbSub > .ll-theme { margin:0 0 0 auto; }
+  .mobileBar .mbSub .lab { color:var(--dim); font-size:10px; letter-spacing:.24em; text-transform:uppercase; }
+  button.pillBtn { display:inline-flex; align-items:center; gap:8px; font-size:11px; font-weight:700;
+    color:var(--accent-ink); background:var(--sand-soft); padding:8px 15px; border-radius:999px;
+    letter-spacing:.04em; text-transform:uppercase; box-shadow:none; border:0; cursor:pointer;
+    transition:background .15s; }
+  button.pillBtn:hover { background:var(--sand-hi); transform:none; filter:none; }
+  button.pillBtn svg { width:13px; height:13px; stroke:currentColor; stroke-width:2; fill:none; stroke-linecap:round; display:block; }
+  #navScrim { display:none; position:fixed; inset:0; z-index:55; background:var(--overlay, rgb(0 0 0 / .45));
+    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  body.navOpen #navScrim { display:block; }
 
   /* ---------- page header ---------- */
   .pageHead { margin-bottom:26px; animation:rise .5s ease both; }
@@ -150,11 +173,27 @@
   .chip.disabled { color:var(--err); background:rgb(var(--err-rgb) / .10); }
 
   /* ---------- responsive ---------- */
-  @media (max-width:920px) {
-    aside.side { display:none; }
+  /* The rail used to vanish below 920px, which caught laptops running a narrow
+     or half-screen window. It now stays put on any laptop-sized viewport and
+     just tightens up; it only becomes a drawer on genuinely small screens. */
+  @media (max-width:1080px) {
+    aside.side { width:212px; flex:0 0 212px; padding:22px 13px 18px; }
+    .sideBrand { gap:10px; padding:0 6px 20px; }
+    main.content { padding:30px 28px 64px; }
+  }
+  @media (max-width:700px) {
+    /* Off-canvas drawer. The rail keeps its place in the DOM — and therefore all
+       its wired-up nav handlers — and simply slides in over the page. */
+    aside.side { position:fixed; top:0; left:0; z-index:60; width:264px; flex:0 0 264px;
+      padding:26px 18px 20px; background:var(--card); border-right:1px solid var(--hairline);
+      transform:translateX(-100%); transition:transform .28s ease; }
+    body.navOpen aside.side { transform:none; box-shadow:0 24px 60px -12px rgb(0 0 0 / .38); }
     main.content { padding:22px 20px 70px; }
-    .mobileBar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:24px; }
+    .mobileBar { display:flex; flex-direction:column; align-items:stretch; margin-bottom:24px; }
     .inviteRow { grid-template-columns:1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    aside.side { transition:none; }
   }
   @media (max-width:560px) {
     main.content { padding:20px 16px 60px; }
@@ -259,14 +298,24 @@ main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdm
       </button>
     </div>
   </aside>
+  <div id="navScrim"></div>
 
   <main class="content">
     <div class="mobileBar">
-      <div class="sideBrand" style="padding:0">
-        <div class="monogram">L&amp;L</div>
-        <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+      <div class="mbTop">
+        <div class="sideBrand" style="padding:0">
+          <div class="monogram">L&amp;L</div>
+          <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+        </div>
+        <button class="ghost" id="logoutM">Sign out</button>
       </div>
-      <button class="ghost" id="logoutM">Sign out</button>
+      <div class="mbSub">
+        <button class="pillBtn" id="menuBtn" type="button" aria-expanded="false" aria-controls="sideNav">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg>
+          Menu
+        </button>
+        <span class="lab">All apps</span>
+      </div>
     </div>
 
     <div class="pageHead">
@@ -399,7 +448,6 @@ const ICONS = {
   'VIPs': '<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
   'VIP Outreach': '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
   'Food Costs': '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L6 21Z"/><path d="M9.5 8.5h5"/><path d="M9.5 12.5h5"/></svg>',
-  'Handbook': '<svg viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13H5.5A1.5 1.5 0 0 0 4 18.5Z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H19"/><path d="M8 7.5h7"/><path d="M8 11h7"/></svg>',
     _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
   _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
   _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
@@ -442,9 +490,7 @@ async function enter() {
 
   const { data: apps, error } = await sb.from('portal_apps').select('*').order('sort_order');
   if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
-  // Handbook leads: for most of the team it is the only app they open, and the
-  // spec's answer to "should it be a separate site" was to put it first here.
-  const SECTION_ORDER = ['Handbook', 'Accounts', 'Company metrics', 'Marketing'];
+  const SECTION_ORDER = ['Accounts', 'Company metrics', 'Marketing'];
   const groups = {};
   (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
   const sections = Object.keys(groups).sort((a, b) => {
@@ -544,7 +590,6 @@ function sparkline(vals) {
 
 function loadLiveData(apps) {
   const has = n => apps.some(a => a.name === n);
-  if (has('Handbook')) loadHandbookStats();
   if (has('Pre-Authorisations')) loadPreauthStats();
   if (has('Return Rate')) loadReturnRateStats();
   if (has('Quality Audits')) loadQualityStats(); if (has('VIPs')) loadVipStats();
@@ -578,28 +623,6 @@ async function loadForecastStats() {
       setFoot('Actual vs Forecast Covers', `<span class="dot ok"></span><b>${covers}</b>&nbsp;covers · last week` + spark);
     }
   } catch (_) { /* footer simply not shown */ }
-}
-
-// Handbook tile footer: how much this person still has to read. Deliberately
-// quiet when they are up to date — a nagging badge on a page you have finished
-// is how people learn to ignore badges.
-async function loadHandbookStats() {
-  try {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    const res = await fetch(SUPABASE_URL + '/functions/v1/handbook-staff', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'apikey': ANON_KEY,
-                 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ action: 'home' }),
-    });
-    if (!res.ok) return;
-    const d = await res.json();
-    if (!d || !d.progress || !d.progress.total) return;
-    setFoot('Handbook', d.unread
-      ? `<span class="soonTag" style="background:rgb(var(--err-rgb) / .10); color:var(--err)">${d.unread} to read</span>`
-      : `<span class="dim">${d.progress.done} of ${d.progress.total} read</span>`);
-  } catch (e) { /* the tile is still useful without a footer */ }
 }
 
 async function loadPreauthStats() {
@@ -747,6 +770,40 @@ $('savePw').onclick = async () => {
 const doLogout = async () => { await sb.auth.signOut(); location.reload(); };
 $('logout').onclick = doLogout;
 $('logoutM').onclick = doLogout;
+
+// ---- nav drawer (small screens only; the rail is always on show above 700px) ----
+const setNav = open => {
+  document.body.classList.toggle('navOpen', open);
+  $('menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+$('menuBtn').onclick = () => setNav(!document.body.classList.contains('navOpen'));
+$('navScrim').onclick = () => setNav(false);
+// Any nav choice dismisses the drawer, including the in-page ones (#adminCard,
+// Team admin) that never trigger a navigation and so would otherwise leave it open.
+document.querySelector('aside.side').addEventListener('click', e => {
+  if (e.target.closest('a.navItem')) setNav(false);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setNav(false); });
+// hub-motion.js drops the theme control straight into .mobileBar, and it mounts
+// on its own DOMContentLoaded handler — registered after this one, so we cannot
+// simply look for it here. Watch for it instead and tuck it onto the pill row,
+// keeping the Menu pill flush under the wordmark. The CSS order rule above is
+// the fallback if this never fires.
+(() => {
+  const bar = document.querySelector('.mobileBar');
+  if (!bar || !window.MutationObserver) return;
+  const move = () => {
+    const t = bar.querySelector(':scope > .ll-theme');
+    if (!t) return false;
+    bar.querySelector('.mbSub').appendChild(t);
+    return true;
+  };
+  if (move()) return;
+  const obs = new MutationObserver(() => { if (move()) obs.disconnect(); });
+  obs.observe(bar, { childList: true });
+})();
+// Coming back up to laptop width must not leave the body in the open state.
+matchMedia('(min-width:701px)').addEventListener('change', e => { if (e.matches) setNav(false); });
 
 // ---- admin ----
 $('invite').onclick = async () => {
