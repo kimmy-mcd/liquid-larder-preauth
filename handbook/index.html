@@ -62,21 +62,40 @@
   .catCard .n { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink); margin-bottom:6px; }
   .catCard .c { font-size:11px; color:var(--dim); }
 
-  /* ---- the reading page ---- */
-  .doc { max-width:70ch; }
-  .doc h1 { font-family:'Gilda Display',serif; font-weight:400; font-size:32px; color:var(--accent-ink); margin-bottom:8px; line-height:1.25; }
-  .doc .lede { color:var(--dim); font-size:13.5px; line-height:1.7; margin-bottom:6px; }
-  .docMeta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:14px 0 26px;
-    padding-bottom:16px; border-bottom:1px solid var(--hairline); font-size:11px; color:var(--dim); }
-  .doc h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:21px; color:var(--accent-ink); margin:30px 0 10px; }
-  .doc h3 { font-size:13px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin:24px 0 8px; }
-  .doc p  { font-size:14.5px; line-height:1.8; margin-bottom:15px; }
-  .doc ul, .doc ol { margin:0 0 16px 20px; }
-  .doc li { font-size:14.5px; line-height:1.8; margin-bottom:7px; }
-  .doc blockquote { margin:0 0 16px; padding:2px 0 2px 16px; border-left:2px solid rgb(var(--tint-rgb) / .35);
-    color:var(--dim); font-size:14px; line-height:1.8; }
+  /* ---- the reading page ----
+     Read as prose, not as a wall. Three things do the work:
+     1. ASYMMETRIC SPACING. A heading sits far from the section above it and
+        close to its own first line, so the eye groups by section instead of
+        seeing one evenly-spaced column. Equal gaps everywhere is what made the
+        first draft hard to scan.
+     2. HEADINGS THAT LOOK LIKE HEADINGS. The old h3 was small, grey, uppercase
+        and letterspaced — the same visual weight as body text, so a numbered
+        rule did not announce itself. Now sentence case, brand ink, heavier.
+     3. A SHORTER MEASURE, slightly larger type, tighter leading. 70ch at
+        14.5/1.8 is a long throw for the eye to return on. */
+  .doc { max-width:64ch; padding-right:8px; }
+  .doc h1 { font-family:'Gilda Display',serif; font-weight:400; font-size:33px; color:var(--accent-ink); margin-bottom:10px; line-height:1.2; }
+  .doc .lede { color:var(--dim); font-size:14.5px; line-height:1.65; margin-bottom:6px; }
+  .docMeta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:16px 0 34px;
+    padding-bottom:18px; border-bottom:1px solid var(--hairline); font-size:11px; color:var(--dim); }
+  .doc h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:23px; color:var(--accent-ink);
+    margin:46px 0 14px; line-height:1.3; }
+  .doc h2:first-child { margin-top:0; }
+  .doc h3 { font-size:15.5px; font-weight:600; letter-spacing:0; text-transform:none;
+    color:var(--accent-ink); margin:34px 0 9px; line-height:1.4; }
+  .doc h3 + p, .doc h2 + p, .doc h3 + ul, .doc h2 + ul { margin-top:0; }
+  .doc p  { font-size:15.5px; line-height:1.72; margin-bottom:19px; }
+  .doc ul, .doc ol { margin:0 0 19px 22px; }
+  /* Bullets sit CLOSER to each other than paragraphs do to each other — a list
+     is one thought, not several. The gap between items only needs to separate
+     lines, not sections; the gap after the list does the section work. */
+  .doc li { font-size:15.5px; line-height:1.68; margin-bottom:4px; padding-left:3px; }
+  .doc li:last-child { margin-bottom:0; }
+  .doc li::marker { color:var(--dim); }
+  .doc blockquote { margin:4px 0 22px; padding:4px 0 4px 18px; border-left:2px solid rgb(var(--tint-rgb) / .35);
+    color:var(--dim); font-size:15px; line-height:1.7; font-style:italic; }
   .doc .callout { background:rgb(var(--tint-rgb) / .08); border:1px solid var(--hairline); border-radius:12px;
-    padding:15px 18px; margin:0 0 18px; font-size:13.5px; line-height:1.75; }
+    padding:17px 20px; margin:2px 0 22px; font-size:14.5px; line-height:1.7; }
   /* A copyable template — the guest email, a script, anything meant to be
      lifted verbatim. Selecting multi-paragraph text by hand on a phone is
      miserable, so the whole block goes to the clipboard in one tap. */
@@ -86,6 +105,9 @@
     font-size:13.5px; line-height:1.8; color:var(--ink); }
   .tmplBar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
   .tmplBar .l { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
+  /* Inside an admin card the text sat hard against the left edge. A small
+     inset stops it reading as flush against the card border. */
+  .card > .doc { padding-left:6px; }
   .doc figure { margin:0 0 18px; }
   .doc figure img { max-width:100%; border-radius:12px; display:block; }
   .doc figcaption { font-size:11px; color:var(--dim); margin-top:7px; }
@@ -151,7 +173,9 @@
     .wrap { padding:0; }
     .doc { max-width:none; }
     .doc h1, .doc h2 { color:#000; }
-    .doc p, .doc li { font-size:11pt; line-height:1.55; }
+    .doc p, .doc li { font-size:11pt; line-height:1.5; }
+    .doc h2 { margin-top:22pt; }
+    .doc h3 { margin-top:16pt; }
     .doc h2, .doc h3 { break-after:avoid; }
     .doc figure, .doc .callout, .doc blockquote { break-inside:avoid; }
     .printFoot { display:block !important; margin-top:24pt; padding-top:8pt;
@@ -565,12 +589,18 @@ async function screenAdmin(sub, id) {
   if (!META) META = await api({ action:'admin_meta' });
   if (sub === 'edit')    return adminEdit(id);
   if (sub === 'review')  return adminReview(id);
+  if (sub === 'rules')   return adminRules();
   if (sub === 'settings')return adminSettings();
   return adminQueue();
 }
 
+/* `on` is the tab to highlight. Pass 'none' while editing an EXISTING policy —
+   otherwise the nav lights up "New policy" on a screen editing an old one,
+   which is exactly the confusion this caused. */
 const adminNav = (on) => `<div class="tabs" style="margin-top:-6px">
-  ${[['','Queue'],['edit','New page'],['settings','Settings']].map(([k, l]) =>
+  ${[['','Queue'],['edit','New policy'],
+      ...(HOME?.can?.manage ? [['rules','House rules']] : []),
+      ['settings','Settings']].map(([k, l]) =>
     `<button class="${on === k ? 'on' : ''}" data-anav="${k}">${l}</button>`).join('')}
 </div>`;
 function wireAdminNav(root) {
@@ -626,7 +656,7 @@ async function adminQueue() {
     </div>` : ''}
 
     <div class="card">
-      <div class="cardTitle">All pages</div>
+      <div class="cardTitle">All policies</div>
       ${list.policies.length ? `<div class="pageList">${list.policies.map(p => `
         <button class="pageRow" data-edit="${esc(p.id)}">
           <span><span class="t">${esc(p.title)}</span>
@@ -636,7 +666,7 @@ async function adminQueue() {
             ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
           </span>
         </button>`).join('')}</div>`
-        : '<div class="empty">Nothing authored yet.</div>'}
+        : '<div class="empty">No policies yet.</div>'}
     </div>`;
 
   wireAdminNav($('screen'));
@@ -689,14 +719,14 @@ async function adminEdit(id) {
     (b.text || '')).join('\n\n');
 
   $('screen').innerHTML = `
-    <div class="pageHead"><h2>${id ? 'Edit page' : 'New page'}</h2>
-      <p>Write the page, choose exactly who it reaches, then send it for approval.</p></div>
-    ${adminNav('edit')}
+    <div class="pageHead"><h2>${id ? 'Edit policy' : 'New policy'}</h2>
+      <p>Write it, choose exactly who it reaches, then send it to the founders.</p></div>
+    ${adminNav(id ? 'none' : 'edit')}
 
     <div class="card">
-      <div class="cardTitle">The page</div>
+      <div class="cardTitle">The policy</div>
       <label for="fTitle">Title</label>
-      <input id="fTitle" value="${esc(pol?.title || '')}" placeholder="What is this page called?">
+      <input id="fTitle" value="${esc(pol?.title || '')}" placeholder="What is this policy called?">
       <label for="fSummary">One line summary</label>
       <input id="fSummary" value="${esc(pol?.summary || '')}" placeholder="Shown in lists and on cards">
       <div class="grid2">
@@ -725,7 +755,7 @@ async function adminEdit(id) {
 
     <div class="card">
       <div class="cardTitle">Who it reaches</div>
-      <p class="fieldNote"><b>This is the only thing stopping the wrong people reading this page.</b>
+      <p class="fieldNote"><b>This is the only thing stopping the wrong people reading this policy.</b>
          Check the list on the right before you send it anywhere.</p>
       <label for="fScope">Audience</label>
       <select id="fScope">
@@ -751,7 +781,7 @@ async function adminEdit(id) {
       </div>
     </div>
 
-    <div class="card" id="qCardWrap">
+    <div class="card" id="qCardWrap"${pol?.tier === 'must_know' ? '' : ' style="display:none"'}>
       <div class="cardTitle">Check questions</div>
       <p class="fieldNote">A must-know page needs at least one. The manager asks these before signing someone off,
          and the answers are recorded against that version.</p>
@@ -781,6 +811,13 @@ async function adminEdit(id) {
     if (e.target.matches('[data-hat],[data-venue]')) refreshReach();
   });
   $('addQ').addEventListener('click', () => { $('qList').insertAdjacentHTML('beforeend', qRowHtml('')); });
+  /* Check questions only exist for must-know pages. Showing an empty question
+     box on a standard page invites somebody to fill it in and wonder why it
+     never gets asked. */
+  const tierSel = $('fTier');
+  const syncTier = () => { $('qCardWrap').style.display = tierSel.value === 'must_know' ? '' : 'none'; };
+  tierSel.addEventListener('change', syncTier);
+  syncTier();
   $('qList').addEventListener('click', (e) => {
     if (e.target.matches('[data-delq]')) e.target.closest('.qRow').remove();
   });
@@ -943,7 +980,7 @@ async function adminReview(id) {
       </p>
     </div>
     <div class="card">
-      <div class="cardTitle">The page</div>
+      <div class="cardTitle">The policy</div>
       <article class="doc" id="reviewDoc">${renderBody(d.version.body, [])}</article>
     </div>
     ${d.questions.length ? `<div class="card">
@@ -981,6 +1018,81 @@ async function adminReview(id) {
     });
   }
 }
+
+/* The house rules a standardiser follows when turning a Doc into a policy.
+   Deliberately stored in the database rather than baked into a prompt or a
+   memory note: they are Kim's to change without anyone deploying anything, and
+   when the standardise-button automation lands it reads its instructions from
+   this exact field. One source of truth, editable by the person who owns it. */
+async function adminRules() {
+  HOME = await api({ action: 'home' });
+  const rules = HOME.settings?.standardising_rules || '';
+  $('screen').innerHTML = `
+    <div class="pageHead"><h2>House rules for standardising</h2>
+      <p>The rules whoever turns a Google Doc into a policy has to follow — what they may change,
+         what they must never change, and what they have to flag. Change these and the next
+         standardisation follows the new version.</p></div>
+    ${adminNav('rules')}
+    <div class="card">
+      <div class="cardTitle">The rules</div>
+      <p class="fieldNote">Plain text, same formatting as a policy body: <code>##</code> for a heading,
+        <code>-</code> for a bullet. These are instructions to a person or a machine, so be specific —
+        "never invent a number" beats "be accurate".</p>
+      <textarea id="fRules" rows="30" placeholder="Write the house rules here.">${esc(rules)}</textarea>
+      <div class="qActions" style="margin-top:14px">
+        <button id="saveRules">Save the rules</button>
+        <button class="ghost" id="resetRules">Restore the version we started with</button>
+      </div>
+      <p class="fieldNote" style="margin-top:14px">Last saved rules are what gets applied. There is no
+        version history on this page — if you are making a big change, copy the old text somewhere first.</p>
+    </div>`;
+  wireAdminNav($('screen'));
+  $('saveRules').addEventListener('click', async (e) => {
+    e.currentTarget.disabled = true;
+    try {
+      await api({ action:'save_settings', standardising_rules: $('fRules').value });
+      HOME = await api({ action: 'home' });
+      say('House rules saved.');
+    } catch (err) { say(err.message, 'err'); }
+    finally { e.currentTarget.disabled = false; }
+  });
+  $('resetRules').addEventListener('click', () => {
+    if (!confirm('Replace what is in the box with the original rules? Nothing is saved until you click Save.')) return;
+    $('fRules').value = DEFAULT_RULES;
+    say('Restored in the box. Click Save the rules to keep it.');
+  });
+}
+
+const DEFAULT_RULES = `## Who you are writing for
+
+Write for the busiest, newest person who will ever need this. Most readers are on the floor, mid-service, on a phone.
+
+If a sentence would sound odd said out loud during service, rewrite it.
+
+Clear and direct, never corporate. British English.
+
+## What you may change
+
+- Headings, to match house style.
+- Structure: lettered lists to bullets, long paragraphs split, duplicated content merged.
+- Grammar, spelling and tense. US to British spelling.
+- Formatting artefacts from the Doc.
+
+## What you may NOT change
+
+- Any rule, number, threshold, price or deadline.
+- The meaning of an instruction, even if you think it is wrong. Flag it instead.
+- Anything you would have to invent to fill. Never guess a value.
+
+## Placeholders
+
+Carry unresolved placeholders through exactly as written. Never invent a value to make a page look finished. List every one in the fidelity notes.
+
+Leave merge fields alone.
+
+## Fidelity notes
+
+Every departure from the source gets a note. If it is not in the notes, it was not changed. That is the contract.`;
 
 async function adminSettings() {
   const s = HOME.settings || {};
