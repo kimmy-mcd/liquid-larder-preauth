@@ -168,6 +168,119 @@
   .readSeg button:focus-visible { outline:none; box-shadow:var(--ring); }
   .readTime { font-size:11px; color:var(--dim); margin-left:auto; white-space:nowrap; }
 
+  /* ---- ROUND 4: blocks that have a shape (4 Aug 2026) ----
+     Until now every policy had four tools: a heading, a paragraph, a bullet
+     list and a grey box. So a procedure looked exactly like a paragraph of
+     background, and a table of fees had to be written out as a sentence, which
+     is where mistakes come from. These are the missing shapes.
+     NOTE: the edge function stores `body` opaquely — there is no server-side
+     whitelist of block types — so everything here is a pure client change.
+     The flip side is that NOTHING upstream sanitises a block, so renderBody
+     must keep escaping every single value it touches. Do not relax that. */
+
+  /* Numbered steps. A procedure read while you are doing the thing needs the
+     number findable at a glance, hence the hanging numeral rather than a
+     browser list marker. */
+  .doc .steps { list-style:none; margin:0 0 var(--read-pgap); padding:0; counter-reset:step; }
+  .doc .steps li { counter-increment:step; position:relative; padding-left:38px;
+    margin-bottom:calc(var(--read-pgap) * .8); }
+  .doc .steps li:last-child { margin-bottom:0; }
+  .doc .steps li::before { content:counter(step); position:absolute; left:0; top:-1px;
+    width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background:rgb(var(--tint-rgb) / .12); color:var(--accent-ink);
+    font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600; }
+
+  /* Do / don't. Two columns on a wide screen, stacked on a narrow one — never
+     side by side at a width that would squeeze either into two words a line. */
+  .doc .dodont { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:0 0 var(--read-pgap); }
+  @media (max-width:700px) { .doc .dodont { grid-template-columns:1fr; } }
+  .doc .dodont > div { border:1px solid var(--hairline); border-radius:12px; padding:15px 17px; }
+  .doc .dodont .do   { background:rgb(var(--ok-rgb) / .07); }
+  .doc .dodont .dont { background:rgb(var(--err-rgb) / .06); }
+  .doc .dodont .hd { font-family:'Montserrat',sans-serif; font-size:9.5px; font-weight:600;
+    letter-spacing:.13em; text-transform:uppercase; margin-bottom:9px; }
+  .doc .dodont .do .hd   { color:var(--ok); }
+  .doc .dodont .dont .hd { color:var(--err); }
+  .doc .dodont ul { margin:0 0 0 16px; }
+  .doc .dodont li { font-size:calc(var(--read-fs) - 1px); margin-bottom:5px; }
+
+  /* Definition rows. Term left, meaning right; stacked on narrow. */
+  .doc .defs { margin:0 0 var(--read-pgap); border-top:1px solid var(--hairline); }
+  .doc .defs .row { display:grid; grid-template-columns:minmax(120px,.32fr) 1fr; gap:16px;
+    padding:12px 2px; border-bottom:1px solid var(--hairline); }
+  @media (max-width:700px) { .doc .defs .row { grid-template-columns:1fr; gap:4px; } }
+  .doc .defs .term { font-weight:600; color:var(--accent-ink); font-size:calc(var(--read-fs) - .5px);
+    line-height:1.5; }
+  .doc .defs .def { color:var(--ink-reading); font-size:calc(var(--read-fs) - .5px);
+    line-height:calc(var(--read-lh) - .06); letter-spacing:var(--read-track); }
+
+  /* Tables. Amounts, timings, thresholds. Scrolls sideways rather than
+     crushing columns, because a squeezed number column is a misread number. */
+  .doc .tableWrap { margin:0 0 var(--read-pgap); overflow-x:auto; border:1px solid var(--hairline);
+    border-radius:12px; }
+  .doc table { border-collapse:collapse; width:100%; font-size:calc(var(--read-fs) - 1.5px); }
+  .doc th, .doc td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--hairline);
+    line-height:1.5; letter-spacing:var(--read-track); }
+  .doc th { font-family:'Montserrat',sans-serif; font-size:9.5px; font-weight:600; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--dim); background:rgb(var(--tint-rgb) / .05); white-space:nowrap; }
+  .doc td { color:var(--ink-reading); }
+  .doc tr:last-child td { border-bottom:none; }
+
+  /* Collapsible detail — full scripts, appendices, the long tail. Closed by
+     default so it stops padding out the page, and forced OPEN for printing,
+     because a printed policy with hidden sections is a policy with holes. */
+  .doc details { border:1px solid var(--hairline); border-radius:12px; margin:0 0 var(--read-pgap);
+    background:rgb(var(--tint-rgb) / .04); }
+  .doc summary { cursor:pointer; padding:13px 17px; font-family:'Montserrat',sans-serif;
+    font-size:11.5px; font-weight:600; letter-spacing:.04em; color:var(--accent-ink);
+    list-style:none; display:flex; align-items:center; gap:9px; }
+  .doc summary::-webkit-details-marker { display:none; }
+  .doc summary::before { content:'▸'; font-size:10px; transition:transform .15s ease; color:var(--dim); }
+  .doc details[open] > summary::before { transform:rotate(90deg); }
+  .doc summary:focus-visible { outline:none; box-shadow:var(--ring); border-radius:12px; }
+  .doc .detailsBody { padding:2px 17px 15px; }
+  .doc .detailsBody > *:last-child { margin-bottom:0; }
+
+  /* A job description rendered live from hub_hats. Never a stored copy —
+     see the note on renderBody. */
+  .doc .jd { border:1px solid var(--hairline); border-radius:12px; padding:4px 18px 16px;
+    margin:0 0 var(--read-pgap); background:rgb(var(--tint-rgb) / .04); }
+  .doc .jd .src { font-family:'Montserrat',sans-serif; font-size:9.5px; font-weight:600;
+    letter-spacing:.13em; text-transform:uppercase; color:var(--dim); margin:14px 0 10px; }
+  .doc .jd h4 { font-family:'Montserrat',sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:.09em; text-transform:uppercase; color:var(--accent-ink); margin:16px 0 7px; }
+  .doc .jd p { margin-bottom:0; white-space:pre-wrap; }
+  .doc .jd .missing { color:var(--dim); font-style:italic; }
+
+  /* ---- at a glance ----
+     Three of its four parts cost nothing: reading time is already computed,
+     the audience is already in the database, and "what changed" is a field on
+     every version that nothing was reading. Only the key points need writing,
+     and the card degrades cleanly when they are absent. */
+  .glance { border:1px solid var(--hairline); border-radius:14px; background:rgb(var(--tint-rgb) / .05);
+    padding:18px 20px; margin:0 0 30px; font-family:'Montserrat',sans-serif; }
+  .glance .hd { font-size:9.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); margin-bottom:13px; }
+  .glance .facts { display:flex; flex-wrap:wrap; gap:8px 22px; margin-bottom:2px; }
+  .glance .fact { font-size:11.5px; color:var(--dim); line-height:1.6; }
+  .glance .fact b { color:var(--accent-ink); font-weight:600; }
+  .glance ul { list-style:none; margin:14px 0 0; padding:0; }
+  .glance li { position:relative; padding-left:19px; margin-bottom:7px;
+    font-family:var(--font-reading); font-size:calc(var(--read-fs) - 1px);
+    line-height:calc(var(--read-lh) - .06); color:var(--ink-reading); letter-spacing:var(--read-track); }
+  .glance li:last-child { margin-bottom:0; }
+  .glance li::before { content:''; position:absolute; left:4px; top:.62em; width:5px; height:5px;
+    border-radius:50%; background:var(--accent-ink); opacity:.55; }
+  .glance .changed { margin-top:13px; padding-top:12px; border-top:1px solid var(--hairline);
+    font-size:11.5px; color:var(--dim); line-height:1.65; }
+  .glance .changed b { color:var(--accent-ink); font-weight:600; }
+
+  @media print {
+    .doc details { border:none; background:none; }
+    .doc details > summary { padding-left:0; font-size:12pt; }
+    .glance { break-inside:avoid; }
+  }
+
   /* ---- ROUND 2: position and structure (3 Aug 2026) ----
      "Hard to scroll through" was never really about scrolling. It was about not
      knowing where you are, how much is left, or how to get back to something you
@@ -327,6 +440,8 @@
     .topbar, .tabs, .endCard, .relRow, #pageMsg, .readBar,
     .readProg, .stickyHead, .rail, .toTop, .resume, .noprint { display:none !important; }
     .readLayout { display:block; }
+    /* A printed policy with collapsed sections is a policy with holes in it. */
+    .doc details > .detailsBody { display:block !important; }
     :root { --page-w:100%; }
     body { background:#fff; }
     .wrap { padding:0; }
@@ -401,17 +516,33 @@ function applyReadPrefs(p) {
 applyReadPrefs(readPrefs());
 
 /* Reading time, from the word count of the blocks at the words-per-minute set
-   in Admin. Rounded up and floored at one, so nothing ever reads "0 min". */
+   in Admin. Rounded up and floored at one, so nothing ever reads "0 min".
+
+   It walks the block VALUES rather than a list of known keys, because the
+   Round 4 types carry their text in half a dozen different shapes — table rows
+   are arrays of arrays, definitions are {term, def} objects, do/don't has two
+   lists, and a collapsible holds whole blocks of its own. Counting only
+   `text` and `items`, as the first version did, made a page of tables and
+   procedures report "1 min read" when it was nothing of the sort. */
+function countWords(v, depth) {
+  const d = depth || 0;
+  if (v == null || d > 6) return 0;
+  if (typeof v === 'string') return v.trim().split(/\s+/).filter(Boolean).length;
+  if (Array.isArray(v)) return v.reduce((n, x) => n + countWords(x, d + 1), 0);
+  if (typeof v === 'object') {
+    let n = 0;
+    for (const [k, val] of Object.entries(v)) {
+      if (k === 'type' || k === 'hat_id') continue;   // machinery, not prose
+      n += countWords(val, d + 1);
+    }
+    return n;
+  }
+  return 0;
+}
 function readMinutes(body) {
   const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
-  let words = 0;
-  for (const b of blocks) {
-    for (const chunk of [b.text || '', ...(b.items || [])]) {
-      words += String(chunk).trim().split(/\s+/).filter(Boolean).length;
-    }
-  }
   const wpm = Number(HOME?.settings?.read_wpm) || 200;
-  return Math.max(1, Math.ceil(words / wpm));
+  return Math.max(1, Math.ceil(countWords(blocks) / wpm));
 }
 
 function readBar(minutes) {
@@ -723,15 +854,29 @@ async function screenBrowse(catId) {
   wireRows($('screen'));
 }
 
-/* Body is stored as blocks, never as HTML — nothing authored can inject markup. */
-function renderBody(body, assets) {
+/* Body is stored as blocks, never as HTML — nothing authored can inject markup.
+   This matters more than it looks: handbook-staff stores `body` completely
+   opaquely. There is no server-side whitelist of block types and no
+   sanitising, so THIS FUNCTION IS THE ONLY THING standing between authored
+   content and the DOM. Every value that reaches the page goes through esc().
+   An unknown block type renders as nothing rather than guessing.
+
+   `jd` is the map of hat_id -> job description supplied by the page action.
+   It is passed in rather than baked into the block because a job description
+   must never be a stored copy: hub_hats is the source of truth, so the block
+   holds only a hat id and the content is resolved fresh on every read.
+   `depth` guards the one recursive block type (details) against a body that
+   nests into itself. */
+function renderBody(body, assets, jd, depth) {
   const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
+  const d = depth || 0;
   const out = blocks.map(b => {
     const text = esc(b.text || '');
+    const items = Array.isArray(b.items) ? b.items : [];
     if (b.type === 'h2')      return `<h2>${text}</h2>`;
     if (b.type === 'h3')      return `<h3>${text}</h3>`;
-    if (b.type === 'ul')      return `<ul>${(b.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
-    if (b.type === 'ol')      return `<ol>${(b.items || []).map(i => `<li>${esc(i)}</li>`).join('')}</ol>`;
+    if (b.type === 'ul')      return `<ul>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+    if (b.type === 'ol')      return `<ol>${items.map(i => `<li>${esc(i)}</li>`).join('')}</ol>`;
     if (b.type === 'callout') return `<div class="callout">${text}</div>`;
     if (b.type === 'quote')   return `<blockquote>${text}</blockquote>`;
     if (b.type === 'copy')    return `<div class="tmpl">
@@ -739,11 +884,99 @@ function renderBody(body, assets) {
         <span class="l">${esc(b.label || 'Template')}</span>
         <button class="ghost noprint" data-copy type="button">Copy</button>
       </div><pre>${text}</pre></div>`;
-    return `<p>${text}</p>`;
+
+    /* ---- Round 4 ---- */
+    if (b.type === 'steps')
+      return `<ol class="steps">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ol>`;
+
+    if (b.type === 'dodont') {
+      const col = (cls, hd, list) => `<div class="${cls}">
+        <div class="hd">${esc(hd)}</div>
+        <ul>${(Array.isArray(list) ? list : []).map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+      </div>`;
+      return `<div class="dodont">
+        ${col('do', b.do_label || 'Do', b.do)}
+        ${col('dont', b.dont_label || 'Don’t', b.dont)}
+      </div>`;
+    }
+
+    if (b.type === 'defs')
+      return `<div class="defs">${items.map(i => `<div class="row">
+        <div class="term">${esc(i?.term || '')}</div>
+        <div class="def">${esc(i?.def || '')}</div>
+      </div>`).join('')}</div>`;
+
+    if (b.type === 'table') {
+      const head = Array.isArray(b.head) ? b.head : [];
+      const rows = Array.isArray(b.rows) ? b.rows : [];
+      /* Ragged rows are normalised to the header width rather than rejected —
+         a half-filled table should still render, not blank the page. */
+      const w = Math.max(head.length, ...rows.map(r => (Array.isArray(r) ? r.length : 0)), 1);
+      const cells = (r, tag) => Array.from({ length: w },
+        (_, i) => `<${tag}>${esc((Array.isArray(r) ? r[i] : '') ?? '')}</${tag}>`).join('');
+      return `<div class="tableWrap"><table>
+        ${head.length ? `<thead><tr>${cells(head, 'th')}</tr></thead>` : ''}
+        <tbody>${rows.map(r => `<tr>${cells(r, 'td')}</tr>`).join('')}</tbody>
+      </table></div>`;
+    }
+
+    if (b.type === 'details') {
+      if (d >= 3) return '';   // nested too deep; drop rather than recurse forever
+      const inner = renderBody({ blocks: Array.isArray(b.blocks) ? b.blocks : [] }, [], jd, d + 1);
+      return `<details><summary>${esc(b.label || 'More detail')}</summary>
+        <div class="detailsBody">${inner}</div></details>`;
+    }
+
+    if (b.type === 'hat_jd') {
+      const h = jd && jd[b.hat_id];
+      if (!h) return `<div class="jd"><p class="src missing">This job description could not be loaded.</p></div>`;
+      const part = (label, val) => val && String(val).trim()
+        ? `<h4>${esc(label)}</h4><p>${esc(val)}</p>` : '';
+      const body = part('Key responsibilities', h.key_responsibilities)
+                 + part('Accountable for', h.accountable_for)
+                 + part('Success metrics', h.success_metrics);
+      return `<div class="jd">
+        <div class="src">Live from the team directory${h.department ? ' · ' + esc(h.department) : ''}</div>
+        ${body || '<p class="missing">Nothing has been filled in against this hat yet.</p>'}
+      </div>`;
+    }
+
+    if (b.type === 'p' || !b.type) return `<p>${text}</p>`;
+    return '';   // unknown type: render nothing rather than guess
   }).join('');
   const figs = (assets || []).map(a =>
-    `<figure><img src="${esc(a.url)}" alt="${esc(a.alt || '')}">${a.alt ? `<figcaption>${esc(a.alt)}</figcaption>` : ''}</figure>`).join('');
+    `<figure><img src="${esc(a.url)}" alt="${esc(a.alt || '')}" loading="lazy"${
+      a.width && a.height ? ` width="${esc(a.width)}" height="${esc(a.height)}"` : ''}>${
+      a.alt ? `<figcaption>${esc(a.alt)}</figcaption>` : ''}</figure>`).join('');
   return out + figs;
+}
+
+/* ---- at a glance ----
+   Reading time we already compute. The audience and the changelog are both
+   already in the database and were simply never surfaced. Only the key points
+   are authored, and every part is optional — with none of them the card does
+   not render at all, so nothing existing sprouts an empty box. */
+function glanceCard(p, minutes) {
+  const keys = Array.isArray(p.body?.key_points)
+    ? p.body.key_points.map(k => String(k).trim()).filter(Boolean) : [];
+  const audience = Array.isArray(p.audience) ? p.audience.filter(Boolean) : [];
+  const changed = p.tier === 'must_know' || p.changelog ? (p.changelog || '').trim() : '';
+  if (!keys.length && !audience.length && !changed) return '';
+
+  const list = (arr) => arr.length > 3
+    ? esc(arr.slice(0, 3).join(', ')) + ` and ${arr.length - 3} more`
+    : esc(arr.join(', '));
+
+  return `<div class="glance">
+    <div class="hd">At a glance</div>
+    <div class="facts">
+      <span class="fact"><b>${minutes} min</b> read</span>
+      ${audience.length ? `<span class="fact">Applies to <b>${list(audience)}</b></span>` : ''}
+      ${p.version_no ? `<span class="fact">Version <b>${esc(p.version_no)}</b></span>` : ''}
+    </div>
+    ${keys.length ? `<ul>${keys.map(k => `<li>${esc(k)}</li>`).join('')}</ul>` : ''}
+    ${changed ? `<div class="changed"><b>What changed:</b> ${esc(changed)}</div>` : ''}
+  </div>`;
 }
 
 async function screenPage(slug) {
@@ -789,7 +1022,8 @@ async function screenPage(slug) {
             ${p.outside_your_hats ? '<span class="chip outside">Outside your hats</span>' : ''}
             <span>Version ${p.version_no ?? '—'}${p.published_at ? ' · ' + new Date(p.published_at).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : ''}</span>
           </div>
-          ${renderBody(p.body, p.assets)}
+          ${glanceCard(p, readMinutes(p.body))}
+          ${renderBody(p.body, p.assets, p.jd)}
           <div class="printFoot">Liquid &amp; Larder Handbook · ${esc(p.title)} · version ${p.version_no ?? '—'} · printed ${new Date().toLocaleDateString('en-AU')}</div>
         </article>
 
@@ -1169,14 +1403,11 @@ async function adminEdit(id) {
     }
   }
   const blocks = version?.body?.blocks || [];
-  const asText = blocks.map(b =>
-    b.type === 'h2' ? '## ' + (b.text || '') :
-    b.type === 'h3' ? '### ' + (b.text || '') :
-    b.type === 'ul' ? (b.items || []).map(i => '- ' + i).join('\n') :
-    b.type === 'callout' ? '> ' + (b.text || '') :
-    b.type === 'quote' ? '> ' + (b.text || '') :
-    b.type === 'copy' ? `[copy${b.label ? ': ' + b.label : ''}]\n` + (b.text || '') :
-    (b.text || '')).join('\n\n');
+  const asText = blocksToText(blocks);
+  /* Pulled out of the body so they survive editing: the JD picker and the key
+     points are stored in the version but are not part of the prose. */
+  const jdHat = (blocks.find(b => b.type === 'hat_jd') || {}).hat_id || '';
+  const keyPoints = Array.isArray(version?.body?.key_points) ? version.body.key_points : [];
 
   $('screen').innerHTML = `
     <div class="pageHead"><h2>${id ? 'Edit policy' : 'New policy'}</h2>
@@ -1206,11 +1437,37 @@ async function adminEdit(id) {
         </div>
       </div>
       <label for="fBody">Body</label>
-      <p class="fieldNote">Plain text. <code>##</code> for a heading, <code>###</code> for a small heading,
-        <code>-</code> for a bullet, <code>&gt;</code> for a callout. Blank line between blocks.<br>
-        <code>[copy: Guest email]</code> on its own line starts a copyable template — everything under it,
-        line breaks and all, gets a Copy button on the page.</p>
+      <p class="fieldNote">Plain text, blank line between blocks.
+        <code>##</code> heading · <code>###</code> small heading · <code>-</code> bullet ·
+        <code>&gt;</code> callout · <code>&gt;&gt;</code> quote<br>
+        <b>Numbered steps</b> — number every line in the block (<code>1.</code>, <code>2.</code>…) and it
+        becomes a proper step list.<br>
+        <b><code>[table]</code></b> then rows separated by <code>|</code>; the first row is the header.<br>
+        <b><code>[def]</code></b> then <code>term :: what it means</code>, one per line.<br>
+        <b><code>[do/dont]</code></b> then <code>+</code> for do and <code>-</code> for don't.<br>
+        <b><code>[more: Full script]</code></b> … <b><code>[/more]</code></b> folds everything between them
+        away behind a heading. It still prints in full.<br>
+        <b><code>[copy: Guest email]</code></b> keeps everything under it verbatim and gives it a Copy button.</p>
       <textarea id="fBody" rows="16" placeholder="Write the page here.">${esc(asText)}</textarea>
+    </div>
+
+    <div class="card">
+      <div class="cardTitle">At a glance</div>
+      <p class="fieldNote">Shown in a card at the top of the page. Reading time, who it applies to and
+        what changed are all filled in automatically — this is just the three or four things somebody
+        should take away. Leave it empty and the card still works.</p>
+      <label for="fKeyPoints">Key points</label>
+      <textarea id="fKeyPoints" rows="4" style="min-height:96px"
+        placeholder="One per line.">${esc(keyPoints.join('\n'))}</textarea>
+
+      <label for="fJdHat" style="margin-top:16px">Job description for</label>
+      <p class="fieldNote">Leave as None unless this policy <i>is</i> somebody's job description.
+        The responsibilities, accountabilities and metrics are pulled live from the team directory
+        every time the page is opened, so there is never a second copy to keep up to date.</p>
+      <select id="fJdHat">
+        <option value="">None</option>
+        ${META.hats.map(h => `<option value="${esc(h.id)}"${h.id === jdHat ? ' selected' : ''}>${esc(h.name)}${h.department ? ' — ' + esc(h.department) : ''}</option>`).join('')}
+      </select>
     </div>
 
     <div class="card">
@@ -1294,6 +1551,9 @@ async function adminEdit(id) {
     venue_ids: [...$('screen').querySelectorAll('[data-venue]:checked')].map(c => c.dataset.venue),
   });
   const collectQs = () => [...$('qList').querySelectorAll('[data-q]')].map(i => i.value.trim()).filter(Boolean);
+  /* The job description block goes FIRST, so the role is established before
+     anything the policy adds around it. */
+  const jdBlocks = () => $('fJdHat').value ? [{ type:'hat_jd', hat_id: $('fJdHat').value }] : [];
 
   async function persist() {
     const meta = collect();
@@ -1306,7 +1566,10 @@ async function adminEdit(id) {
       action:'version_save',
       policy_id: saved.policy.id,
       version_id: version && version.status !== 'published' && version.status !== 'superseded' ? version.id : null,
-      body: { blocks: parseBody($('fBody').value) },
+      body: {
+        blocks: jdBlocks().concat(parseBody($('fBody').value)),
+        key_points: $('fKeyPoints').value.split('\n').map(k => k.trim()).filter(Boolean),
+      },
       changelog: $('fChangelog').value.trim() || null,
       is_material: !$('fMinor').checked,
       questions: collectQs(),
@@ -1338,31 +1601,117 @@ const qRowHtml = (v) => `<div class="qRow">
   <input data-q value="${esc(v)}" placeholder="e.g. When do you need a manager to authorise a refund?">
   <button class="ghost" data-delq type="button">Remove</button></div>`;
 
-/* "## " heading, "### " small heading, "- " bullet, "> " callout, anything else a paragraph. */
+/* The authoring language.
+     ##  heading          ###  small heading        -  bullet        >  callout
+     1.  numbered steps (every line in the block must be numbered)
+     [copy: Label]   verbatim template with a Copy button
+     [table]         pipe-separated, first row is the header
+     [def]           term :: meaning, one per line
+     [do/dont]       + for do, - for don't
+     [more: Label] … [/more]   collapsible, may contain any of the above
+   parseBody and blocksToText are exact inverses. THEY MUST STAY THAT WAY: the
+   editor loads an existing version by serialising its blocks back into this
+   text, so any block type that parseBody can produce but blocksToText cannot
+   write is silently destroyed the next time somebody opens the policy. */
 function parseBody(text) {
+  const src = String(text || '');
   const blocks = [];
+  /* [more: …] can span blank lines, so it has to be lifted out before the
+     text is split into blank-line-separated chunks. */
+  const re = /^[ \t]*\[more(?::[ \t]*([^\]]*))?\][ \t]*\r?\n([\s\S]*?)\r?\n[ \t]*\[\/more\][ \t]*$/gim;
+  let last = 0, m;
+  while ((m = re.exec(src)) !== null) {
+    parseChunks(src.slice(last, m.index), blocks);
+    blocks.push({ type:'details', label: (m[1] || '').trim() || null, blocks: parseBody(m[2]) });
+    last = re.lastIndex;
+  }
+  parseChunks(src.slice(last), blocks);
+  return blocks;
+}
+
+function parseChunks(text, blocks) {
   for (const chunk of String(text || '').split(/\n\s*\n/)) {
-    // [copy] or [copy: Guest email] — everything after the marker is kept
-    // verbatim, line breaks and all, and gets a Copy button when rendered.
-    const marker = chunk.match(/^\s*\[copy(?::\s*([^\]]+))?\]\s*\n?/i);
-    if (marker) {
-      const bodyText = chunk.slice(marker[0].length).replace(/\s+$/, '');
-      if (bodyText) blocks.push({ type:'copy', label: (marker[1] || '').trim() || null, text: bodyText });
+    // [copy] keeps everything after the marker verbatim, line breaks and all.
+    const copy = chunk.match(/^\s*\[copy(?::\s*([^\]]+))?\]\s*\n?/i);
+    if (copy) {
+      const bodyText = chunk.slice(copy[0].length).replace(/\s+$/, '');
+      if (bodyText) blocks.push({ type:'copy', label: (copy[1] || '').trim() || null, text: bodyText });
       continue;
     }
-    const lines = chunk.split('\n').map(l => l.trim()).filter(Boolean);
+
+    const tagged = chunk.match(/^\s*\[(table|def|do\/dont)\]\s*\n?/i);
+    const lines = (tagged ? chunk.slice(tagged[0].length) : chunk)
+      .split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
+
+    if (tagged) {
+      const kind = tagged[1].toLowerCase();
+      if (kind === 'table') {
+        const rows = lines.map(l => l.split('|').map(c => c.trim()));
+        blocks.push({ type:'table', head: rows[0] || [], rows: rows.slice(1) });
+      } else if (kind === 'def') {
+        const items = lines.map(l => {
+          const i = l.indexOf('::');
+          return i < 0 ? { term: l, def: '' }
+                       : { term: l.slice(0, i).trim(), def: l.slice(i + 2).trim() };
+        });
+        blocks.push({ type:'defs', items });
+      } else {
+        blocks.push({ type:'dodont',
+          do:   lines.filter(l => l.startsWith('+ ')).map(l => l.slice(2).trim()),
+          dont: lines.filter(l => l.startsWith('- ')).map(l => l.slice(2).trim()) });
+      }
+      continue;
+    }
+
+    // A block where EVERY line is numbered is a procedure, not a paragraph.
+    if (lines.length > 1 && lines.every(l => /^\d+[.)]\s+\S/.test(l))) {
+      blocks.push({ type:'steps', items: lines.map(l => l.replace(/^\d+[.)]\s+/, '')) });
+      continue;
+    }
+
     if (lines.every(l => l.startsWith('- '))) {
       blocks.push({ type:'ul', items: lines.map(l => l.slice(2).trim()) });
     } else for (const line of lines) {
       if (line.startsWith('### ')) blocks.push({ type:'h3', text: line.slice(4).trim() });
       else if (line.startsWith('## ')) blocks.push({ type:'h2', text: line.slice(3).trim() });
+      // >> before > , or a quote round-trips into a callout and quietly changes meaning.
+      else if (line.startsWith('>> ')) blocks.push({ type:'quote', text: line.slice(3).trim() });
       else if (line.startsWith('> ')) blocks.push({ type:'callout', text: line.slice(2).trim() });
       else if (line.startsWith('- ')) blocks.push({ type:'ul', items:[line.slice(2).trim()] });
       else blocks.push({ type:'p', text: line });
     }
   }
-  return blocks;
+}
+
+/* The exact inverse of parseBody. See the warning above it. */
+function blocksToText(blocks, depth) {
+  const d = depth || 0;
+  return (Array.isArray(blocks) ? blocks : []).map(b => {
+    switch (b.type) {
+      case 'h2':      return '## ' + (b.text || '');
+      case 'h3':      return '### ' + (b.text || '');
+      case 'ul':      return (b.items || []).map(i => '- ' + i).join('\n');
+      case 'ol':      return (b.items || []).map((i, n) => (n + 1) + '. ' + i).join('\n');
+      case 'steps':   return (b.items || []).map((i, n) => (n + 1) + '. ' + i).join('\n');
+      case 'callout': return '> ' + (b.text || '');
+      case 'quote':   return '>> ' + (b.text || '');
+      case 'copy':    return `[copy${b.label ? ': ' + b.label : ''}]\n` + (b.text || '');
+      case 'table':   return '[table]\n' + [b.head || [], ...(b.rows || [])]
+                        .filter(r => Array.isArray(r) && r.length)
+                        .map(r => r.join(' | ')).join('\n');
+      case 'defs':    return '[def]\n' + (b.items || [])
+                        .map(i => `${i?.term || ''} :: ${i?.def || ''}`).join('\n');
+      case 'dodont':  return '[do/dont]\n' + [...(b.do || []).map(i => '+ ' + i),
+                                              ...(b.dont || []).map(i => '- ' + i)].join('\n');
+      case 'details': return d >= 3 ? '' :
+                        `[more${b.label ? ': ' + b.label : ''}]\n${blocksToText(b.blocks, d + 1)}\n[/more]`;
+      // hat_jd carries no prose — it is set by the Job description picker and
+      // deliberately never round-trips through the text box.
+      case 'hat_jd':  return '';
+      default:        return b.text || '';
+    }
+  }).filter(x => x !== '').join('\n\n');
 }
 
 async function refreshReach() {
