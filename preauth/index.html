@@ -10,6 +10,16 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<!-- PWA + iOS Home Screen. On iOS/iPadOS, web push only works from a page
+     that has been installed to the Home Screen (Safari, iOS 16.4+); the
+     apple-touch-icon and standalone meta tags below make that install path
+     work. On Android/desktop the manifest alone is enough. -->
+<link rel="manifest" href="/preauth/manifest.webmanifest">
+<meta name="theme-color" content="#1d3e3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="L&amp;L Pre-auth">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 <!-- Theme: resolve BEFORE the stylesheets load, so a dark page never shows a light
      frame. "ll-theme" holds the user's choice (system | light | dark); data-theme on
      <html> holds what that resolved to. Kept inline and tiny on purpose — an external
@@ -55,7 +65,10 @@
 <header class="topbar">
   <div class="bar">
     <div><h1 class="logo" aria-label="Liquid &amp; Larder"></h1><div class="sub"><a href="../" class="back">&larr; Hub</a> &nbsp;·&nbsp; Credit Card Pre-Authorisations &nbsp;·&nbsp; <a href="finance/">Finance</a></div></div>
-    <button class="ghost" id="refresh">Refresh</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="ghost" id="notifyBtn" hidden title="Enable push notifications on this device">Enable notifications</button>
+      <button class="ghost" id="refresh">Refresh</button>
+    </div>
   </div>
 </header>
 <div class="wrap">
@@ -126,7 +139,156 @@ const statusTime = r => r.status === 'sent' ? r.created_at : (r.status === 'card
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.href = '../'; return; }
   loadList();
+  initPush();
 })();
+
+// ---- Web Push (staff notifications) --------------------------------------
+//
+// The dashboard talks to the push-manage edge function to fetch the VAPID
+// public key + current subscribed state, then subscribes / unsubscribes on
+// user action. Permission is only requested from a button click — never on
+// page load — which iOS and Safari both require.
+//
+// iOS caveat: this only works when the dashboard has been added to the Home
+// Screen (Safari, iOS 16.4+). We show a hint if the user hits Enable on
+// iPhone/iPad without having installed it. The 'notifyBtn' stays hidden on
+// browsers that don't support Push (older Safari, Firefox iOS, etc.).
+const PUSH_FN = SUPABASE_URL + '/functions/v1/push-manage';
+let pushState = { supported: false, subscribed: false, publicKey: null };
+
+function b64uToU8(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4));
+  const bin = atob(s + pad);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function subToJSON(sub) {
+  // Extract the raw p256dh + auth keys as base64url for the server.
+  const j = sub.toJSON();
+  return { endpoint: j.endpoint, keys: { p256dh: j.keys.p256dh, auth: j.keys.auth } };
+}
+
+async function pushApi(method, body) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('Signed out');
+  const res = await fetch(PUSH_FN, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': ANON_KEY,
+      'Authorization': 'Bearer ' + session.access_token,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.error) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function initPush() {
+  const btn = $('notifyBtn');
+  if (!btn) return;
+
+  // Feature detection — needs Service Worker + PushManager + Notification.
+  pushState.supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  if (!pushState.supported) { btn.hidden = true; return; }
+
+  try {
+    const reg = await navigator.serviceWorker.register('/preauth/sw.js', { scope: '/preauth/' });
+    // If a push subscription already exists locally, reflect it in the UI even
+    // if the server hasn't confirmed yet.
+    const existing = await reg.pushManager.getSubscription();
+
+    const meta = await pushApi('GET');
+    pushState.publicKey = meta.publicKey || null;
+    pushState.subscribed = !!existing && meta.subscribed;
+
+    if (!pushState.publicKey) { btn.hidden = true; return; }
+    btn.hidden = false;
+    renderNotifyBtn();
+    btn.onclick = () => toggleNotify(reg);
+  } catch (e) {
+    console.warn('[push] init failed', e);
+    btn.hidden = true;
+  }
+
+  // The SW asks us to navigate when the user taps a notification.
+  navigator.serviceWorker.addEventListener('message', (ev) => {
+    if (ev.data && ev.data.type === 'push-navigate' && ev.data.url) {
+      try { history.replaceState(null, '', ev.data.url); } catch (_) {}
+      loadList();
+    }
+  });
+}
+
+function renderNotifyBtn() {
+  const btn = $('notifyBtn');
+  if (!btn) return;
+  if (Notification.permission === 'denied') {
+    btn.textContent = 'Notifications blocked';
+    btn.disabled = true;
+    btn.title = 'Push notifications are blocked in this browser. Enable them from your browser settings, then reload.';
+    return;
+  }
+  btn.disabled = false;
+  btn.textContent = pushState.subscribed ? 'Notifications on' : 'Enable notifications';
+  btn.title = pushState.subscribed
+    ? 'Tap to disable push notifications on this device'
+    : 'Enable push notifications on this device';
+}
+
+// Rough iOS detection. iOS + not-standalone means push won't work here — the
+// user needs to add the page to Home Screen first.
+function isIosStandaloneWarnable() {
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  return iOS && !standalone;
+}
+
+async function toggleNotify(reg) {
+  const btn = $('notifyBtn');
+  try {
+    btn.disabled = true;
+    if (pushState.subscribed) {
+      // Unsubscribe: pull the endpoint, drop the browser sub, tell the server.
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await pushApi('DELETE', { endpoint: sub.endpoint });
+        await sub.unsubscribe();
+      } else {
+        await pushApi('DELETE', {});
+      }
+      pushState.subscribed = false;
+    } else {
+      if (isIosStandaloneWarnable()) {
+        alert('On iPhone or iPad, notifications only work after you install this page:\n\n1. Tap the Share icon in Safari.\n2. Choose "Add to Home Screen".\n3. Open the app from your Home Screen, then tap Enable notifications again.');
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        renderNotifyBtn();
+        return;
+      }
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: b64uToU8(pushState.publicKey),
+        });
+      }
+      await pushApi('POST', subToJSON(sub));
+      pushState.subscribed = true;
+    }
+  } catch (e) {
+    console.warn('[push] toggle failed', e);
+    alert('Sorry — could not update notification settings: ' + (e.message || e));
+  } finally {
+    renderNotifyBtn();
+  }
+}
 
 async function api(payload) {
   const { data: { session } } = await sb.auth.getSession();
