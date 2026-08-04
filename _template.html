@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>New app — Liquid &amp; Larder</title>
 
 <!-- ==========================================================================
@@ -21,6 +21,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<!-- PWA + iOS Home Screen. Without these, "Add to Home Screen" just bookmarks
+     the page inside an ordinary Safari tab, which can relaunch at a stale zoom
+     / width left over from a previous tab session and eats vertical space on
+     Safari's own chrome. These install it as its own standalone app instead —
+     dedicated icon, title, no browser chrome. -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#1d3e3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="L&amp;L Hub">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 
 <!-- ⚠ 1 of 3 — THE THEME SCRIPT. Copy verbatim, and keep it ABOVE both
      stylesheet links. It resolves the stored preference to a concrete
@@ -33,7 +44,7 @@
      so you get a visible flip. Not a substitute for having this here.) -->
 <script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
 
-<link rel="stylesheet" href="/styles/core.css?v=5">
+<link rel="stylesheet" href="/styles/core.css?v=6">
 <link rel="stylesheet" href="/styles/hub.css?v=8">
 <script defer src="/scripts/hub-motion.js?v=2"></script>
 
