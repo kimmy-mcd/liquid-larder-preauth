@@ -149,3 +149,12 @@ button:disabled { opacity:.4; cursor:not-allowed; transform:none; filter:none; }
    screen edge, so they can't be clipped by body overflow — hide them so the page
    never extends past the viewport (no horizontal pan / pinch-out reveal). */
 @media (max-width:640px) { body::before, body::after { display:none; } }
+/* Standalone launch (Home Screen / apple-mobile-web-app-capable): there is no
+   Safari chrome any more, so our own content sits directly under the notch /
+   Dynamic Island and above the home indicator unless we pad for it. Guarded to
+   display-mode:standalone so a normal browser tab — where Safari already
+   reserves that space itself — is never affected. env() resolves to 0 on
+   browsers/devices without a safe area, so this is a no-op there too. */
+@media (display-mode:standalone) {
+  body { padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+}
