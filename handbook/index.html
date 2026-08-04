@@ -6,7 +6,7 @@
 <title>Handbook — Liquid &amp; Larder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Inter:wght@400;500;600&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
@@ -15,7 +15,38 @@
 <link rel="stylesheet" href="/styles/hub.css?v=8">
 <script defer src="/scripts/hub-motion.js?v=2"></script>
 <style>
-  :root { --page-w:1004px; }
+  :root {
+    --page-w:1004px;
+
+    /* ---- Round 1 reading tokens (3 Aug 2026) ----------------------------
+       These two move into core.css in Round 3 so any future document-shaped
+       app inherits them; they live here for now so this round stays one file.
+       --font-reading is the ONLY place the reading face is named. */
+    --font-reading:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    --ink-reading:var(--ink);
+    --read-track:0em;
+
+    /* Overwritten by [data-read-size] / [data-read-dens] below. These values
+       are the defaults every reader starts on: Medium and Compact. */
+    --read-fs:15.5px; --read-lh:1.68;
+    --read-pgap:14px; --read-h2gap:34px; --read-h3gap:26px;
+  }
+
+  /* Body copy steps back from full linen in dark. At full strength a whole
+     paragraph blooms and adjacent letterforms smear; a heading is short enough
+     that it does not, so --accent-ink is deliberately untouched and the signed
+     off palette is unchanged. The hair of tracking reopens the letter gaps that
+     the lower contrast closes. */
+  :root[data-theme="dark"] { --ink-reading:#d3d6c9; --read-track:.005em; }
+
+  /* Reader preferences arrive as attributes on <html>, so both the reader and
+     the admin version preview follow them without either knowing they exist. */
+  :root[data-read-size="s"] { --read-fs:14.5px; }
+  :root[data-read-size="m"] { --read-fs:15.5px; }
+  :root[data-read-size="l"] { --read-fs:17px;   }
+  :root[data-read-dens="comfortable"] { --read-pgap:19px; --read-h2gap:46px; --read-h3gap:34px; }
+  :root[data-read-dens="compact"]     { --read-pgap:14px; --read-h2gap:34px; --read-h3gap:26px; }
+
   .hidden { display:none !important; }
 
   /* ---- shared bits ---- */
@@ -63,46 +94,87 @@
   .catCard .c { font-size:11px; color:var(--dim); }
 
   /* ---- the reading page ----
-     Read as prose, not as a wall. Three things do the work:
-     1. ASYMMETRIC SPACING. A heading sits far from the section above it and
-        close to its own first line, so the eye groups by section instead of
-        seeing one evenly-spaced column. Equal gaps everywhere is what made the
-        first draft hard to scan.
-     2. HEADINGS THAT LOOK LIKE HEADINGS. The old h3 was small, grey, uppercase
-        and letterspaced — the same visual weight as body text, so a numbered
-        rule did not announce itself. Now sentence case, brand ink, heavier.
-     3. A SHORTER MEASURE, slightly larger type, tighter leading. 70ch at
-        14.5/1.8 is a long throw for the eye to return on. */
-  .doc { max-width:64ch; padding-right:8px; }
-  .doc h1 { font-family:'Gilda Display',serif; font-weight:400; font-size:33px; color:var(--accent-ink); margin-bottom:10px; line-height:1.2; }
-  .doc .lede { color:var(--dim); font-size:14.5px; line-height:1.65; margin-bottom:6px; }
+     ROUND 1 (3 Aug 2026) changed three things, all confined to this file:
+     1. A READING FACE. Body copy comes off Montserrat, a geometric display sans
+        drawn from shopfront signage: wide, near-circular, near-uniform stroke.
+        Superb in a chip or a tab, tiring across eight hundred words, because
+        adjacent letters share too much shape and the eye ends up resolving each
+        word instead of recognising it. Inter is drawn for sustained screen
+        reading and was chosen over Source Serif 4, Literata and IBM Plex Sans
+        on the real no-show policy, in light and dark, at matched x-height.
+        Montserrat keeps EVERY piece of interface chrome — chips, tabs, buttons,
+        labels, docMeta — so the hub still sounds like itself. The face is named
+        once, in --font-reading; do not hardcode it below.
+     2. A FLUID MEASURE. A fixed 64ch left a thin strip of text beside a lot of
+        empty page on a large monitor, which also made the scroll longer than it
+        needed to be. The column now moves between 58ch and 72ch. Note that ch
+        is measured from the font's own zero, so the rendered width shifts a
+        little with the reading face. That is correct.
+     3. READER CONTROLS. Three sizes, two densities, driven by the --read-*
+        tokens at the top of this sheet.
+     KEPT from the previous round, because both were right: asymmetric spacing
+     (a heading sits far from the section above it and close to its own first
+     line, so the eye groups by section) and headings with real weight. It was
+     the letterforms underneath them that were doing the damage. */
+  .doc { max-width:clamp(58ch, 62ch + 6vw, 72ch); padding-right:8px;
+    font-family:var(--font-reading); }
+  .doc h1 { font-family:'Gilda Display',serif; font-weight:400; font-size:33px; color:var(--accent-ink);
+    margin-bottom:10px; line-height:1.2; text-wrap:balance; }
+  .doc .lede { color:var(--dim); font-size:calc(var(--read-fs) - .5px); line-height:1.6;
+    letter-spacing:var(--read-track); margin-bottom:6px; text-wrap:pretty; }
+  /* docMeta is chrome, not prose — chips and a version stamp. Back to Montserrat. */
   .docMeta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:16px 0 34px;
-    padding-bottom:18px; border-bottom:1px solid var(--hairline); font-size:11px; color:var(--dim); }
+    padding-bottom:18px; border-bottom:1px solid var(--hairline); font-size:11px; color:var(--dim);
+    font-family:'Montserrat',sans-serif; }
   .doc h2 { font-family:'Gilda Display',serif; font-weight:400; font-size:23px; color:var(--accent-ink);
-    margin:46px 0 14px; line-height:1.3; }
+    margin:var(--read-h2gap) 0 14px; line-height:1.3; text-wrap:balance; }
   .doc h2:first-child { margin-top:0; }
-  .doc h3 { font-size:15.5px; font-weight:600; letter-spacing:0; text-transform:none;
-    color:var(--accent-ink); margin:34px 0 9px; line-height:1.4; }
+  .doc h3 { font-size:var(--read-fs); font-weight:600; letter-spacing:0; text-transform:none;
+    color:var(--accent-ink); margin:var(--read-h3gap) 0 9px; line-height:1.4; text-wrap:balance; }
   .doc h3 + p, .doc h2 + p, .doc h3 + ul, .doc h2 + ul { margin-top:0; }
-  .doc p  { font-size:15.5px; line-height:1.72; margin-bottom:19px; }
-  .doc ul, .doc ol { margin:0 0 19px 22px; }
+  .doc p  { font-size:var(--read-fs); line-height:var(--read-lh); color:var(--ink-reading);
+    letter-spacing:var(--read-track); margin-bottom:var(--read-pgap); text-wrap:pretty; }
+  .doc ul, .doc ol { margin:0 0 var(--read-pgap) 22px; }
   /* Bullets sit CLOSER to each other than paragraphs do to each other — a list
      is one thought, not several. The gap between items only needs to separate
      lines, not sections; the gap after the list does the section work. */
-  .doc li { font-size:15.5px; line-height:1.68; margin-bottom:4px; padding-left:3px; }
+  .doc li { font-size:var(--read-fs); line-height:calc(var(--read-lh) - .04); color:var(--ink-reading);
+    letter-spacing:var(--read-track); margin-bottom:4px; padding-left:3px; text-wrap:pretty; }
   .doc li:last-child { margin-bottom:0; }
   .doc li::marker { color:var(--dim); }
   .doc blockquote { margin:4px 0 22px; padding:4px 0 4px 18px; border-left:2px solid rgb(var(--tint-rgb) / .35);
-    color:var(--dim); font-size:15px; line-height:1.7; font-style:italic; }
+    color:var(--dim); font-size:calc(var(--read-fs) - .5px); line-height:calc(var(--read-lh) - .02);
+    letter-spacing:var(--read-track); font-style:italic; text-wrap:pretty; }
   .doc .callout { background:rgb(var(--tint-rgb) / .08); border:1px solid var(--hairline); border-radius:12px;
-    padding:17px 20px; margin:2px 0 22px; font-size:14.5px; line-height:1.7; }
+    padding:17px 20px; margin:2px 0 22px; font-size:calc(var(--read-fs) - 1px);
+    line-height:calc(var(--read-lh) - .02); color:var(--ink-reading);
+    letter-spacing:var(--read-track); text-wrap:pretty; }
+
+  /* ---- the reader controls ----
+     Deliberately quiet: a preference, not a feature. core.css gives every
+     button a lift-and-brighten hover, which is wrong for a segmented control,
+     so both are neutralised here. */
+  .readBar { display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-bottom:24px;
+    font-family:'Montserrat',sans-serif; }
+  .readBar .g { display:flex; align-items:center; gap:9px; }
+  .readBar .l { font-size:9.5px; font-weight:600; letter-spacing:.13em; text-transform:uppercase; color:var(--dim); }
+  .readSeg { display:flex; gap:2px; background:rgb(var(--tint-rgb) / .07); padding:3px; border-radius:999px; }
+  .readSeg button { background:none; border:none; box-shadow:none; border-radius:999px;
+    font-family:'Montserrat',sans-serif; font-size:11px; font-weight:500; letter-spacing:0;
+    text-transform:none; color:var(--dim); padding:5px 12px; cursor:pointer; transition:color .15s, background .15s; }
+  .readSeg button:hover { color:var(--ink); transform:none; filter:none; }
+  .readSeg button[aria-pressed="true"] { background:var(--card); color:var(--accent-ink); font-weight:600;
+    box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
+  .readSeg button:focus-visible { outline:none; box-shadow:var(--ring); }
+  .readTime { font-size:11px; color:var(--dim); margin-left:auto; white-space:nowrap; }
   /* A copyable template — the guest email, a script, anything meant to be
      lifted verbatim. Selecting multi-paragraph text by hand on a phone is
      miserable, so the whole block goes to the clipboard in one tap. */
   .doc .tmpl { position:relative; background:rgb(var(--tint-rgb) / .06); border:1px solid var(--hairline);
     border-radius:12px; padding:16px 18px 18px; margin:0 0 18px; }
-  .doc .tmpl pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family:'Montserrat',sans-serif;
-    font-size:13.5px; line-height:1.8; color:var(--ink); }
+  .doc .tmpl pre { white-space:pre-wrap; word-break:break-word; margin:0; font-family:var(--font-reading);
+    font-size:calc(var(--read-fs) - 2px); line-height:1.8; color:var(--ink-reading);
+    letter-spacing:var(--read-track); }
   .tmplBar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
   .tmplBar .l { font-size:10px; font-weight:600; letter-spacing:.1em; text-transform:uppercase; color:var(--dim); }
   /* Inside an admin card the text sat hard against the left edge. A small
@@ -167,7 +239,7 @@
 
   /* ---- print: the page only, nothing else ---- */
   @media print {
-    .topbar, .tabs, .endCard, .relRow, #pageMsg, .noprint { display:none !important; }
+    .topbar, .tabs, .endCard, .relRow, #pageMsg, .readBar, .noprint { display:none !important; }
     :root { --page-w:100%; }
     body { background:#fff; }
     .wrap { padding:0; }
@@ -212,6 +284,73 @@ const sb = supabase.createClient(SUPABASE_URL, ANON_KEY);
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const msg = $('pageMsg');
+
+/* ================= reader preferences =================
+   Text size and line spacing live in localStorage beside "ll-theme", not on the
+   profile. They are a per-device comfort setting — the same person wants
+   something different on a 13-inch laptop and a 27-inch desk monitor — and
+   keeping them local costs no round trip and no schema change. If we ever want
+   them to follow a person between machines, move them onto portal_profiles and
+   read them out of the home payload; nothing else here has to change.
+   Defaults are Medium and Compact.
+   The attributes go on <html>, not on the article, so the admin version preview
+   picks them up too without knowing they exist. */
+const READ_DEFAULTS = { size:'m', dens:'compact' };
+function readPrefs() {
+  try {
+    return { size: localStorage.getItem('ll-read-size') || READ_DEFAULTS.size,
+             dens: localStorage.getItem('ll-read-dens') || READ_DEFAULTS.dens };
+  } catch (e) { return { ...READ_DEFAULTS }; }   // private mode, blocked storage
+}
+function applyReadPrefs(p) {
+  const r = document.documentElement;
+  r.setAttribute('data-read-size', p.size);
+  r.setAttribute('data-read-dens', p.dens);
+  try {
+    localStorage.setItem('ll-read-size', p.size);
+    localStorage.setItem('ll-read-dens', p.dens);
+  } catch (e) {}
+}
+applyReadPrefs(readPrefs());
+
+/* Reading time, from the word count of the blocks at the words-per-minute set
+   in Admin. Rounded up and floored at one, so nothing ever reads "0 min". */
+function readMinutes(body) {
+  const blocks = Array.isArray(body?.blocks) ? body.blocks : [];
+  let words = 0;
+  for (const b of blocks) {
+    for (const chunk of [b.text || '', ...(b.items || [])]) {
+      words += String(chunk).trim().split(/\s+/).filter(Boolean).length;
+    }
+  }
+  const wpm = Number(HOME?.settings?.read_wpm) || 200;
+  return Math.max(1, Math.ceil(words / wpm));
+}
+
+function readBar(minutes) {
+  const p = readPrefs();
+  const seg = (key, opts) => `<span class="readSeg" data-key="${key}">` + opts.map(o =>
+    `<button type="button" data-v="${o.v}" aria-pressed="${p[key] === o.v}" aria-label="${esc(o.a)}">${esc(o.l)}</button>`
+  ).join('') + '</span>';
+  return `<div class="readBar noprint">
+    <span class="g"><span class="l">Text</span>${seg('size', [
+      { v:'s', l:'S', a:'Small text' }, { v:'m', l:'M', a:'Medium text' }, { v:'l', l:'L', a:'Large text' }])}</span>
+    <span class="g"><span class="l">Spacing</span>${seg('dens', [
+      { v:'comfortable', l:'Comfortable', a:'Comfortable spacing' },
+      { v:'compact',     l:'Compact',     a:'Compact spacing' }])}</span>
+    ${minutes ? `<span class="readTime">${minutes} min read</span>` : ''}
+  </div>`;
+}
+function wireReadBar(root) {
+  root.querySelectorAll('.readSeg').forEach(seg => {
+    seg.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
+      const p = readPrefs();
+      p[seg.dataset.key] = btn.dataset.v;
+      applyReadPrefs(p);
+      seg.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', x === btn));
+    }));
+  });
+}
 
 function say(text, kind) {
   msg.className = 'msg ' + (kind || 'ok');
@@ -468,6 +607,7 @@ async function screenPage(slug) {
   }
 
   $('screen').innerHTML = `
+    ${readBar(readMinutes(p.body))}
     <article class="doc" id="doc">
       <h1>${esc(p.title)}</h1>
       ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}
@@ -497,6 +637,7 @@ async function screenPage(slug) {
         <span class="c">${esc(r.kind === 'prerequisite' ? 'Read this first' : 'Related')}</span>
       </button>`).join('')}</div>` : ''}`;
   wireRows($('screen'));
+  wireReadBar($('screen'));
 
   // Scroll arming: a must-know page cannot be dismissed from the top of the
   // screen. The server decides whether to arm, never the browser.
