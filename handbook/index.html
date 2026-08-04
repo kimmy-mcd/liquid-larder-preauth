@@ -167,6 +167,91 @@
     box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
   .readSeg button:focus-visible { outline:none; box-shadow:var(--ring); }
   .readTime { font-size:11px; color:var(--dim); margin-left:auto; white-space:nowrap; }
+
+  /* ---- ROUND 2: position and structure (3 Aug 2026) ----
+     "Hard to scroll through" was never really about scrolling. It was about not
+     knowing where you are, how much is left, or how to get back to something you
+     passed. Four moving parts answer that, and they all read the same scroll
+     position, so they share ONE listener and ONE requestAnimationFrame — four
+     separate listeners would each force their own layout read every frame. */
+
+  /* The progress line sits ABOVE the topbar, which owns z-index 40. */
+  .readProg { position:fixed; top:0; left:0; height:2px; width:0; z-index:60;
+    background:var(--accent-ink); opacity:.9; transition:width .08s linear; pointer-events:none; }
+
+  /* The slim header slides out from UNDER the topbar — z-index 35 against the
+     topbar's 40 — once the policy's own h1 has scrolled away. Before this, the
+     only way to mark a policy read was to be physically at the bottom of it,
+     which is absurd for someone reopening a policy to check one line. */
+  .stickyHead { position:fixed; left:0; right:0; z-index:35; top:var(--topbar-h,68px);
+    background:rgb(var(--bg-rgb) / .93); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--hairline);
+    transform:translateY(-102%); opacity:0; transition:transform .22s ease, opacity .22s ease; }
+  .stickyHead.on { transform:none; opacity:1; }
+  .stickyHead .in { max-width:var(--page-w,1004px); margin:0 auto; padding:9px 22px;
+    display:flex; align-items:center; gap:12px; }
+  .stickyHead .t { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+  .stickyHead .sp { margin-left:auto; display:flex; align-items:center; gap:9px; flex:none; }
+  .stickyHead button { padding:8px 18px; font-size:10px; }
+
+  /* ---- the layout. .wrap is 1004px and the document renders 629-641px, so
+         there is roughly 340px of margin doing nothing. That is where the rail
+         goes. Below 1100px there is no room, so it folds into one button. ---- */
+  .readLayout { display:grid; grid-template-columns:minmax(0,1fr); }
+  .rail { order:-1; margin-bottom:22px; font-family:'Montserrat',sans-serif; }
+  .railToggle { background:var(--sand-soft); color:var(--accent-ink); box-shadow:none;
+    padding:8px 16px; font-size:10px; }
+  .railHd { font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); margin-bottom:8px; display:none; }
+  .railList { display:none; list-style:none; margin:12px 0 0; padding:0;
+    border-left:1px solid var(--hairline); }
+  .railList.open { display:block; }
+  .railList a { display:block; text-decoration:none; color:var(--dim); font-size:11.5px;
+    line-height:1.45; padding:6px 0 6px 14px; margin-left:-1px; border-left:2px solid transparent;
+    transition:color .15s ease, border-color .15s ease; }
+  .railList a:hover { color:var(--ink); }
+  .railList a.on { color:var(--accent-ink); border-left-color:var(--accent-ink); font-weight:600; }
+  /* NOT .sub — hub.css already owns that class for the topbar's "HUB · HANDBOOK"
+     line and would render every h3 in the rail as letterspaced capitals. */
+  .railList a.lv2 { padding-left:27px; font-size:11px; }
+  .railList a:focus-visible { outline:none; box-shadow:var(--ring); border-radius:4px; }
+  @media (min-width:1100px) {
+    .readLayout { grid-template-columns:minmax(0,1fr) 208px; gap:36px; align-items:start; }
+    /* Clears BOTH fixed bars: the topbar, and the sticky header that appears
+       under it once you scroll. Sized for the sticky header being present, so
+       the rail never ends up underneath it. */
+    .rail { order:0; margin-bottom:0; position:sticky; top:calc(var(--topbar-h,68px) + 62px);
+      max-height:calc(100vh - var(--topbar-h,68px) - 96px); overflow-y:auto; padding-right:4px; }
+    .railToggle { display:none; }
+    .railList { display:block; margin-top:0; }
+    .railHd { display:block; }
+  }
+
+  /* ---- heading anchors, so a manager can send someone one clause rather than
+         a whole policy and a hope. scroll-margin-top keeps the target clear of
+         both fixed bars. ---- */
+  .doc h2, .doc h3 { scroll-margin-top:calc(var(--topbar-h,68px) + 62px); position:relative; }
+  .doc .anchor { position:absolute; left:-21px; top:.1em; font-family:'Montserrat',sans-serif;
+    font-size:13px; font-weight:500; color:var(--dim); text-decoration:none;
+    opacity:0; transition:opacity .15s ease; }
+  .doc h2:hover .anchor, .doc h3:hover .anchor, .doc .anchor:focus-visible { opacity:1; }
+
+  /* ---- resume, and back to top ---- */
+  .resume { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:rgb(var(--tint-rgb) / .07); border:1px solid var(--hairline); border-radius:12px;
+    padding:10px 14px; margin-bottom:20px; font-size:12px; color:var(--dim);
+    font-family:'Montserrat',sans-serif; }
+  .resume button { padding:7px 15px; font-size:10px; }
+  .resume .x { margin-left:auto; }
+  /* #llToastZone owns the bottom-right corner at z-index 200, so this sits above it. */
+  .toTop { position:fixed; right:22px; bottom:82px; z-index:30; width:38px; height:38px;
+    padding:0; font-size:14px; letter-spacing:0; line-height:1; opacity:0; pointer-events:none;
+    transition:opacity .2s ease; }
+  .toTop.on { opacity:1; pointer-events:auto; }
+  @media (prefers-reduced-motion: reduce) {
+    .readProg, .stickyHead, .toTop { transition:none; }
+  }
   /* A copyable template — the guest email, a script, anything meant to be
      lifted verbatim. Selecting multi-paragraph text by hand on a phone is
      miserable, so the whole block goes to the clipboard in one tap. */
@@ -239,7 +324,9 @@
 
   /* ---- print: the page only, nothing else ---- */
   @media print {
-    .topbar, .tabs, .endCard, .relRow, #pageMsg, .readBar, .noprint { display:none !important; }
+    .topbar, .tabs, .endCard, .relRow, #pageMsg, .readBar,
+    .readProg, .stickyHead, .rail, .toTop, .resume, .noprint { display:none !important; }
+    .readLayout { display:block; }
     :root { --page-w:100%; }
     body { background:#fff; }
     .wrap { padding:0; }
@@ -351,6 +438,73 @@ function wireReadBar(root) {
     }));
   });
 }
+
+/* ================= reader position and structure =================
+   Everything below is Round 2. It is all presentation: not one line of it can
+   decide whether a must-know policy has been read. The server still sets
+   arm_on_scroll, and the arming test below is the same comparison it always
+   was — the progress bar just means the reader can see how far off they are
+   instead of being told to scroll and left to guess. */
+
+/* The topbar is sticky and its height changes with the viewport, so the two
+   fixed bars and every scroll-margin measure off a live value. */
+function topbarH() {
+  const t = document.querySelector('.topbar');
+  const h = t ? Math.round(t.getBoundingClientRect().height) : 68;
+  document.documentElement.style.setProperty('--topbar-h', h + 'px');
+  return h;
+}
+topbarH();
+addEventListener('resize', topbarH);
+
+const smoothly = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+/* "6. Refunds" becomes #refunds, so a link survives the section being
+   renumbered. Duplicate headings get a numeric suffix. */
+function slugify(text, used) {
+  const base = String(text).toLowerCase()
+    .replace(/^\d+[.)]\s*/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'section';
+  let id = base, n = 2;
+  while (used.has(id)) id = base + '-' + (n++);
+  used.add(id);
+  return id;
+}
+
+/* Ids and the hover anchor are added AFTER render rather than inside
+   renderBody, so the admin version preview is untouched by any of this. */
+function anchorHeadings(doc) {
+  const used = new Set();
+  return [...doc.querySelectorAll('h2, h3')].map(el => {
+    const text = el.textContent.trim();
+    const id = slugify(text, used);
+    el.id = id;
+    const a = document.createElement('a');
+    a.className = 'anchor'; a.href = '#' + id; a.textContent = '#';
+    a.setAttribute('aria-label', 'Link to this section');
+    el.appendChild(a);
+    return { id, el, text, sub: el.tagName === 'H3' };
+  });
+}
+
+function railHtml(heads) {
+  if (heads.length < 2) return '';
+  return `<aside class="rail noprint" id="rail">
+    <div class="railHd">On this page</div>
+    <button class="railToggle" type="button" id="railToggle" aria-expanded="false">Jump to&hellip;</button>
+    <ul class="railList" id="railList">${heads.map(h =>
+      `<li><a href="#${esc(h.id)}" data-jump="${esc(h.id)}" class="${h.sub ? 'lv2' : ''}">${esc(h.text)}</a></li>`
+    ).join('')}</ul>
+  </aside>`;
+}
+
+const POS_KEY = slug => 'll-hb-pos:' + slug;
+function savedPos(slug) {
+  try { return Number(localStorage.getItem(POS_KEY(slug))) || 0; } catch (e) { return 0; }
+}
+function clearPos(slug) { try { localStorage.removeItem(POS_KEY(slug)); } catch (e) {} }
+
 
 function say(text, kind) {
   msg.className = 'msg ' + (kind || 'ok');
@@ -471,8 +625,15 @@ function wireCopy(root) {
   });
 }
 
+/* The reader adds window-level listeners. render() blows away #screen, which
+   takes the reader's own DOM with it, but the listeners would survive and keep
+   measuring elements that no longer exist — so every screen change tears the
+   previous reader down first. */
+let readerTeardown = null;
+
 function render() {
   clearSay();
+  if (readerTeardown) { readerTeardown(); readerTeardown = null; }
   drawTabs();
   const s = readUrl();
   if (s.view === 'page')   return screenPage(s.p);
@@ -606,68 +767,226 @@ async function screenPage(slug) {
       afterText = `Once you mark this read, ${esc((p.after.checkers || []).join(' or ') || 'your manager')} will run through a couple of questions with you.`;
   }
 
+  const resumeTo = isDone ? 0 : savedPos(slug);
+
   $('screen').innerHTML = `
     ${readBar(readMinutes(p.body))}
-    <article class="doc" id="doc">
-      <h1>${esc(p.title)}</h1>
-      ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}
-      <div class="docMeta">
-        ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
-        ${stateChip(p.state)}
-        ${p.outside_your_hats ? '<span class="chip outside">Outside your hats</span>' : ''}
-        <span>Version ${p.version_no ?? '—'}${p.published_at ? ' · ' + new Date(p.published_at).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : ''}</span>
-      </div>
-      ${renderBody(p.body, p.assets)}
-      <div class="printFoot">Liquid &amp; Larder Handbook · ${esc(p.title)} · version ${p.version_no ?? '—'} · printed ${new Date().toLocaleDateString('en-AU')}</div>
-    </article>
 
-    <div class="endCard noprint" id="endCard">
-      <div class="h">${isDone ? 'You have read this' : 'Finished reading?'}</div>
-      <div class="b">${isDone
-        ? (p.state === 'checked' ? 'This is signed off and up to date.' : afterText || 'Marked as read.')
-        : (afterText || 'Marking it read records that you have seen this version.')}</div>
-      ${isDone ? '' : `<button id="markRead"${p.arm_on_scroll ? ' disabled' : ''}>Mark as read</button>
-        ${p.arm_on_scroll ? '<span class="fieldNote" id="armNote" style="margin-left:10px">Scroll to the end of the page first.</span>' : ''}`}
-      <button class="ghost" onclick="window.print()" style="margin-left:8px">Print</button>
+    ${resumeTo > 400 ? `<div class="resume noprint" id="resume">
+      <span>You were part way through this one.</span>
+      <button id="resumeGo" type="button">Pick up where you were</button>
+      <button class="ghost x" id="resumeNo" type="button">Start again</button>
+    </div>` : ''}
+
+    <div class="readLayout">
+      <div class="readMain">
+        <article class="doc" id="doc">
+          <h1>${esc(p.title)}</h1>
+          ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}
+          <div class="docMeta">
+            ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
+            ${stateChip(p.state)}
+            ${p.outside_your_hats ? '<span class="chip outside">Outside your hats</span>' : ''}
+            <span>Version ${p.version_no ?? '—'}${p.published_at ? ' · ' + new Date(p.published_at).toLocaleDateString('en-AU', { day:'numeric', month:'long', year:'numeric' }) : ''}</span>
+          </div>
+          ${renderBody(p.body, p.assets)}
+          <div class="printFoot">Liquid &amp; Larder Handbook · ${esc(p.title)} · version ${p.version_no ?? '—'} · printed ${new Date().toLocaleDateString('en-AU')}</div>
+        </article>
+
+        <div class="endCard noprint" id="endCard">
+          <div class="h">${isDone ? 'You have read this' : 'Finished reading?'}</div>
+          <div class="b">${isDone
+            ? (p.state === 'checked' ? 'This is signed off and up to date.' : afterText || 'Marked as read.')
+            : (afterText || 'Marking it read records that you have seen this version.')}</div>
+          ${isDone ? '' : `<button id="markRead"${p.arm_on_scroll ? ' disabled' : ''}>Mark as read</button>
+            ${p.arm_on_scroll ? '<span class="fieldNote" id="armNote" style="margin-left:10px">Keep going — the bar at the top fills as you read.</span>' : ''}`}
+          <button class="ghost" onclick="window.print()" style="margin-left:8px">Print</button>
+        </div>
+
+        ${p.related?.length ? `<div class="relRow noprint">
+          ${p.related.map(r => `<button class="catCard" data-slug="${esc(r.slug)}">
+            <span class="n" style="font-size:14px">${esc(r.title)}</span>
+            <span class="c">${esc(r.kind === 'prerequisite' ? 'Read this first' : 'Related')}</span>
+          </button>`).join('')}</div>` : ''}
+      </div>
+      <!-- the rail is injected here once the headings have ids -->
     </div>
 
-    ${p.related?.length ? `<div class="relRow noprint">
-      ${p.related.map(r => `<button class="catCard" data-slug="${esc(r.slug)}">
-        <span class="n" style="font-size:14px">${esc(r.title)}</span>
-        <span class="c">${esc(r.kind === 'prerequisite' ? 'Read this first' : 'Related')}</span>
-      </button>`).join('')}</div>` : ''}`;
+    `;
+
+  /* The fixed chrome — progress line, sticky header, back to top — is mounted
+     on <body>, NOT inside .wrap. .wrap carries `animation:rise .5s ease both`,
+     and an element running a transform animation becomes the containing block
+     for any fixed-position descendant, so anything fixed inside it positions
+     against .wrap rather than the viewport and simply never appears. This cost
+     an hour; do not move these back inside #screen. */
+  document.getElementById('readerChrome')?.remove();
+  const chrome = document.createElement('div');
+  chrome.id = 'readerChrome';
+  chrome.innerHTML = `
+    <div class="readProg" id="readProg"></div>
+    <div class="stickyHead noprint" id="stickyHead">
+      <div class="in">
+        <span class="t">${esc(p.title)}</span>
+        ${p.tier === 'must_know' ? '<span class="chip must">Must know</span>' : ''}
+        <span class="sp">
+          ${isDone ? stateChip(p.state)
+            : `<button id="markRead2"${p.arm_on_scroll ? ' disabled' : ''}>Mark as read</button>`}
+        </span>
+      </div>
+    </div>
+    <button class="toTop noprint" id="toTop" type="button" title="Back to top" aria-label="Back to top">&uarr;</button>`;
+  document.body.appendChild(chrome);
+
   wireRows($('screen'));
   wireReadBar($('screen'));
 
-  // Scroll arming: a must-know page cannot be dismissed from the top of the
-  // screen. The server decides whether to arm, never the browser.
-  if (!isDone && p.arm_on_scroll) {
-    const btn = $('markRead'), note = $('armNote');
-    const check = () => {
-      const end = $('doc').getBoundingClientRect().bottom;
-      if (end - 80 <= innerHeight) {
-        btn.disabled = false;
-        if (note) note.remove();
-        removeEventListener('scroll', check);
+  /* ---- the rail. Built from the rendered headings, so it can never disagree
+     with the document, and skipped entirely for a policy with fewer than two. */
+  const doc = $('doc');
+  const heads = anchorHeadings(doc);
+  $('screen').querySelector('.readLayout').insertAdjacentHTML('beforeend', railHtml(heads));
+
+  const jump = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: smoothly(), block:'start' });
+    history.replaceState({}, '', location.pathname + location.search + '#' + id);
+  };
+  const railList = $('railList');
+  const links = railList ? [...railList.querySelectorAll('[data-jump]')] : [];
+  links.forEach(a => a.addEventListener('click', e => {
+    e.preventDefault(); jump(a.dataset.jump);
+    if (innerWidth < 1100) railList.classList.remove('open');
+  }));
+  if ($('railToggle')) $('railToggle').addEventListener('click', () => {
+    const open = railList.classList.toggle('open');
+    $('railToggle').setAttribute('aria-expanded', String(open));
+  });
+
+  /* ---- one scroll listener, one frame, four jobs ---- */
+  const prog = $('readProg'), sticky = $('stickyHead'), toTop = $('toTop');
+  const armBtn = $('markRead'), armBtn2 = $('markRead2'), armNote = $('armNote');
+  let armed = !(!isDone && p.arm_on_scroll);
+  let curIdx = 0, ticking = false, lastSave = 0, topH = topbarH();
+
+  const frame = () => {
+    ticking = false;
+    const r = doc.getBoundingClientRect();
+    const h = doc.offsetHeight || 1;
+
+    /* The bar is scaled to the ARMING point, not to the raw height of the
+       article, so it reads 0% at the top and hits 100% at the exact moment the
+       Mark as read button becomes available. Any other scaling would either
+       start part-filled or fill before the button unlocks, and a progress bar
+       that lies about the one thing it is there to signal is worse than none.
+       A span of zero or less means the whole policy already fits on screen. */
+    const span = doc.offsetTop + h - innerHeight - 80;
+    prog.style.width = (span <= 0 ? 100 : Math.max(0, Math.min(1, scrollY / span)) * 100).toFixed(1) + '%';
+    sticky.classList.toggle('on', r.top < -70);
+    toTop.classList.toggle('on', scrollY > innerHeight * 1.2);
+
+    if (links.length) {
+      const line = topH + 96;
+      let i = 0;
+      for (let n = 0; n < heads.length; n++) if (heads[n].el.getBoundingClientRect().top <= line) i = n;
+      /* At the foot of the page the last section can never cross the line —
+         there is no scroll left to bring it up there — so it would sit
+         permanently unhighlighted. Once the page bottoms out, it is current. */
+      if (innerHeight + scrollY >= (document.documentElement.scrollHeight - 4)) i = heads.length - 1;
+      if (i !== curIdx || !links[curIdx].classList.contains('on')) {
+        links.forEach((a, n) => a.classList.toggle('on', n === i));
+        curIdx = i;
       }
-    };
-    addEventListener('scroll', check, { passive:true });
-    check();
+    }
+
+    /* The arming test is character-for-character the one that was here before.
+       Nothing about the rule has moved; only the feedback has. */
+    if (!armed && r.bottom - 80 <= innerHeight) {
+      armed = true;
+      if (armBtn) armBtn.disabled = false;
+      if (armBtn2) armBtn2.disabled = false;
+      if (armNote) armNote.remove();
+    }
+
+    const now = Date.now();
+    if (now - lastSave > 900) {
+      lastSave = now;
+      if (!isDone) { try { localStorage.setItem(POS_KEY(slug), String(Math.round(scrollY))); } catch (e) {} }
+    }
+  };
+  const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(frame); } };
+
+  /* j / k step between sections, gg goes to the top. Ignored while typing, and
+     ignored when a modifier is held so browser shortcuts still work. */
+  let lastG = 0;
+  const onKey = (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+    const k = e.key.toLowerCase();
+    if ((k === 'j' || k === 'k') && heads.length) {
+      e.preventDefault();
+      const next = Math.max(0, Math.min(heads.length - 1, curIdx + (k === 'j' ? 1 : -1)));
+      jump(heads[next].id);
+    } else if (k === 'g') {
+      if (lastG && Date.now() - lastG < 700) { scrollTo({ top:0, behavior: smoothly() }); lastG = 0; }
+      else lastG = Date.now();
+    }
+  };
+
+  const onResize = () => { topH = topbarH(); onScroll(); };
+  addEventListener('scroll', onScroll, { passive:true });
+  addEventListener('resize', onResize, { passive:true });
+  addEventListener('keydown', onKey);
+  readerTeardown = () => {
+    removeEventListener('scroll', onScroll);
+    removeEventListener('resize', onResize);
+    removeEventListener('keydown', onKey);
+    document.getElementById('readerChrome')?.remove();
+  };
+
+  toTop.addEventListener('click', () => scrollTo({ top:0, behavior: smoothly() }));
+
+  if ($('resume')) {
+    $('resumeGo').addEventListener('click', () => {
+      scrollTo({ top: resumeTo, behavior: smoothly() });
+      $('resume').remove();
+    });
+    $('resumeNo').addEventListener('click', () => { clearPos(slug); $('resume').remove(); });
   }
+
+  /* A link straight to a clause wins over anything else. */
+  if (location.hash.length > 1) {
+    const id = decodeURIComponent(location.hash.slice(1));
+    requestAnimationFrame(() => { const el = document.getElementById(id); if (el) el.scrollIntoView({ block:'start' }); });
+    if ($('resume')) $('resume').remove();
+  }
+  frame();
+
+  /* ---- marking it read. Two buttons now do it: the one in the end card and
+     the one in the sticky header. They share a handler so they cannot drift. */
   if (!isDone) {
-    $('markRead').addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
+    const markRead = async (btn) => {
+      if (armBtn) armBtn.disabled = true;
+      if (armBtn2) armBtn2.disabled = true;
       try {
         const r = await api({ action:'mark_read', slug });
+        clearPos(slug);
         HOME = await api({ action:'home' });
         render();
         say(r.self_cleared ? 'Read and confirmed — recorded against your name.'
           : r.state === 'waiting_on_a_check'
             ? `Marked read. ${r.waiting_hat ? esc(r.waiting_hat) + ' needs to check you off, and nobody holds that hat yet.' : 'Your manager will check you off.'}`
             : 'Marked as read.');
-      } catch (err) { btn.disabled = false; say(err.message, 'err'); }
-    });
+      } catch (err) {
+        if (armBtn) armBtn.disabled = false;
+        if (armBtn2) armBtn2.disabled = false;
+        say(err.message, 'err');
+      }
+    };
+    if (armBtn)  armBtn.addEventListener('click',  () => markRead(armBtn));
+    if (armBtn2) armBtn2.addEventListener('click', () => markRead(armBtn2));
   }
 }
 
