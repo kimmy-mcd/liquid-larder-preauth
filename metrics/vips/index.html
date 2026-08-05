@@ -529,20 +529,25 @@ function buildVenueChips(){
   });
 }
 
+// Same sequencing token as the bookings view — period and venue changes can
+// overlap, and a slow earlier response must not overwrite a newer one.
+let gSeq = 0;
 async function loadGuests(){
   guestsLoaded=true;
   const r = range($('gTf').value, $('gFrom'), $('gTo'));
-  gState.range = r;
+  const seq = ++gSeq;
   $('gError').style.display='none'; $('gContent').style.display='none';
   const L=$('gLoading'); L.style.display='flex'; L.textContent='Loading…';
   const venues = gState.venues.includes('all') ? null : gState.venues;
   try {
     const { data, error } = await dataRpc('get_vip_guests', { p_start:r.start, p_end:r.end, p_venues:venues, p_limit:500 });
+    if(seq !== gSeq) return;                 // superseded — drop it silently
     if(error) throw new Error(error.message);
-    gState.data = data;
+    gState.data = data; gState.range = r;
     L.style.display='none'; $('gContent').style.display='block';
     renderGuests();
   } catch(err){
+    if(seq !== gSeq) return;
     L.style.display='none'; const e=$('gError'); e.style.display='flex'; e.textContent='Could not load data: '+err.message;
   }
 }
@@ -760,18 +765,28 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
 
 // ══════════ SCREEN 2 — BOOKINGS OVER TIME ══════════
 let bState = { bucket:'total', data:null, range:null };
+// Sequencing token. Changing the period can fire several loads in quick
+// succession (the URL-state helper sets the select and both date inputs, and
+// each raises `change`). Without this, whichever response happens to land last
+// wins — which is how the tiles ended up showing this-FY numbers under a
+// custom-range caption. Only the newest request may commit state or render.
+let bSeq = 0;
 async function loadBookings(){
   const r = range($('bTf').value, $('bFrom'), $('bTo'));
-  bState.range = r;
+  const seq = ++bSeq;
   $('bError').style.display='none'; $('bContent').style.display='none';
   const L=$('bLoading'); L.style.display='flex'; L.textContent='Loading…';
   try {
     const { data, error } = await dataRpc('get_vip_booking_metrics', { p_start:r.start, p_end:r.end });
+    if(seq !== bSeq) return;                 // superseded — drop it silently
     if(error) throw new Error(error.message);
-    bState.data = data;
+    // Data and the range that produced it are committed together, so the KPI
+    // caption can never describe a period other than the one queried.
+    bState.data = data; bState.range = r;
     L.style.display='none'; $('bContent').style.display='block';
     renderBookingsView();
   } catch(err){
+    if(seq !== bSeq) return;
     L.style.display='none'; const e=$('bError'); e.style.display='flex'; e.textContent='Could not load data: '+err.message;
   }
 }
@@ -911,6 +926,26 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   }
   function setSelect(id, val){ var el=$(id); if(!el || el.value===val) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); }
   function setNum(id, val){ var el=$(id); if(!el || String(el.value)===String(val)) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); el.dispatchEvent(new Event('input',{bubbles:true})); }
+  // Set a value WITHOUT raising events. Restoring a custom range means writing
+  // three controls (select, from, to); if each one fires `change` we kick off
+  // three overlapping fetches. Write the dates silently first, then let the
+  // select's own change handler fire the single load that actually matters.
+  function setQuiet(id, val){ var el=$(id); if(!el) return; el.value=val; }
+  function setCustomRange(selId, fromId, toId, from, to){
+    if (from != null) setQuiet(fromId, from);
+    if (to   != null) setQuiet(toId,   to);
+    // Switching the select to 'custom' reveals the inputs and fires the load.
+    var sel = $(selId);
+    if (sel && sel.value !== 'custom') { setSelect(selId, 'custom'); return; }
+    // Already on 'custom' — the select won't raise change, so reveal the
+    // inputs and fire the one load ourselves.
+    [fromId, toId].forEach(function(id){ var el=$(id); if(el) el.style.display='inline-block'; });
+    loadFor(selId);
+  }
+  function loadFor(selId){
+    if (selId === 'bTf') loadBookings();
+    else if (selId === 'gTf') loadGuests();
+  }
 
   var suppress = false;
 
@@ -958,14 +993,14 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     view = currentView();
 
     if (view === 'guests'){
-      if (p.has('period')) setSelect('gTf', p.get('period'));
-      if (p.get('period') === 'custom'){ if(p.has('from')) setNum('gFrom',p.get('from')); if(p.has('to')) setNum('gTo',p.get('to')); }
+      if (p.get('period') === 'custom') setCustomRange('gTf','gFrom','gTo', p.get('from'), p.get('to'));
+      else if (p.has('period')) setSelect('gTf', p.get('period'));
       if (p.has('venue')) clickVenueBySlug('venueBar', p.get('venue'));
       if (p.has('min')) setNum('minVisits', p.get('min'));
       if (p.has('limit')) clickSegByAttr('limitSeg','l',p.get('limit'));
     } else if (view === 'bookings'){
-      if (p.has('period')) setSelect('bTf', p.get('period'));
-      if (p.get('period') === 'custom'){ if(p.has('from')) setNum('bFrom',p.get('from')); if(p.has('to')) setNum('bTo',p.get('to')); }
+      if (p.get('period') === 'custom') setCustomRange('bTf','bFrom','bTo', p.get('from'), p.get('to'));
+      else if (p.has('period')) setSelect('bTf', p.get('period'));
       if (p.has('status')) clickSegByAttr('bStatusSeg','b',p.get('status'));
     } else if (view === 'arrivals'){
       if (p.has('days')) clickSegByAttr('arrSeg','d',p.get('days'));
