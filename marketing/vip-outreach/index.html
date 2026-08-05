@@ -106,9 +106,28 @@
   .oc.spoke { background:rgb(var(--ok-rgb) / .13); color:var(--ok); }
   .oc.left_message { background:rgb(var(--info-rgb) / .14); color:var(--info); }
   .oc.no_answer { background:var(--sand-soft); color:var(--dim); }
+  .oc.texted { background:rgb(var(--green-rgb) / .13); color:var(--accent-ink); }
   .oc.emailed { background:rgb(var(--gold-rgb) / .12); color:var(--gold-ink); }
   .oc.other { background:var(--sand-soft); color:var(--dim); }
   .stale { color:var(--err); }
+  .edited { font-size:9.5px; color:var(--dim); font-style:italic; margin-top:4px; }
+
+  /* small row actions */
+  .miniBtn { border:1px solid var(--hairline); background:var(--card); color:var(--accent-ink); font-size:10px; font-weight:600; padding:5px 11px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; white-space:nowrap; }
+  .miniBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
+  .miniBtn.danger { color:var(--err); }
+
+  /* guest picker */
+  .pickList { max-height:56vh; overflow:auto; margin-top:6px; }
+  .pickRow { display:flex; align-items:center; justify-content:space-between; gap:14px; width:100%; text-align:left; border:none; background:transparent; padding:11px 10px; border-bottom:1px solid var(--rule); cursor:pointer; border-radius:10px; box-shadow:none; text-transform:none; letter-spacing:normal; font-family:'Montserrat',sans-serif; }
+  .pickRow:hover { background:var(--surface); transform:none; filter:none; }
+  .pickRow .pn { font-size:12.5px; font-weight:600; color:var(--ink); }
+  .pickRow .pd { font-size:10.5px; color:var(--dim); margin-top:3px; font-variant-numeric:tabular-nums; }
+  .pickRow .pr { font-size:10px; color:var(--dim); text-align:right; flex:none; }
+  .pickNote { font-size:11.5px; color:var(--dim); padding:16px 10px; }
+
+  .confirmBox { border:1px solid rgb(var(--err-rgb) / .3); background:rgb(var(--err-rgb) / .06); border-radius:12px; padding:14px 16px; margin-top:14px; font-size:12px; color:var(--ink); line-height:1.6; }
+  .confirmBox .row { display:flex; gap:10px; margin-top:12px; }
 
   .logBtn { border:1px solid var(--hairline); background:var(--card); color:var(--accent-ink); font-size:10.5px; font-weight:600; padding:7px 13px; border-radius:999px; cursor:pointer; box-shadow:none; letter-spacing:.04em; white-space:nowrap; }
   .logBtn:hover { background:var(--sand-soft); transform:none; filter:none; }
@@ -162,6 +181,7 @@
       <h2>VIP Outreach</h2>
       <p>Who to call, and a record of every call made &middot; guest data live from the reporting database</p>
     </div>
+    <div><button id="newLogBtn" class="hidden">Log contact</button></div>
   </div>
 
   <div class="viewSeg" id="viewSeg">
@@ -198,7 +218,7 @@
           </table>
         </div>
       </div>
-      <p class="footnote">Visits and last visit come from completed reservations over the past five years. &ldquo;Last contacted&rdquo; is the most recent entry logged here by anyone on the team; guests never contacted sit at the top by default. Logging a contact records your name and the time automatically, and entries cannot be edited by anyone but the person who wrote them.</p>
+      <p class="footnote">Visits and last visit come from completed reservations over the past five years. &ldquo;Last contacted&rdquo; is the most recent entry logged here by anyone on the team; guests never contacted sit at the top by default. Logging a contact records your name and the time automatically. You can edit or delete your own entries; changing someone else&rsquo;s needs the &ldquo;Edit or delete any contact&rdquo; permission. Deleted entries are hidden everywhere but kept in the database with a record of who removed them.</p>
     </div>
   </section>
 
@@ -212,7 +232,7 @@
         <div style="overflow-x:auto;">
           <table class="vt">
             <thead><tr>
-              <th>Date</th><th>Guest</th><th>Outcome</th><th>Note</th><th>Logged by</th>
+              <th>Date</th><th>Guest</th><th>Outcome</th><th>Note</th><th>Logged by</th><th></th>
             </tr></thead>
             <tbody id="hBody"></tbody>
           </table>
@@ -231,6 +251,43 @@
     </div>
     <div id="mForm"></div>
     <div id="mHist"></div>
+  </div>
+</div>
+
+<!-- ══════════ GUEST PICKER (log contact from anywhere) ══════════ -->
+<div class="modal" id="pModal" style="display:none;">
+  <div class="modalCard" style="max-width:560px;">
+    <div class="modalHead">
+      <div><div class="mt">Log a contact</div><div class="ms">Search every VIP guest by name, mobile number or email address</div></div>
+      <button id="pClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="fld"><input type="search" id="pSrch" placeholder="Name, mobile or email…" autocomplete="off"></div>
+    <div class="pickList" id="pResults"></div>
+  </div>
+</div>
+
+<!-- ══════════ EDIT / DELETE AN ENTRY ══════════ -->
+<div class="modal" id="eModal" style="display:none;">
+  <div class="modalCard" style="max-width:560px;">
+    <div class="modalHead">
+      <div><div class="mt">Edit contact</div><div class="ms" id="eSub"></div></div>
+      <button id="eClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="fRow">
+      <div class="fld"><label for="eDate">Date of contact</label><input type="date" id="eDate"></div>
+      <div class="fld"><label for="eOutcome">Outcome</label><select id="eOutcome"></select></div>
+    </div>
+    <div class="fld" style="margin-bottom:16px;"><label for="eNote">Note</label><textarea id="eNote"></textarea></div>
+    <div class="saveRow">
+      <button id="eSave">Save changes</button>
+      <button class="miniBtn danger" id="eDelete">Delete entry</button>
+      <span class="msg" id="eMsg"></span>
+    </div>
+    <div class="confirmBox hidden" id="eConfirm">
+      Delete this entry? It disappears from the contact log and stops counting as a contact for this guest. A record of the deletion is kept.
+      <div class="row"><button id="eYes">Yes, delete it</button><button class="miniBtn" id="eNo">Keep it</button></div>
+    </div>
+    <div class="footnote" id="eMeta"></div>
   </div>
 </div>
 
@@ -285,14 +342,21 @@ const OUTCOMES = [
   { key:'spoke',        label:'Spoke to guest' },
   { key:'left_message', label:'Left a message' },
   { key:'no_answer',    label:'No answer' },
-  { key:'emailed',      label:'Emailed instead' },
+  { key:'texted',       label:'Sent text message' },
+  { key:'emailed',      label:'Email' },
   { key:'other',        label:'Other' },
 ];
 const outcomeLabel = k => (OUTCOMES.find(o=>o.key===k) || { label:k }).label;
 const outcomePill = k => `<span class="oc ${esc(k)}">${esc(outcomeLabel(k))}</span>`;
+const outcomeOptions = sel => OUTCOMES.map(o=>`<option value="${o.key}"${o.key===sel?' selected':''}>${esc(o.label)}</option>`).join('');
 
-let myProfile = null, canLog = false;
-let state = { venues:['all'], filters:new Set(), search:'', sort:'last_contacted', dir:1, guests:[], contacts:[], byClient:{} };
+let myProfile = null, canLog = false, canManage = false;
+let state = { venues:['all'], filters:new Set(), search:'', sort:'last_contacted', dir:1, guests:[], allGuests:null, contacts:[], byClient:{} };
+
+// An entry can be changed by the person who wrote it, or by anyone carrying the
+// "Edit or delete any contact" permission. The database enforces the same rule —
+// this only decides whether the buttons are drawn.
+const canEditEntry = c => canManage || (canLog && !!myProfile && c.created_by === myProfile.id);
 
 // ── gate ──────────────────────────────────────────────────────────────────
 async function gate(){
@@ -303,12 +367,17 @@ async function gate(){
   if(!profile || !profile.active){ location.replace('/'); return false; }
   let allowed = !!profile.is_super_admin;
   canLog = !!profile.is_super_admin;
-  if(!allowed || !canLog){
+  canManage = !!profile.is_super_admin;
+  if(!allowed || !canLog || !canManage){
     try {
       const { data:ctx } = await authSb.rpc('hub_my_context');
       const keys = (ctx && ctx.apps && ctx.apps['vip-outreach']) || [];
-      if(ctx && ctx.super_admin){ allowed = true; canLog = true; }
-      else { allowed = allowed || keys.includes('view'); canLog = canLog || keys.includes('log'); }
+      if(ctx && ctx.super_admin){ allowed = true; canLog = true; canManage = true; }
+      else {
+        allowed = allowed || keys.includes('view');
+        canLog = canLog || keys.includes('log');
+        canManage = canManage || keys.includes('manage');
+      }
     } catch(_){ }
   }
   if(!allowed){ location.replace('/'); return false; }
@@ -360,7 +429,8 @@ async function loadContacts(){
   const { data, error } = await authSb.from('hub_vip_outreach').select('*')
     .order('contacted_on', { ascending:false }).order('created_at', { ascending:false }).limit(5000);
   if(error) throw new Error(error.message);
-  state.contacts = data || [];
+  // Deleted entries stay in the table for the audit trail but never surface here.
+  state.contacts = (data || []).filter(c => !c.deleted_at);
   indexContacts();
 }
 
@@ -378,6 +448,8 @@ async function loadAll(){
     if(g.error) throw new Error(g.error.message);
     state.guests = (g.data && g.data.guests) || [];
     state.cohort = (g.data && g.data.cohort_size) || state.guests.length;
+    // An unfiltered load doubles as the picker's full list.
+    if(state.venues.includes('all')) state.allGuests = state.guests;
     L.style.display='none'; $('lContent').style.display='block';
     renderList();
   } catch(err){
@@ -524,25 +596,164 @@ $('filterBar').addEventListener('click', e=>{
 $('srch').oninput = e => { state.search = e.target.value; renderList(); };
 
 // ── contact log view ──────────────────────────────────────────────────────
+function guestNameFor(c){
+  const g = findGuest(c.client_id);
+  return (g && g.name) || c.guest_name || 'Unknown guest';
+}
+
 function renderLog(){
   $('hLoading').style.display='none'; $('hContent').style.display='block';
-  const names = {};
-  state.guests.forEach(g=>{ names[g.client_id]=g.name; });
   const rows = state.contacts;
   $('hSub').textContent = `${rows.length} entr${rows.length===1?'y':'ies'} · newest first`;
   $('hBody').innerHTML = rows.length ? rows.map(c=>`<tr>
     <td class="cs"><div class="d">${fmtDate(c.contacted_on)}</div></td>
-    <td><div class="gn">${esc(names[c.client_id] || c.guest_name || 'Unknown guest')}</div></td>
+    <td><div class="gn">${esc(guestNameFor(c))}</div></td>
     <td>${outcomePill(c.outcome)}</td>
-    <td class="note">${esc(c.note || '')}</td>
+    <td class="note">${esc(c.note || '')}${c.edited_at?`<div class="edited">Edited by ${esc(c.edited_by_name||'')}</div>`:''}</td>
     <td><div class="gc" style="margin-top:0;">${esc(c.created_by_name || '')}</div></td>
-  </tr>`).join('') : '<tr><td colspan="5" style="color:var(--dim);padding:18px 10px;">Nothing logged yet.</td></tr>';
+    <td style="text-align:right;">${canEditEntry(c)?`<button class="miniBtn" data-entry="${esc(c.id)}">Edit</button>`:''}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="color:var(--dim);padding:18px 10px;">Nothing logged yet.</td></tr>';
 }
+
+$('hBody').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-entry]'); if(b) openEdit(b.dataset.entry);
+});
+
+// ── guest picker ──────────────────────────────────────────────────────────
+// The call list is filtered by venue and by the chips above it, so the picker
+// keeps its own unfiltered copy of every VIP guest — otherwise you could not
+// log a call against someone the current filters have hidden.
+function findGuest(id){
+  return state.guests.find(x=>x.client_id===id)
+      || (state.allGuests||[]).find(x=>x.client_id===id)
+      || null;
+}
+const digits = s => String(s||'').replace(/\D+/g,'');
+
+async function ensureAllGuests(){
+  if(state.allGuests) return;
+  if(state.venues.includes('all')){ state.allGuests = state.guests; return; }
+  const end = todaySyd();
+  const start = (() => { const d=new Date(end+'T00:00:00'); d.setFullYear(d.getFullYear()-5); return iso(d); })();
+  const { data, error } = await dataRpc('get_vip_guests', { p_start:start, p_end:end, p_venues:null, p_limit:2000 });
+  if(error) throw new Error(error.message);
+  state.allGuests = (data && data.guests) || [];
+}
+
+function renderPicker(){
+  const q = $('pSrch').value.trim().toLowerCase();
+  const qd = digits(q);
+  const all = state.allGuests || [];
+  let rows;
+  if(!q){
+    rows = all.slice().sort((a,b)=>(+b.visits_window||0)-(+a.visits_window||0)).slice(0,25);
+  } else {
+    rows = all.filter(g =>
+      String(g.name||'').toLowerCase().includes(q) ||
+      String(g.email||'').toLowerCase().includes(q) ||
+      (qd.length>=3 && digits(g.phone_number).includes(qd))
+    ).slice(0,60);
+  }
+  if(!rows.length){ $('pResults').innerHTML = '<p class="pickNote">No VIP guest matches that.</p>'; return; }
+  $('pResults').innerHTML =
+    (q ? '' : '<p class="pickNote">Most frequent VIPs — start typing to search all '+num(all.length)+'.</p>') +
+    rows.map(g=>{
+      const hist = state.byClient[g.client_id] || [];
+      const last = hist[0];
+      return `<button class="pickRow" data-pick="${esc(g.client_id)}">
+        <span><span class="pn">${esc(g.name)}</span>
+          <span class="pd" style="display:block;">${[g.phone_number, g.email].filter(Boolean).map(esc).join(' · ') || 'No contact details'}</span></span>
+        <span class="pr">${last ? 'Last contact<br>'+fmtDate(last.contacted_on) : 'Never contacted'}</span>
+      </button>`;
+    }).join('');
+}
+
+async function openPicker(){
+  $('pModal').style.display='flex'; document.body.style.overflow='hidden';
+  $('pSrch').value=''; $('pResults').innerHTML='<p class="pickNote">Loading guests…</p>';
+  try { await ensureAllGuests(); renderPicker(); $('pSrch').focus(); }
+  catch(err){ $('pResults').innerHTML = '<p class="pickNote" style="color:var(--err);">Could not load guests: '+esc(err.message)+'</p>'; }
+}
+$('pSrch').oninput = renderPicker;
+$('pResults').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-pick]'); if(!b) return;
+  closePicker(); openContact(b.dataset.pick);
+});
+function closePicker(){ $('pModal').style.display='none'; restoreScroll(); }
+$('pClose').onclick = closePicker;
+$('pModal').onclick = e => { if(e.target===$('pModal')) closePicker(); };
+$('newLogBtn').onclick = openPicker;
+
+// ── edit / delete an entry ────────────────────────────────────────────────
+let editEntry = null;
+function openEdit(id){
+  const c = state.contacts.find(x=>x.id===id);
+  if(!c || !canEditEntry(c)) return;
+  editEntry = c;
+  $('eSub').textContent = guestNameFor(c) + ' · logged by ' + (c.created_by_name || 'unknown');
+  $('eDate').value = c.contacted_on; $('eDate').max = todaySyd();
+  $('eOutcome').innerHTML = outcomeOptions(c.outcome);
+  $('eNote').value = c.note || '';
+  $('eMsg').textContent=''; $('eMsg').className='msg';
+  $('eConfirm').classList.add('hidden');
+  $('eMeta').textContent = c.edited_at
+    ? 'Last edited by ' + (c.edited_by_name || 'someone') + '.'
+    : 'Not edited since it was logged.';
+  $('eModal').style.display='flex'; document.body.style.overflow='hidden';
+}
+function closeEdit(){ $('eModal').style.display='none'; restoreScroll(); editEntry=null; }
+$('eClose').onclick = closeEdit;
+$('eModal').onclick = e => { if(e.target===$('eModal')) closeEdit(); };
+$('eDelete').onclick = () => $('eConfirm').classList.remove('hidden');
+$('eNo').onclick = () => $('eConfirm').classList.add('hidden');
+
+async function afterEntryChange(){
+  await loadContacts();
+  renderList();
+  if($('viewLog').style.display !== 'none') renderLog();
+  if(modalClient && $('cModal').style.display !== 'none') renderHistory(state.byClient[modalClient.client_id] || []);
+}
+
+$('eSave').onclick = async () => {
+  if(!editEntry) return;
+  const btn=$('eSave'), msg=$('eMsg');
+  const contacted_on = $('eDate').value || editEntry.contacted_on;
+  if(contacted_on > todaySyd()){ msg.className='msg err'; msg.textContent='That date is in the future.'; return; }
+  btn.disabled=true; msg.className='msg'; msg.textContent='Saving…';
+  try {
+    const note = $('eNote').value.trim();
+    const { error } = await authSb.from('hub_vip_outreach')
+      .update({ contacted_on, outcome:$('eOutcome').value, note: note || null })
+      .eq('id', editEntry.id);
+    if(error) throw new Error(error.message);
+    await afterEntryChange();
+    closeEdit();
+  } catch(err){
+    msg.className='msg err'; msg.textContent='Could not save: '+err.message;
+  } finally { btn.disabled=false; }
+};
+
+$('eYes').onclick = async () => {
+  if(!editEntry) return;
+  const msg=$('eMsg');
+  msg.className='msg'; msg.textContent='Deleting…';
+  try {
+    // Soft delete: the row stays, stamped with who removed it and when.
+    const { error } = await authSb.from('hub_vip_outreach')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', editEntry.id);
+    if(error) throw new Error(error.message);
+    await afterEntryChange();
+    closeEdit();
+  } catch(err){
+    msg.className='msg err'; msg.textContent='Could not delete: '+err.message;
+  }
+};
 
 // ── log contact modal ─────────────────────────────────────────────────────
 let modalClient = null;
 function openContact(clientId){
-  const g = state.guests.find(x=>x.client_id===clientId);
+  const g = findGuest(clientId);
   if(!g) return;
   modalClient = g;
   const hist = state.byClient[clientId] || [];
@@ -567,10 +778,16 @@ function renderHistory(hist){
   $('mHist').innerHTML = `<div class="hist"><div class="h">Contact history — ${hist.length} entr${hist.length===1?'y':'ies'}</div>` +
     (hist.length ? hist.map(c=>`<div class="hitem">
       <div><div class="hd">${fmtDate(c.contacted_on)}</div><div class="hw">${esc(c.created_by_name||'')}</div></div>
-      <div>${outcomePill(c.outcome)}${c.note?`<div class="hn">${esc(c.note)}</div>`:''}</div>
+      <div>${outcomePill(c.outcome)}
+        ${canEditEntry(c)?`<button class="miniBtn" style="float:right;" data-entry="${esc(c.id)}">Edit</button>`:''}
+        ${c.note?`<div class="hn">${esc(c.note)}</div>`:''}
+        ${c.edited_at?`<div class="edited">Edited by ${esc(c.edited_by_name||'')}</div>`:''}</div>
     </div>`).join('') : '<p class="msg" style="color:var(--dim);">Nobody has logged a contact with this guest yet.</p>')
     + '</div>';
 }
+$('mHist').addEventListener('click', e=>{
+  const b=e.target.closest('button[data-entry]'); if(b) openEdit(b.dataset.entry);
+});
 
 async function saveContact(){
   const btn=$('fSave'), msg=$('fMsg');
@@ -600,14 +817,26 @@ async function saveContact(){
   }
 }
 
-function closeModal(){ $('cModal').style.display='none'; document.body.style.overflow=''; }
+function closeModal(){ $('cModal').style.display='none'; restoreScroll(); }
+// Three modals can stack (guest → edit), so only give the page its scrollbar
+// back once none of them are open.
+function restoreScroll(){
+  const anyOpen = ['cModal','pModal','eModal'].some(id => $(id).style.display === 'flex');
+  document.body.style.overflow = anyOpen ? 'hidden' : '';
+}
 $('mClose').onclick = closeModal;
 $('cModal').onclick = e => { if(e.target===$('cModal')) closeModal(); };
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+document.addEventListener('keydown', e=>{
+  if(e.key!=='Escape') return;
+  if($('eModal').style.display==='flex') closeEdit();
+  else if($('pModal').style.display==='flex') closePicker();
+  else closeModal();
+});
 
 // ── boot ──────────────────────────────────────────────────────────────────
 (async () => {
   if(!(await gate())) return;
+  if(canLog) $('newLogBtn').classList.remove('hidden');
   buildVenueChips();
   await loadAll();
 })();
