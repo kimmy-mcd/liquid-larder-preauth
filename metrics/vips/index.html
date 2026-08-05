@@ -50,6 +50,12 @@
   .viewSeg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; margin-bottom:22px; }
   .viewSeg button { border:none; background:transparent; color:var(--dim); font-family:'Montserrat',sans-serif; font-weight:600; font-size:11px; letter-spacing:.06em; text-transform:uppercase; padding:10px 20px; border-radius:999px; cursor:pointer; transition:all .16s; box-shadow:none; }
   .viewSeg button.on { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); box-shadow:0 2px 6px rgb(var(--green-rgb) / .24); }
+  /* the tab row carries the bottom margin so the copy button sits level with the tabs */
+  .viewRow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:22px; }
+  .viewRow .viewSeg { margin-bottom:0; }
+  #copyLink { border:1px solid var(--hairline); background:var(--card); color:var(--accent-ink); font-family:'Montserrat',sans-serif; font-size:10.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; padding:9px 16px; border-radius:999px; cursor:pointer; box-shadow:none; transition:all .16s; }
+  #copyLink:hover { background:var(--sand-soft); transform:none; filter:none; }
+  #copyLink.done { background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); border-color:transparent; }
 
   .controls { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:18px; }
   .seg { display:inline-flex; background:var(--sand-soft); border-radius:999px; padding:4px; gap:2px; }
@@ -194,7 +200,7 @@
   .printHead .d { font-size:11px; color:var(--dim); margin-top:4px; }
   @media print {
     body::before, body::after { display:none; }
-    .topbar, .viewSeg, .arrHead, .footnote, .controls, .chipbar, .printBtn, .panelHead,
+    .topbar, .viewSeg, .viewRow, #copyLink, .arrHead, .footnote, .controls, .chipbar, .printBtn, .panelHead,
     #arrError, #arrLoading, #gError, #gLoading { display:none !important; }
     .wrap { max-width:none; padding:0; margin:0; }
     .pageHead { display:none; }
@@ -230,10 +236,13 @@
     </div>
   </div>
 
-  <div class="viewSeg" id="viewSeg">
-    <button data-v="guests" class="on">Top guests</button>
-    <button data-v="bookings">Bookings over time</button>
-    <button data-v="arrivals">Arriving soon</button>
+  <div class="viewRow">
+    <div class="viewSeg" id="viewSeg">
+      <button data-v="guests" class="on">Top guests</button>
+      <button data-v="bookings">Bookings over time</button>
+      <button data-v="arrivals">Arriving soon</button>
+    </div>
+    <button type="button" id="copyLink" title="Copy a link that reopens this exact view">Copy link</button>
   </div>
 
   <!-- ══════════ SCREEN 1 — TOP GUESTS ══════════ -->
@@ -893,7 +902,26 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
 });
 
 // ── boot ────────────────────────────────────────────────────────────────────
-(async()=>{ if(await gate()){ buildVenueChips(); await loadOutreach(); document.querySelector('#viewSeg button[data-v="arrivals"]').click(); } })();
+// The URL state helper lives in a later <script>. Boot is async, and with a
+// warm session it can run to completion before that script has even parsed,
+// so we hand the helper a promise to resolve instead of hoping it is there.
+window.__vipsUrlStateReady = new Promise(function(res){ window.__vipsUrlStateResolve = res; });
+
+// The helper must get its say BEFORE the default view is chosen — otherwise a
+// deep link is applied and then immediately overwritten by the Arriving soon
+// click, which is why shared links always landed on that tab. apply() returns
+// false when the URL carries no state, and only then do we pick a default.
+(async()=>{
+  if(!(await gate())) return;
+  buildVenueChips();
+  await loadOutreach();
+  const helper = await Promise.race([
+    window.__vipsUrlStateReady,
+    new Promise(r=>setTimeout(()=>r(null), 3000))   // never hang on a missing helper
+  ]);
+  const applied = helper ? helper.apply() : false;
+  if(!applied) document.querySelector('#viewSeg button[data-v="arrivals"]').click();
+})();
 </script>
 <!-- ─── URL state (deep-linking) ───────────────────────────────────────────────
      Additive: reads/writes control state via the DOM only. No existing
@@ -924,7 +952,10 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
       if (btns[i].textContent.trim() === want){ if(!btns[i].classList.contains('on')) btns[i].click(); return; }
     }
   }
-  function setSelect(id, val){ var el=$(id); if(!el || el.value===val) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); }
+  // While `quiet` is set, controls are written without raising events — used
+  // when restoring a link, so nothing fetches until the view is switched.
+  var quiet = false;
+  function setSelect(id, val){ var el=$(id); if(!el || el.value===val) return; el.value=val; if(quiet) return; el.dispatchEvent(new Event('change',{bubbles:true})); }
   function setNum(id, val){ var el=$(id); if(!el || String(el.value)===String(val)) return; el.value=val; el.dispatchEvent(new Event('change',{bubbles:true})); el.dispatchEvent(new Event('input',{bubbles:true})); }
   // Set a value WITHOUT raising events. Restoring a custom range means writing
   // three controls (select, from, to); if each one fires `change` we kick off
@@ -934,31 +965,104 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
   function setCustomRange(selId, fromId, toId, from, to){
     if (from != null) setQuiet(fromId, from);
     if (to   != null) setQuiet(toId,   to);
-    // Switching the select to 'custom' reveals the inputs and fires the load.
+    // The date inputs are hidden unless the period is 'custom', and in quiet
+    // mode the select's change handler won't run to reveal them.
     var sel = $(selId);
-    if (sel && sel.value !== 'custom') { setSelect(selId, 'custom'); return; }
-    // Already on 'custom' — the select won't raise change, so reveal the
-    // inputs and fire the one load ourselves.
-    [fromId, toId].forEach(function(id){ var el=$(id); if(el) el.style.display='inline-block'; });
-    loadFor(selId);
+    var wasCustom = sel && sel.value === 'custom';
+    if (!wasCustom) setSelect(selId, 'custom');
+    if (quiet || wasCustom){
+      [fromId, toId].forEach(function(id){ var el=$(id); if(el) el.style.display='inline-block'; });
+    }
+    if (!quiet && wasCustom) loadFor(selId);   // select didn't change, so load
   }
   function loadFor(selId){
     if (selId === 'bTf') loadBookings();
     else if (selId === 'gTf') loadGuests();
+  }
+  // Restore a multi-venue selection: reset to All, then toggle each wanted
+  // venue on. Each click refetches, but the sequence token in loadGuests means
+  // only the final response renders.
+  function applyVenues(csv){
+    var want = String(csv||'all').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    if (!want.length || want.indexOf('all') >= 0){ clickVenueBySlug('venueBar','all'); return; }
+    clickVenueBySlug('venueBar','all');
+    want.forEach(function(slug){ clickVenueBySlug('venueBar', slug); });
+  }
+  function applyFilters(csv){
+    var want = String(csv||'').split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    var c = $('filterBar'); if (!c) return;
+    want.forEach(function(f){
+      var b = c.querySelector('.fchip[data-f="'+f+'"]');
+      if (b && !b.classList.contains('on')) b.click();
+    });
+  }
+  // Clicking a header sets that column sorted descending; a second click
+  // flips it. So: one click to select the column, a second only if the link
+  // asked for ascending.
+  function applySort(key, dir){
+    var h = $('gHead'); if (!h) return;
+    var th = h.querySelector('th.sortable[data-k="'+key+'"]'); if (!th) return;
+    var cur = sortOn();
+    if (!cur || cur.key !== key) th.click();
+    cur = sortOn();
+    if (cur && cur.key === key && cur.dir !== (dir === 'asc' ? 'asc' : 'desc')){
+      h.querySelector('th.sortable[data-k="'+key+'"]').click();
+    }
+    setTimeout(writeState, 0);
+  }
+  // Poll briefly for an element that only appears once data has rendered.
+  function whenReady(test, fn){
+    var tries = 0;
+    (function tick(){
+      if (test()) return fn();
+      if (++tries > 60) return;            // ~6s, then give up quietly
+      setTimeout(tick, 100);
+    })();
   }
 
   var suppress = false;
 
   // ── read current state from the DOM ──────────────────────────────────────
   function currentView(){ var b=segOn('viewSeg'); return b ? b.dataset.v : 'guests'; }
+  // Venue chips on Top guests are multi-select, so read every chip that is on
+  // rather than just the first. Arriving soon is single-select and keeps using
+  // the single `venue` value.
+  function venuesOn(){
+    var c = $('venueBar'); if (!c) return ['all'];
+    var on = c.querySelectorAll('.vchip.on');
+    if (!on.length) return ['all'];
+    var out = [];
+    for (var i=0;i<on.length;i++) out.push(slugFromText(on[i].textContent));
+    return out;
+  }
+  // Sort lives in page state we can't reach, but the header reflects it: the
+  // sorted column is the one carrying the arrow, and the glyph gives the
+  // direction.
+  function sortOn(){
+    var h = $('gHead'); if (!h) return null;
+    var ths = h.querySelectorAll('th.sortable');
+    for (var i=0;i<ths.length;i++){
+      var a = ths[i].querySelector('.arrow');
+      if (a) return { key: ths[i].dataset.k, dir: a.textContent.indexOf('▲') >= 0 ? 'asc' : 'desc' };
+    }
+    return null;
+  }
+  function filtersOn(){
+    var c = $('filterBar'); if (!c) return [];
+    var on = c.querySelectorAll('.fchip.on'); var out = [];
+    for (var i=0;i<on.length;i++) out.push(on[i].dataset.f);
+    return out;
+  }
   function readState(){
     var view = currentView();
     var s = { view: view };
     if (view === 'guests'){
       if ($('gTf')) s.period = $('gTf').value;
-      var v = segOn('venueBar'); s.venue = v ? slugFromText(v.textContent) : 'all';
+      s.venue = venuesOn().join(',');
       if ($('minVisits')) s.min = $('minVisits').value || '0';
       var l = segOn('limitSeg'); if (l) s.limit = l.dataset.l;
+      var so = sortOn(); if (so){ s.sort = so.key; s.dir = so.dir; }
+      var fs = filtersOn(); if (fs.length) s.filters = fs.join(',');
       if (s.period === 'custom'){ if($('gFrom')) s.from=$('gFrom').value; if($('gTo')) s.to=$('gTo').value; }
     } else if (view === 'bookings'){
       if ($('bTf')) s.period = $('bTf').value;
@@ -989,18 +1093,35 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     suppress = true;
 
     var view = p.get('view');
-    if (view && ['guests','bookings','arrivals'].indexOf(view) >= 0) clickSegByAttr('viewSeg','v',view);
-    view = currentView();
+    if (['guests','bookings','arrivals'].indexOf(view) < 0) view = currentView();
 
+    // Set the period controls BEFORE switching tab, and set them silently, so
+    // opening a deep link costs one fetch rather than one for the tab's
+    // default window and another for the window the link actually asked for.
+    quiet = true;
     if (view === 'guests'){
       if (p.get('period') === 'custom') setCustomRange('gTf','gFrom','gTo', p.get('from'), p.get('to'));
       else if (p.has('period')) setSelect('gTf', p.get('period'));
-      if (p.has('venue')) clickVenueBySlug('venueBar', p.get('venue'));
-      if (p.has('min')) setNum('minVisits', p.get('min'));
-      if (p.has('limit')) clickSegByAttr('limitSeg','l',p.get('limit'));
     } else if (view === 'bookings'){
       if (p.get('period') === 'custom') setCustomRange('bTf','bFrom','bTo', p.get('from'), p.get('to'));
       else if (p.has('period')) setSelect('bTf', p.get('period'));
+    }
+    quiet = false;
+
+    showView(view);   // one load, with the right window already in place
+
+    // The rest are click-driven controls that carry page state of their own,
+    // so they have to be real clicks.
+    if (view === 'guests'){
+      if (p.has('venue')) applyVenues(p.get('venue'));
+      if (p.has('min')) setNum('minVisits', p.get('min'));
+      if (p.has('limit')) clickSegByAttr('limitSeg','l',p.get('limit'));
+      if (p.has('filters')) applyFilters(p.get('filters'));
+      // The sortable header only exists once the first result set has
+      // rendered, so this one waits rather than firing into an empty table.
+      if (p.has('sort')) whenReady(function(){ return $('gHead') && $('gHead').querySelector('th.sortable[data-k="'+p.get('sort')+'"]'); },
+                                   function(){ applySort(p.get('sort'), p.get('dir')); });
+    } else if (view === 'bookings'){
       if (p.has('status')) clickSegByAttr('bStatusSeg','b',p.get('status'));
     } else if (view === 'arrivals'){
       if (p.has('days')) clickSegByAttr('arrSeg','d',p.get('days'));
@@ -1012,6 +1133,17 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     return true;
   }
 
+  // Switch to a view. If it is already the active tab the page's own click
+  // handler won't fire, so kick off its load directly.
+  function showView(view){
+    var c = $('viewSeg'); if (!c) return;
+    var b = c.querySelector('button[data-v="'+view+'"]'); if (!b) return;
+    if (!b.classList.contains('on')) { b.click(); return; }
+    if (view === 'guests') loadGuests();
+    else if (view === 'bookings') loadBookings();
+    else if (view === 'arrivals') loadArrivals();
+  }
+
   // ── wire listeners (added after the page's own handlers) ─────────────────
   function wire(){
     ['viewSeg','venueBar','limitSeg','bStatusSeg','arrSeg','arrVenueBar'].forEach(function(id){
@@ -1020,9 +1152,50 @@ $('viewSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
     });
     ['gTf','bTf'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ setTimeout(writeState,0); }); });
     ['minVisits','gFrom','gTo','bFrom','bTo'].forEach(function(id){ var el=$(id); if(el) el.addEventListener('change', function(){ setTimeout(writeState,0); }); });
+    // Delegated, because both the sortable headers and the venue chips are
+    // built after this runs.
+    ['gHead','filterBar','venueBar'].forEach(function(id){
+      var c=$(id); if(!c) return;
+      c.addEventListener('click', function(){ setTimeout(writeState,0); });
+    });
+    // minVisits is an oninput filter on the page, so mirror that here or the
+    // URL lags a keystroke behind.
+    var mv=$('minVisits'); if(mv) mv.addEventListener('input', function(){ setTimeout(writeState,0); });
+
+    var cp=$('copyLink');
+    if (cp) cp.addEventListener('click', function(){
+      writeState();                              // make sure the URL is current
+      var url = location.href, done = function(ok){
+        cp.textContent = ok ? 'Copied' : 'Press ⌘C';
+        cp.classList.toggle('done', ok);
+        setTimeout(function(){ cp.textContent='Copy link'; cp.classList.remove('done'); }, 1600);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(url).then(function(){ done(true); }, function(){ fallback(); });
+      } else fallback();
+      function fallback(){
+        // Clipboard API can be blocked; leave the URL selected so ⌘C works.
+        var t=document.createElement('textarea');
+        t.value=url; t.style.position='fixed'; t.style.opacity='0';
+        document.body.appendChild(t); t.select();
+        var ok=false; try { ok=document.execCommand('copy'); } catch(e){}
+        document.body.removeChild(t); done(ok);
+      }
+    });
   }
 
-  function init(){ wire(); applyState(); }
+  var wired = false;
+  function ensureWired(){ if (!wired){ wire(); wired = true; } }
+
+  // The page's boot sequence drives this: it calls apply() after sign-in, and
+  // only picks a default view when apply() reports the URL had no state.
+  window.__vipsUrlState = {
+    apply: function(){ ensureWired(); return applyState(); },
+    write: writeState
+  };
+  if (window.__vipsUrlStateResolve) window.__vipsUrlStateResolve(window.__vipsUrlState);
+
+  function init(){ ensureWired(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })();
