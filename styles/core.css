@@ -154,7 +154,14 @@ button:disabled { opacity:.4; cursor:not-allowed; transform:none; filter:none; }
    Dynamic Island and above the home indicator unless we pad for it. Guarded to
    display-mode:standalone so a normal browser tab — where Safari already
    reserves that space itself — is never affected. env() resolves to 0 on
-   browsers/devices without a safe area, so this is a no-op there too. */
+   browsers/devices without a safe area, so this is a no-op there too.
+   Targeting <html>, NOT <body>: several pages (and hub.css itself) declare
+   their own unconditional body{padding:...} for unrelated layout reasons.
+   That's the same specificity as this rule and loads later in the cascade,
+   so it silently won every time and the safe-area padding never rendered —
+   the top of the page sat directly under the status bar on every standalone
+   launch. Nothing anywhere sets padding on <html>, so this rule has no
+   competition and always applies, on every current and future page. */
 @media (display-mode:standalone) {
-  body { padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
+  html { padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom); }
 }
