@@ -297,7 +297,7 @@ main.content.taAdmin>.pageHead,main.content.taAdmin>#kpiStrip,main.content.taAdm
       <div class="sub">Team Hub</div>
     </div>
     <h2>Welcome back</h2>
-    <div class="lead">Sign in to reach your dashboards, pre-authorisations and company metrics.</div>
+    <div class="lead">Sign in to reach your dashboards, pre-authorisations and scoreboard.</div>
     <div class="field"><label>Email</label><input id="email" type="email" placeholder="you@liquidandlarder.com.au"></div>
     <div class="field"><label>Password</label><input id="password" type="password"></div>
     <button id="signin">Sign in</button>
@@ -521,7 +521,7 @@ async function enter() {
   if (error) { $('tilesMsg').textContent = error.message; $('tilesMsg').className = 'msg err'; return; }
   // Handbook leads: for most of the team it is the only app they open, and the
   // spec's answer to "should it be a separate site" was to put it first here.
-  const SECTION_ORDER = ['Handbook', 'Accounts', 'Company metrics', 'Marketing'];
+  const SECTION_ORDER = ['Handbook', 'Accounts', 'Scoreboard', 'Marketing'];
   const groups = {};
   (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
   const sections = Object.keys(groups).sort((a, b) => {
