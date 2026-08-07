@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Pass — Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1d3e3b">
+<!-- Theme resolves before the stylesheets so a dark page never flashes light. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=7">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
+<style>
+  body { min-height:100vh; padding:0; }
+  .hidden { display:none !important; }
+
+  /* ---------- shell: the home page's sidebar, verbatim ---------- */
+  #shell { display:flex; min-height:100vh; }
+  aside.side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; padding:26px 18px 20px;
+    border-right:1px solid var(--hairline); background:rgb(var(--bg-rgb) / .6);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .sideBrand { display:flex; align-items:center; gap:12px; padding:0 8px 24px; }
+  .monogram { width:38px; height:38px; flex:none; border-radius:11px; display:flex; align-items:center;
+    justify-content:center; background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); font-family:'Gilda Display',serif; font-size:14px; }
+  .sideBrand .t .n { font-size:13px; font-weight:600; }
+  .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  nav.sideNav { flex:1; overflow-y:auto; }
+  .navGroup { margin-bottom:22px; }
+  .navGroup .g { font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding:0 10px; margin-bottom:8px; }
+  a.navItem { display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:10px;
+    color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
+  a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
+  a.navItem:hover { background:rgb(var(--tint-rgb) / .07); }
+  a.navItem.active { background:var(--green); color:var(--on-accent); box-shadow:0 2px 8px rgb(var(--green-rgb) / .28); }
+  a.navItem.active svg { stroke:var(--on-accent-soft); }
+  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gold);
+    background:rgb(var(--gold-rgb) / .12); border-radius:999px; padding:2px 8px; }
+  a.navItem.active .count { color:var(--on-accent); background:rgb(255 255 255 / .18); }
+  .sideUser { border-top:1px solid var(--hairline); padding-top:16px; display:flex;
+    align-items:center; gap:11px; flex-wrap:wrap; }
+  .avatar { width:36px; height:36px; border-radius:50%; flex:0 0 36px;
+    background:linear-gradient(135deg,var(--green-hi),var(--green)); color:var(--on-accent);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .sideUser .meta { line-height:1.3; min-width:0; }
+  .sideUser .meta .n { font-size:12.5px; font-weight:600; }
+  .sideUser .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; margin-top:3px; }
+
+  main { flex:1; min-width:0; padding:30px 34px 90px; max-width:1180px; }
+  .pageHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    margin-bottom:22px; flex-wrap:wrap; }
+  .pageHead > div { min-width:0; max-width:100%; }
+  .hello { font-family:'Gilda Display',serif; font-size:29px; color:var(--accent-ink); line-height:1.15; }
+  .dateLine { font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:8px; }
+  .scopeRow { display:flex; align-items:center; gap:9px; margin-top:12px; flex-wrap:wrap; }
+  .miniLabel { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  select.mini, input.mini { background:var(--surface); color:var(--ink); border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; font-size:12px; font-family:'Montserrat',sans-serif; max-width:100%; }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:26px; align-items:start; }
+
+  /* ---------- composer ---------- */
+  .composer { padding:16px 18px; margin-bottom:18px; }
+  .cmpTop { display:flex; gap:12px; align-items:center; }
+  .cmpTop .fake { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:999px;
+    padding:11px 16px; color:var(--dim); font-size:13px; cursor:text; }
+  .thankBtn { flex:none; background:var(--sand-soft); color:var(--accent-ink); border-radius:999px;
+    padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; }
+  .thankBtn:hover { background:var(--sand-hi); transform:none; filter:none; }
+  .cmpBody { display:none; margin-top:14px; }
+  .cmpBody.open { display:block; }
+  .segs { display:inline-flex; gap:3px; background:var(--sand-soft); border-radius:999px; padding:3px;
+    margin-bottom:12px; flex-wrap:wrap; }
+  .segs button { background:transparent; padding:7px 14px; border-radius:999px; font-size:10px; font-weight:600;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--dim); box-shadow:none; }
+  .segs button[aria-pressed="true"] { background:var(--card); color:var(--accent-ink);
+    box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
+  .segs button:hover { transform:none; filter:none; }
+  .cmpBody textarea { width:100%; min-height:82px; background:var(--surface); color:var(--ink);
+    border:1px solid var(--border); border-radius:var(--r-input); padding:12px 14px;
+    font-family:'Montserrat',sans-serif; font-size:13.5px; resize:vertical; }
+  .cmpBody textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .block { margin-top:14px; background:var(--surface); border-radius:12px; padding:14px 15px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chips button { background:var(--card); border:1px solid var(--border); color:var(--dim); border-radius:999px;
+    padding:8px 14px; font-size:11.5px; font-weight:600; box-shadow:none; letter-spacing:0; text-transform:none; }
+  .chips button:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .chips button[aria-pressed="true"] { background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-color:transparent; }
+  .chips button:disabled { opacity:.4; cursor:not-allowed; }
+  .hint { font-size:11px; color:var(--dim); line-height:1.6; margin-top:10px; }
+  .hint b { color:var(--accent-ink); font-weight:600; }
+  .cmpRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .cmpRow .spacer { flex:1; }
+  .notifyRow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--hairline); }
+  .tog { position:relative; display:inline-block; width:40px; height:23px; flex:none; cursor:pointer; }
+  .tog input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:2; }
+  .tog .sw { position:absolute; inset:0; z-index:1; background:var(--border); border-radius:999px; transition:background .13s; }
+  .tog .sw::before { content:''; position:absolute; width:17px; height:17px; left:3px; top:3px;
+    border-radius:50%; background:var(--card); transition:transform .22s cubic-bezier(.34,1.4,.5,1); }
+  .tog input:checked ~ .sw { background:var(--green); }
+  .tog input:checked ~ .sw::before { transform:translateX(17px); }
+  .tog input:disabled ~ .sw { opacity:.28; }
+  .chan { display:flex; align-items:center; gap:11px; font-size:12.5px; }
+  .chan small { display:block; font-size:10.5px; color:var(--dim); margin-top:2px; }
+
+  /* ---------- posts ---------- */
+  .post { padding:20px 22px; margin-bottom:16px; position:relative; }
+  .post.pinned { border-color:rgb(var(--gold-rgb) / .45); }
+  .pinTag { position:absolute; top:-9px; left:20px; background:var(--gold); color:var(--on-accent);
+    font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .pHead { display:flex; gap:12px; align-items:center; margin-bottom:13px; position:relative; }
+  .pAv { width:38px; height:38px; flex:none; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:12px; font-weight:600;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); }
+  .pAv.sys { background:var(--sand-soft); color:var(--accent-ink); border-radius:11px; }
+  .pAv.sys svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .pWho { flex:1; min-width:0; }
+  .pWho .n { font-size:13px; font-weight:600; }
+  .pWho .m { font-size:10.5px; color:var(--dim); margin-top:3px; display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+  .tag { font-size:8.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:3px 8px;
+    border-radius:999px; background:var(--sand-soft); color:var(--accent-ink); }
+  .tag.must { background:rgb(var(--gold-rgb) / .14); color:var(--gold-ink); }
+  .tag.val  { background:rgb(var(--gold-rgb) / .14); color:var(--gold-ink); letter-spacing:.10em; }
+  .tag.shout{ background:rgb(var(--err-rgb) / .11); color:var(--err); }
+  .pTitle { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); margin-bottom:9px; line-height:1.3; }
+  .pBody { font-size:13.5px; line-height:1.75; white-space:pre-wrap; }
+  .mention { color:var(--accent-ink); font-weight:600; background:var(--sand-soft); padding:1px 6px; border-radius:6px; }
+  .pFoot { display:flex; align-items:center; gap:8px; margin-top:15px; padding-top:13px;
+    border-top:1px solid var(--hairline); flex-wrap:wrap; }
+  .react { background:var(--surface); border:1px solid var(--hairline); border-radius:999px; padding:6px 12px;
+    font-size:12px; display:inline-flex; gap:6px; align-items:center; box-shadow:none;
+    letter-spacing:0; text-transform:none; color:var(--ink); }
+  .react:hover { transform:translateY(-1px); filter:none; border-color:rgb(var(--tint-rgb) / .35); }
+  .react[aria-pressed="true"] { background:rgb(var(--tint-rgb) / .12); border-color:rgb(var(--tint-rgb) / .40); }
+  .react .c { font-size:11px; font-weight:600; color:var(--dim); }
+  .pFoot .link { margin-left:auto; font-size:11px; color:var(--dim); cursor:pointer; font-weight:600; background:none; box-shadow:none; letter-spacing:0; text-transform:none; padding:0; }
+  .pFoot .link:hover { color:var(--accent-ink); transform:none; filter:none; }
+  .pMore { margin-left:auto; flex:none; width:30px; height:30px; border-radius:999px; background:transparent;
+    color:var(--dim); font-size:16px; line-height:1; box-shadow:none; padding:0; }
+  .pMore:hover { background:var(--surface-hover); color:var(--accent-ink); transform:none; filter:none; }
+  .pMenu { position:absolute; top:34px; right:0; z-index:60; min-width:236px; padding:6px; }
+  .pmItem { display:block; width:100%; background:transparent; color:var(--ink); text-align:left;
+    border-radius:9px; padding:10px 12px; font-size:12.5px; font-weight:500; box-shadow:none;
+    letter-spacing:0; text-transform:none; }
+  .pmItem:hover { background:var(--surface-hover); transform:none; filter:none; }
+  .pmItem.danger { color:var(--err); }
+  .tomb { display:flex; gap:13px; align-items:flex-start; font-size:12.5px; line-height:1.65; color:var(--dim); }
+  .tomb b { color:var(--ink); }
+
+  /* ---------- comments ---------- */
+  .thread { margin-top:14px; padding-top:15px; border-top:1px solid var(--hairline); }
+  .cRow { display:flex; gap:11px; padding:9px 0; }
+  .cAv { width:30px; height:30px; flex:none; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:10.5px; font-weight:600;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); }
+  .cBody { flex:1; min-width:0; }
+  .cTop { display:flex; align-items:baseline; gap:8px; }
+  .cTop b { font-size:12.5px; font-weight:600; }
+  .cTop span { font-size:10.5px; color:var(--dim); }
+  .cText { font-size:13px; line-height:1.65; margin-top:4px; white-space:pre-wrap; }
+  .cCompose { display:flex; gap:11px; margin-top:12px; padding-top:13px; border-top:1px solid var(--hairline); }
+  .cField { flex:1; min-width:0; }
+  .cField textarea { width:100%; min-height:46px; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:11px 13px; font-family:'Montserrat',sans-serif; font-size:13px;
+    color:var(--ink); resize:vertical; }
+  .cField textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+
+  /* ---------- rail ---------- */
+  .rail { display:flex; flex-direction:column; gap:16px; position:sticky; top:24px; }
+  .railCard { padding:18px; }
+  .railTitle { font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin-bottom:14px; }
+  .railCard.mine { border-top:3px solid var(--gold); }
+  .tally { display:flex; gap:12px; }
+  .tCell { flex:1; background:var(--surface); border-radius:12px; padding:13px 14px; }
+  .tV { font-family:'Gilda Display',serif; font-size:25px; color:var(--accent-ink); line-height:1; }
+  .tK { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:6px; }
+  .note { font-size:10.5px; color:var(--dim); line-height:1.7; margin-top:12px; padding-top:12px;
+    border-top:1px solid var(--hairline); }
+  .empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:13px; line-height:1.8; }
+  .endCap { text-align:center; padding:26px 0; color:var(--dim); font-size:11.5px;
+    letter-spacing:.12em; text-transform:uppercase; }
+  .sk { height:132px; border-radius:var(--r-card); margin-bottom:16px;
+    background:linear-gradient(90deg,var(--rule) 25%,var(--rule-hi) 37%,var(--rule) 63%);
+    background-size:400% 100%; animation:skShim 1.35s ease infinite; }
+  @keyframes skShim { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+  /* ---------- mobile: the sidebar is hidden, so a tab bar replaces it ---------- */
+  .tabbar { display:none; }
+  @media (max-width:860px) {
+    aside.side { display:none; }
+    main { padding:20px 16px 110px; }
+    .hello { font-size:23px; }
+    .cols { grid-template-columns:minmax(0,1fr); }
+    .rail { position:static; }
+    .tabbar { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:90;
+      background:rgb(var(--bg-rgb) / .94); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      border-top:1px solid var(--hairline);
+      padding:8px 6px calc(8px + env(safe-area-inset-bottom)); }
+    .tabbar a { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px;
+      text-decoration:none; color:var(--dim); font-size:9.5px; font-weight:600; letter-spacing:.06em; }
+    .tabbar a svg { width:19px; height:19px; stroke:currentColor; stroke-width:1.7; fill:none;
+      stroke-linecap:round; stroke-linejoin:round; }
+    .tabbar a.on { color:var(--accent-ink); }
+  }
+  @media (max-width:1020px) { .cols { grid-template-columns:minmax(0,1fr); } .rail { position:static; } }
+</style>
+</head>
+<body>
+
+<div id="boot" class="wrap" style="padding-top:60px"><div class="sk"></div><div class="sk"></div></div>
+
+<div id="shell" class="hidden">
+  <aside class="side">
+    <div class="sideBrand">
+      <div class="monogram">L&amp;L</div>
+      <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+    </div>
+    <nav class="sideNav" id="sideNav"></nav>
+    <div class="sideUser">
+      <div class="avatar" id="avatar"></div>
+      <div class="meta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="pageHead">
+      <div>
+        <div class="hello" id="hello">The Pass</div>
+        <div class="dateLine" id="dateLine"></div>
+        <div class="scopeRow">
+          <span class="miniLabel">Viewing</span>
+          <select class="mini" id="scopeSel"><option value="all">All locations</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="card composer hidden" id="composer">
+          <div class="cmpTop">
+            <div class="avatar" id="cmpAv"></div>
+            <div class="fake" id="cmpOpen">Share something with the team…</div>
+            <button class="thankBtn" id="thankBtn">Thank someone</button>
+          </div>
+          <div class="cmpBody" id="cmpBody">
+            <div class="segs" id="cmpType"></div>
+            <textarea id="cmpText" placeholder="What's happening?"></textarea>
+
+            <div class="block hidden" id="shoutBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Who are you thanking?</div>
+              <div class="chips" id="recipChips"></div>
+              <div class="hint" id="recipHint"></div>
+              <div class="miniLabel" style="margin:16px 0 9px">Which value did they show?</div>
+              <div class="chips" id="valueChips"></div>
+            </div>
+
+            <div class="block" id="audBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Audience</div>
+              <div class="chips" id="audChips"></div>
+              <div class="hint" id="audHint"></div>
+            </div>
+
+            <div class="notifyRow" id="notifyRow">
+              <label class="chan"><span class="tog"><input type="checkbox" id="notifyPush"><span class="sw"></span></span>
+                <span><b>Push</b><small>Buzzes their phone now</small></span></label>
+              <label class="chan"><span class="tog"><input type="checkbox" id="notifyEmail"><span class="sw"></span></span>
+                <span><b>Email</b><small>Everyone with an account</small></span></label>
+            </div>
+            <div class="hint" id="notifyHint"></div>
+
+            <div class="cmpRow">
+              <div class="msg err" id="cmpMsg"></div>
+              <span class="spacer"></span>
+              <button class="ghost" id="cmpCancel">Cancel</button>
+              <button id="cmpPost">Post</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="feed"></div>
+        <div class="endCap hidden" id="endCap">You're up to date</div>
+      </div>
+
+      <div class="rail">
+        <div class="card railCard mine">
+          <div class="railTitle">Your recognition · <span id="monthLbl"></span></div>
+          <div class="tally">
+            <div class="tCell"><div class="tV" id="tRecv">0</div><div class="tK">Received</div></div>
+            <div class="tCell"><div class="tV" id="tGiven">0</div><div class="tK">Given</div></div>
+          </div>
+          <div class="note">Only you can see these numbers. There is no company leaderboard.</div>
+        </div>
+        <div class="card railCard">
+          <div class="railTitle">Who's joining in · <span id="monthLbl2"></span></div>
+          <div id="joinBars"></div>
+          <div class="note">The share of each team who have thanked someone this month. A share, not a
+            count, so one enthusiastic person can't carry a location and a small team isn't punished
+            for being small.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script>
+// ── auth (accounts project) ─────────────────────────────────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const sb = window.__sbStub || supabase.createClient(AUTH_URL, AUTH_ANON);
+
+const $   = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = n => (String(n||'?').match(/\b[a-zA-Z]/g) || ['?']).slice(0,2).join('').toUpperCase();
+
+const ICONS = {
+  pass:'<svg viewBox="0 0 24 24"><path d="M3 10.5v3a1.5 1.5 0 0 0 1.5 1.5H7l6 4.5V5.5L7 10H4.5A1.5 1.5 0 0 0 3 11.5Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  'Handbook':'<svg viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13H5.5A1.5 1.5 0 0 0 4 18.5Z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H19"/><path d="M8 7.5h7"/><path d="M8 11h7"/></svg>',
+  'Pre-Authorisations':'<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>',
+  'Return Rate':'<svg viewBox="0 0 24 24"><path d="M4 19 9 13l4 3 7-9"/><path d="M15 7h5v5"/></svg>',
+  'Quality Audits':'<svg viewBox="0 0 24 24"><path d="M9 5h6a2 2 0 0 1 2 2v13H7V7a2 2 0 0 1 2-2Z"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><path d="m9.5 13 2 2 3.5-4"/></svg>',
+  'VIPs':'<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
+  'VIP Outreach':'<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
+  _home:'<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  _default:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+};
+const iconFor = n => ICONS[n] || ICONS._default;
+const SECTION_ORDER = ['Handbook','Accounts','Scoreboard','Marketing'];
+
+let ME = null, CAN = {}, MY_LOCS = [], LOCATIONS = [], VALUES = [], PEOPLE = [];
+let POSTS = [], SCOPE = 'all', KIND = 'announcement', PICKED = [], RECIPS = [], VALUE = null;
+
+// ── boot ────────────────────────────────────────────────────────────────
+async function boot() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { location.replace('/'); return; }
+  const { data:{ user } } = await sb.auth.getUser();
+  const { data:profile } = await sb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) { location.replace('/'); return; }
+  ME = profile;
+
+  const acts = ['read','post','post_other_location','post_all','shoutout','notify','pin','moderate','moderate_location'];
+  const [perms, locIds, locs, vals, people, apps] = await Promise.all([
+    Promise.all(acts.map(a => sb.rpc('hub_my_can', { p_app_slug:'pass', p_action_key:a }))),
+    sb.rpc('pass_my_location_ids'),
+    sb.from('hub_venues').select('id,name,is_head_office,sort_order').eq('active', true).order('sort_order'),
+    sb.from('pass_values').select('*').order('sort'),
+    sb.from('portal_profiles').select('id,full_name,email').eq('active', true),
+    sb.from('portal_apps').select('name,section,sort_order,url').order('sort_order'),
+  ]);
+  acts.forEach((a,i) => CAN[a] = !!(perms[i] && perms[i].data));
+  MY_LOCS  = (locIds.data || []).map(r => (r && r.pass_my_location_ids) || r).filter(Boolean);
+  LOCATIONS = locs.data || [];
+  VALUES    = vals.data || [];
+  PEOPLE    = (people.data || []).filter(p => p.id !== ME.id);
+
+  if (!CAN.read) {
+    $('boot').innerHTML = '<div class="card" style="padding:34px"><div class="cardTitle">The Pass</div>' +
+      '<div class="msg">You do not have access to The Pass yet. Ask People &amp; Culture to add it to your hat.</div></div>';
+    return;
+  }
+
+  renderShell(apps.data || []);
+  $('boot').classList.add('hidden');
+  $('shell').classList.remove('hidden');
+  await Promise.all([loadFeed(), loadRecognition()]);
+}
+
+function renderShell(apps) {
+  const name = ME.full_name || ME.email;
+  $('avatar').textContent = initials(name);
+  $('cmpAv').textContent  = initials(name);
+  $('whoName').textContent = name;
+  $('whoRole').textContent = ME.is_super_admin ? 'Super admin' : 'Team';
+  $('hello').textContent = greeting() + ', ' + String(name).split(' ')[0];
+  $('dateLine').textContent = new Date().toLocaleDateString('en-AU',
+    { weekday:'long', day:'numeric', month:'long' });
+  const m = new Date().toLocaleDateString('en-AU', { month:'long' });
+  $('monthLbl').textContent = m; $('monthLbl2').textContent = m;
+
+  // sidebar: The Pass on top, then the real sections from portal_apps
+  const groups = {};
+  apps.forEach(a => { (groups[a.section] = groups[a.section] || []).push(a); });
+  const order = SECTION_ORDER.concat(Object.keys(groups).filter(s => !SECTION_ORDER.includes(s)));
+  $('sideNav').innerHTML =
+    '<div class="navGroup"><a class="navItem active" href="/pass/">' + ICONS.pass + 'The Pass</a>' +
+    '<a class="navItem" href="/">' + ICONS._home + 'Home</a></div>' +
+    order.filter(s => groups[s]).map(s =>
+      '<div class="navGroup"><div class="g">' + esc(s) + '</div>' +
+      groups[s].map(a => '<a class="navItem" href="' + esc(a.url) + '">' + iconFor(a.name) + esc(a.name) + '</a>').join('') +
+      '</div>').join('');
+
+  $('tabbar').innerHTML =
+    '<a href="/pass/" class="on">' + ICONS.pass + 'The Pass</a>' +
+    '<a href="/handbook/">' + ICONS['Handbook'] + 'Handbook</a>' +
+    '<a href="/metrics/vips/">' + ICONS['Return Rate'] + 'Scoreboard</a>' +
+    '<a href="/">' + ICONS._default + 'All apps</a>';
+
+  $('scopeSel').innerHTML = '<option value="all">All locations</option>' +
+    LOCATIONS.map(l => '<option value="' + l.id + '">' + esc(l.name) + '</option>').join('');
+  $('scopeSel').onchange = e => { SCOPE = e.target.value; renderFeed(); };
+
+  if (CAN.post || CAN.shoutout) buildComposer();
+}
+const greeting = () => { const h = new Date().getHours();
+  return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; };
+
+// ── feed ────────────────────────────────────────────────────────────────
+async function loadFeed() {
+  const { data, error } = await sb.from('pass_posts')
+    .select('*, pass_media(*), pass_post_recipients(user_id), pass_reactions(emoji,user_id), pass_comments(id,post_id,author_id,author_name,body,created_at,deleted_at)')
+    .is('deleted_at', null)
+    .order('created_at', { ascending:false })
+    .limit(60);
+  if (error) { $('feed').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(error.message) + '</div></div>'; return; }
+  POSTS = data || [];
+  renderFeed();
+}
+
+const inScope = p => SCOPE === 'all'
+  || (p.audience && p.audience.all)
+  || ((p.audience && p.audience.locations) || []).includes(SCOPE);
+
+function renderFeed() {
+  const list = POSTS.filter(inScope)
+    .sort((a,b) => (b.pinned_at ? 1 : 0) - (a.pinned_at ? 1 : 0)
+                || new Date(b.created_at) - new Date(a.created_at));
+  if (!list.length) {
+    $('feed').innerHTML = '<div class="card empty">Nothing here yet.<br>' +
+      (CAN.post ? 'Be the first to post something.' : 'Check back soon.') + '</div>';
+    $('endCap').classList.add('hidden');
+    return;
+  }
+  $('feed').innerHTML = list.map(postHtml).join('');
+  $('endCap').classList.remove('hidden');
+}
+
+const EMOJI = ['\u{1F44F}','\u{1F525}','❤️'];
+
+function postHtml(p) {
+  const sys = p.kind === 'event';
+  const who = sys ? sourceName(p.source_app) : (p.author_name || 'Someone');
+  const recips = (p.pass_post_recipients || []).map(r => nameOf(r.user_id)).filter(Boolean);
+  const comments = (p.pass_comments || []).filter(c => !c.deleted_at);
+
+  let tag = '';
+  if (p.kind === 'shoutout')          tag = '<span class="tag shout">Shout-out</span>';
+  else if (p.kind === 'announcement') tag = '<span class="tag">Announcement</span>';
+  else if (p.kind === 'location')     tag = '<span class="tag">Location post</span>';
+  else if (p.payload && p.payload.must_know) tag = '<span class="tag must">Must know</span>';
+
+  const canEdit = p.author_id === ME.id;
+  const canMod  = CAN.moderate || CAN.moderate_location;
+
+  return '<div class="card post' + (p.pinned_at ? ' pinned' : '') + '" data-id="' + p.id + '">' +
+    (p.pinned_at ? '<span class="pinTag">Pinned</span>' : '') +
+    '<div class="pHead">' +
+      '<div class="pAv' + (sys ? ' sys' : '') + '">' + (sys ? iconFor(sourceName(p.source_app)) : esc(initials(who))) + '</div>' +
+      '<div class="pWho"><div class="n">' + esc(who) + '</div>' +
+        '<div class="m">' + tag + '<span>' + esc(audienceLabel(p.audience)) + ' · ' + ago(p.created_at) + '</span></div></div>' +
+      ((canEdit || canMod) ? '<button class="pMore" aria-label="Post actions">⋯</button>' : '') +
+    '</div>' +
+    (p.title ? '<div class="pTitle">' + esc(p.title) + '</div>' : '') +
+    '<div class="pBody">' + (recips.length ? recips.map(n => '<span class="mention">@' + esc(n) + '</span> ').join('') : '') +
+      esc(p.body || '') + '</div>' +
+    (p.value_key ? '<div style="margin-top:12px"><span class="tag val">◆ ' + esc(valueLabel(p.value_key)) + '</span>' +
+      (recips.length > 1 ? '<span class="tag" style="margin-left:7px">' + recips.length + ' people · 1 shout-out</span>' : '') + '</div>' : '') +
+    '<div class="pFoot">' +
+      EMOJI.map(e => reactBtn(p, e)).join('') +
+      (p.comments_on ? '<button class="link cmt">' + (comments.length ? comments.length + ' comment' + (comments.length === 1 ? '' : 's') : 'Comment') + '</button>' : '') +
+    '</div>' +
+    (p.comments_on ? '<div class="thread hidden">' + comments.map(commentHtml).join('') + composerHtml() + '</div>' : '') +
+  '</div>';
+}
+
+function reactBtn(p, emoji) {
+  const rs  = (p.pass_reactions || []).filter(r => r.emoji === emoji);
+  const mine = rs.some(r => r.user_id === ME.id);
+  return '<button class="react" data-emoji="' + emoji + '" aria-pressed="' + mine + '">' + emoji +
+    (rs.length ? ' <span class="c">' + rs.length + '</span>' : '') + '</button>';
+}
+const commentHtml = c =>
+  '<div class="cRow"><div class="cAv">' + esc(initials(c.author_name)) + '</div><div class="cBody">' +
+  '<div class="cTop"><b>' + esc(c.author_name || 'Someone') + '</b><span>' + ago(c.created_at) + '</span></div>' +
+  '<div class="cText">' + esc(c.body) + '</div></div></div>';
+const composerHtml = () =>
+  '<div class="cCompose"><div class="cAv">' + esc(initials(ME.full_name || ME.email)) + '</div>' +
+  '<div class="cField"><textarea placeholder="Write a comment…"></textarea>' +
+  '<div class="cmpRow"><span class="spacer"></span><button class="ghost cSend">Comment</button></div></div></div>';
+
+const nameOf = id => { const p = PEOPLE.find(x => x.id === id); return p ? (p.full_name || p.email) : (id === ME.id ? (ME.full_name || ME.email) : null); };
+const valueLabel = k => (VALUES.find(v => v.key === k) || {}).label || k;
+const sourceName = s => ({ handbook:'Handbook', quality:'Quality Audits', team:'Team',
+  'actual-vs-forecast':'Actual vs Forecast' })[s] || s;
+function audienceLabel(a) {
+  if (!a || a.all) return 'All users';
+  const names = (a.locations || []).map(id => (LOCATIONS.find(l => l.id === id) || {}).name).filter(Boolean);
+  return names.length ? names.join(' + ') : 'Limited audience';
+}
+function ago(ts) {
+  const t = ts ? new Date(ts) : null;
+  if (!t || isNaN(t)) return 'just now';   // a row read back before the DB default lands
+  const s = Math.max(1, (Date.now() - t) / 1000);
+  if (s < 60)     return 'just now';
+  if (s < 3600)   return Math.floor(s/60) + 'm ago';
+  if (s < 86400)  return Math.floor(s/3600) + 'h ago';
+  if (s < 604800) return Math.floor(s/86400) + 'd ago';
+  return new Date(ts).toLocaleDateString('en-AU', { day:'numeric', month:'short' });
+}
+
+// ── feed interactions ───────────────────────────────────────────────────
+$('feed').addEventListener('click', async e => {
+  const card = e.target.closest('.post'); if (!card) return;
+  const id = card.dataset.id, post = POSTS.find(p => p.id === id);
+
+  const r = e.target.closest('.react');
+  if (r) {
+    const emoji = r.dataset.emoji, on = r.getAttribute('aria-pressed') === 'true';
+    r.setAttribute('aria-pressed', String(!on));            // optimistic
+    if (on) {
+      await sb.from('pass_reactions').delete().match({ post_id:id, user_id:ME.id, emoji });
+      post.pass_reactions = (post.pass_reactions || []).filter(x => !(x.user_id === ME.id && x.emoji === emoji));
+    } else {
+      await sb.from('pass_reactions').insert({ post_id:id, user_id:ME.id, emoji });
+      (post.pass_reactions = post.pass_reactions || []).push({ emoji, user_id:ME.id });
+    }
+    renderFeed();
+    return;
+  }
+
+  if (e.target.closest('.cmt')) { card.querySelector('.thread').classList.toggle('hidden'); return; }
+
+  if (e.target.closest('.cSend')) {
+    const ta = card.querySelector('.thread textarea'), body = ta.value.trim();
+    if (!body) return;
+    const { error } = await sb.from('pass_comments').insert({
+      post_id:id, author_id:ME.id, author_name:ME.full_name || ME.email, body });
+    if (error) { alert(error.message); return; }
+    ta.value = '';
+    await sb.from('pass_follows').upsert({ post_id:id, user_id:ME.id });
+    await loadFeed();
+    document.querySelector('.post[data-id="' + id + '"] .thread').classList.remove('hidden');
+    return;
+  }
+
+  if (e.target.closest('.pMore')) {
+    e.stopPropagation();
+    document.querySelectorAll('.pMenu').forEach(m => m.remove());
+    const mine = post.author_id === ME.id, mod = CAN.moderate || CAN.moderate_location;
+    const menu = document.createElement('div');
+    menu.className = 'card pMenu';
+    menu.innerHTML =
+      (mine ? '<button class="pmItem danger" data-a="del-own">Delete<br><small style="color:var(--dim)">Removes the comments underneath it too</small></button>' : '') +
+      (mod  ? '<button class="pmItem danger" data-a="del-mod">Remove from the feed</button>' : '') +
+      '<button class="pmItem" data-a="copy">Copy link to this post</button>';
+    card.querySelector('.pHead').appendChild(menu);
+    menu.addEventListener('click', ev => { if (!ev.target.closest('.pmItem')) ev.stopPropagation(); });
+    return;
+  }
+
+  const item = e.target.closest('.pmItem');
+  if (item) {
+    const a = item.dataset.a;
+    document.querySelectorAll('.pMenu').forEach(m => m.remove());
+    if (a === 'copy') {
+      navigator.clipboard && navigator.clipboard.writeText(location.origin + '/pass/p/' + post.slug);
+      return;
+    }
+    // soft delete, always — the row and an audit trail are kept
+    let reason = null;
+    if (a === 'del-mod') { reason = prompt('Why is this being removed? The author is told.'); if (reason === null) return; }
+    const { error } = await sb.from('pass_posts').update({
+      deleted_at: new Date().toISOString(), deleted_by: ME.id,
+      deleted_by_name: ME.full_name || ME.email, delete_reason: reason
+    }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    await loadFeed();
+  }
+});
+document.addEventListener('click', () => document.querySelectorAll('.pMenu').forEach(m => m.remove()));
+
+// ── composer ────────────────────────────────────────────────────────────
+function buildComposer() {
+  $('composer').classList.remove('hidden');
+  const kinds = [];
+  if (CAN.post)     kinds.push({ k:'announcement', label:'Announcement' }, { k:'location', label:'Location post' });
+  if (CAN.shoutout) kinds.push({ k:'shoutout', label:'Shout-out' });
+  KIND = kinds[0] && kinds[0].k;
+  $('cmpType').innerHTML = kinds.map(x =>
+    '<button data-k="' + x.k + '" aria-pressed="' + (x.k === KIND) + '">' + x.label + '</button>').join('');
+
+  $('audChips').innerHTML =
+    (CAN.post_all ? '<button data-loc="all">All users</button>' : '') +
+    LOCATIONS.map(l => {
+      const ok = MY_LOCS.includes(l.id) || CAN.post_other_location;
+      return '<button data-loc="' + l.id + '"' + (ok ? '' : ' disabled title="You are not assigned here"') + '>' +
+        esc(l.name) + '</button>';
+    }).join('');
+  $('valueChips').innerHTML = VALUES.map(v =>
+    '<button data-v="' + v.key + '">' + esc(v.label) + '</button>').join('');
+  $('recipChips').innerHTML = PEOPLE.slice(0, 40).map(p =>
+    '<button data-p="' + p.id + '">' + esc(p.full_name || p.email) + '</button>').join('');
+  $('notifyRow').classList.toggle('hidden', !CAN.notify);
+
+  const first = MY_LOCS[0] || (LOCATIONS[0] || {}).id;
+  if (first) PICKED = [first];
+  syncComposer();
+
+  $('cmpOpen').onclick   = () => { $('cmpBody').classList.add('open'); $('cmpText').focus(); };
+  $('thankBtn').onclick  = () => {
+    $('cmpBody').classList.add('open');
+    const b = $('cmpType').querySelector('[data-k="shoutout"]'); if (b) b.click();
+    $('cmpText').focus();
+  };
+  $('cmpCancel').onclick = () => { $('cmpBody').classList.remove('open'); $('cmpMsg').textContent = ''; };
+  $('cmpType').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    KIND = b.dataset.k;
+    $('cmpType').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    syncComposer(); };
+  $('audChips').onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const loc = b.dataset.loc;
+    if (loc === 'all') PICKED = PICKED.includes('all') ? [] : ['all'];
+    else PICKED = PICKED.filter(x => x !== 'all').includes(loc)
+      ? PICKED.filter(x => x !== loc) : PICKED.filter(x => x !== 'all').concat(loc);
+    syncComposer(); };
+  $('valueChips').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    VALUE = VALUE === b.dataset.v ? null : b.dataset.v; syncComposer(); };
+  $('recipChips').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    const id = b.dataset.p;
+    if (RECIPS.includes(id)) RECIPS = RECIPS.filter(x => x !== id);
+    else if (RECIPS.length >= 8) { $('recipHint').innerHTML = '<b>Eight is the limit.</b> Thanking a whole team? A location post carries it better.'; return; }
+    else RECIPS = RECIPS.concat(id);
+    syncComposer(); };
+  ['notifyPush','notifyEmail'].forEach(id => $(id).onchange = syncComposer);
+  $('cmpPost').onclick = submitPost;
+}
+
+function syncComposer() {
+  const shout = KIND === 'shoutout';
+  $('shoutBlock').classList.toggle('hidden', !shout);
+  $('audBlock').classList.toggle('hidden', shout);
+  $('cmpText').placeholder = shout
+    ? "Who are you thanking, and what did they actually do? The detail is the gift."
+    : KIND === 'location' ? 'A post for your location…' : "What's happening?";
+
+  $('audChips').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(PICKED.includes(b.dataset.loc))));
+  $('valueChips').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(VALUE === b.dataset.v)));
+  $('recipChips').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(RECIPS.includes(b.dataset.p))));
+
+  if (shout) {
+    $('recipHint').innerHTML = RECIPS.length
+      ? RECIPS.length + ' of 8. One shout-out, ' + RECIPS.length + ' ' + (RECIPS.length === 1 ? 'person' : 'people') +
+        ' — it counts once for you and once for each of them.'
+      : 'Anyone, at any location. Shout-outs ignore posting permissions.';
+  } else {
+    $('audHint').innerHTML = PICKED.length
+      ? 'Goes to <b>' + esc(PICKED.includes('all') ? 'all users' :
+          PICKED.map(id => (LOCATIONS.find(l => l.id === id) || {}).name).filter(Boolean).join(' + ')) + '</b>.'
+      : 'Pick at least one.';
+  }
+  const push = $('notifyPush').checked, mail = $('notifyEmail').checked;
+  $('notifyHint').textContent = (!push && !mail)
+    ? 'Nothing is sent. The post simply appears in the feed.'
+    : 'Sends ' + [push && 'a push', mail && 'an email'].filter(Boolean).join(' and ') +
+      '. Anyone who has already read it is skipped.';
+}
+
+async function submitPost() {
+  const body = $('cmpText').value.trim();
+  const msg = $('cmpMsg'); msg.textContent = '';
+  if (!body) { msg.textContent = 'Write something first.'; return; }
+
+  const shout = KIND === 'shoutout';
+  if (shout && !RECIPS.length) { msg.textContent = 'Name at least one person.'; return; }
+  if (shout && !VALUE)         { msg.textContent = 'Pick the value they showed.'; return; }
+  if (!shout && !PICKED.length){ msg.textContent = 'Pick an audience.'; return; }
+
+  const audience = shout ? { all:false, locations:[] }
+    : PICKED.includes('all') ? { all:true } : { locations:PICKED };
+
+  $('cmpPost').disabled = true;
+  const { data, error } = await sb.from('pass_posts').insert({
+    kind: KIND,
+    author_id: ME.id,
+    author_name: ME.full_name || ME.email,
+    body,
+    audience,
+    value_key: shout ? VALUE : null,
+    notify_push:  CAN.notify && $('notifyPush').checked,
+    notify_email: CAN.notify && $('notifyEmail').checked,
+  }).select().single();
+  $('cmpPost').disabled = false;
+  if (error) { msg.textContent = error.message; return; }
+
+  if (shout && RECIPS.length) {
+    // the trigger recomputes the audience from these: recipients' locations,
+    // the author's own, and head office
+    const { error: e2 } = await sb.from('pass_post_recipients')
+      .insert(RECIPS.map(u => ({ post_id:data.id, user_id:u })));
+    if (e2) { msg.textContent = e2.message; return; }
+  }
+  await sb.from('pass_follows').upsert({ post_id:data.id, user_id:ME.id });
+
+  $('cmpText').value = ''; RECIPS = []; VALUE = null;
+  $('cmpBody').classList.remove('open');
+  await Promise.all([loadFeed(), loadRecognition()]);
+}
+
+// ── recognition rail ────────────────────────────────────────────────────
+async function loadRecognition() {
+  const since = new Date(); since.setDate(1); since.setHours(0,0,0,0);
+  const { data } = await sb.from('pass_posts')
+    .select('id,author_id,created_at,pass_post_recipients(user_id)')
+    .eq('kind','shoutout').is('deleted_at', null).gte('created_at', since.toISOString());
+  const posts = data || [];
+  $('tGiven').textContent = posts.filter(p => p.author_id === ME.id).length;
+  $('tRecv').textContent  = posts.filter(p =>
+    (p.pass_post_recipients || []).some(r => r.user_id === ME.id)).length;
+
+  // participation, not volume: the share of each team who have given one
+  const givers = new Set(posts.map(p => p.author_id));
+  const { data: asg } = await sb.from('hub_hat_assignments').select('user_id,venue_id');
+  const byLoc = {};
+  (asg || []).forEach(a => {
+    if (!a.venue_id) return;
+    (byLoc[a.venue_id] = byLoc[a.venue_id] || new Set()).add(a.user_id);
+  });
+  const rows = LOCATIONS.map(l => {
+    const team = byLoc[l.id] ? [...byLoc[l.id]] : [];
+    const pct = team.length ? Math.round(100 * team.filter(u => givers.has(u)).length / team.length) : 0;
+    return { name:l.name, pct, size:team.length };
+  }).filter(r => r.size > 0).sort((a,b) => b.pct - a.pct);
+
+  $('joinBars').innerHTML = rows.length ? rows.map(r =>
+    '<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:5px">' +
+    '<span>' + esc(r.name) + '</span><b style="font-family:\'Gilda Display\',serif;font-size:15px;color:var(--accent-ink);font-weight:400">' + r.pct + '%</b></div>' +
+    '<div style="height:7px;border-radius:999px;background:var(--surface);overflow:hidden">' +
+    '<i style="display:block;height:100%;border-radius:999px;width:' + r.pct + '%;background:linear-gradient(90deg,var(--green),var(--green-hi))"></i></div></div>').join('')
+    : '<div style="font-size:12px;color:var(--dim)">No one is assigned to a location yet.</div>';
+}
+
+boot().catch(e => {
+  $('boot').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(e.message) + '</div></div>';
+});
+</script>
+</body>
+</html>
