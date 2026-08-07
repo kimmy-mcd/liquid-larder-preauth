@@ -115,6 +115,8 @@
     background:rgb(255 255 255 / .20); color:var(--on-accent); font-size:12px; line-height:1;
     display:flex; align-items:center; justify-content:center; letter-spacing:0; }
   .picked span button:hover { background:rgb(255 255 255 / .34); transform:none; filter:none; }
+  .ctaRow { display:flex; gap:8px; flex-wrap:wrap; }
+  .ctaRow input { flex:1 1 150px; min-width:0; }
   .findWrap { position:relative; }
   input.find { width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--r-input,10px);
     padding:10px 13px; font-family:'Montserrat',sans-serif; font-size:13px; color:var(--ink); }
@@ -357,6 +359,41 @@
   .pWhen { font-size:11.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .pCov { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink); line-height:1; }
 
+  /* a call to action the author adds to a post: one button, one link */
+  a.cta { display:inline-flex; align-items:center; gap:8px; margin-top:14px; text-decoration:none;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent);
+    border-radius:999px; padding:11px 20px; font-size:11px; font-weight:600;
+    letter-spacing:.14em; text-transform:uppercase; box-shadow:var(--shadow-btn); }
+  a.cta:hover { transform:translateY(-1px); }
+  a.cta .ext { font-size:13px; letter-spacing:0; }
+
+  /* the function brief, opened from a private dining row */
+  .pdrRow { width:100%; text-align:left; box-shadow:none; letter-spacing:0; text-transform:none;
+    border:1px solid transparent; transition:border-color var(--t-fast), background var(--t-fast); }
+  button.pdrRow:hover { border-color:rgb(var(--tint-rgb) / .35); background:var(--surface-hover);
+    transform:none; filter:none; }
+  .sheet { position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center;
+    padding:22px; background:rgb(8 18 17 / .55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  .sheetCard { width:100%; max-width:440px; max-height:calc(100vh - 44px); overflow-y:auto; padding:22px 24px; }
+  .sheetTop { display:flex; align-items:flex-start; gap:12px; }
+  .sheetTop .x { flex:none; width:28px; height:28px; border-radius:50%; padding:0; box-shadow:none;
+    background:var(--surface); color:var(--dim); font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; }
+  .sheetTop .x:hover { background:var(--surface-hover); color:var(--accent-ink); transform:none; filter:none; }
+  .sheetTitle { font-family:'Gilda Display',serif; font-size:21px; color:var(--accent-ink); line-height:1.25; flex:1; }
+  .sheetSub { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin-top:7px; }
+  .sheetStats { display:flex; gap:10px; margin-top:16px; }
+  .sheetStats div { flex:1; background:var(--surface); border-radius:11px; padding:11px 12px; }
+  .sheetStats b { display:block; font-family:'Gilda Display',serif; font-size:19px;
+    color:var(--accent-ink); font-weight:400; line-height:1; }
+  .sheetStats span { display:block; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--dim); margin-top:6px; }
+  .sheetLabel { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin:18px 0 8px; }
+  .sheetBody { font-size:13px; line-height:1.75; white-space:pre-line; }
+  .sheetBody.none { color:var(--dim); font-style:italic; }
+
   /* ---------- moderation ---------- */
   .pmHead { font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
     font-weight:600; padding:9px 12px 4px; }
@@ -485,6 +522,17 @@
               <div class="chips" id="valueChips"></div>
             </div>
 
+            <div class="block" id="ctaBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Button <span class="opt">Optional</span></div>
+              <div class="ctaRow">
+                <input type="text" id="ctaLabel" class="find" maxlength="40" autocomplete="off"
+                       placeholder="RSVP here" aria-label="Button text">
+                <input type="url" id="ctaUrl" class="find" autocomplete="off"
+                       placeholder="https://…" aria-label="Button link">
+              </div>
+              <div class="hint" id="ctaHint">Adds one button under the post. Both fields or neither.</div>
+            </div>
+
             <div class="block" id="audBlock">
               <div class="miniLabel" style="margin-bottom:9px">Audience</div>
               <div class="chips" id="audChips"></div>
@@ -543,6 +591,10 @@
       </div>
     </div>
   </main>
+</div>
+
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-label="Function brief">
+  <div class="card sheetCard" id="sheetCard"></div>
 </div>
 
 <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
@@ -807,6 +859,7 @@ function postHtml(p) {
     '<div class="pBody">' + (recips.length ? recips.map(n => '<span class="mention">@' + esc(n) + '</span> ').join('') : '') +
       esc(p.body || '') + '</div>' +
     mediaHtml(p) +
+    ctaHtml(p) +
     (p.value_key ? '<div style="margin-top:12px"><span class="tag val">◆ ' + esc(valueLabel(p.value_key)) + '</span>' +
       (recips.length > 1 ? '<span class="tag" style="margin-left:7px">' + recips.length + ' people · 1 shout-out</span>' : '') + '</div>' : '') +
     '<div class="pFoot">' +
@@ -1227,6 +1280,28 @@ function linkCardHtml(m, live) {
   '</' + tag + '>';
 }
 
+// A post can carry one call to action. The label is the author's words, so it
+// is escaped like any other text; the href is the part that matters. Only
+// http and https survive safeUrl — a javascript: or data: link in an anchor
+// runs on click, and an author is not necessarily the person who typed it.
+function safeUrl(raw) {
+  if (!raw) return null;
+  let u;
+  try { u = new URL(String(raw).trim()); } catch { return null; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+  return u.toString();
+}
+
+function ctaHtml(p) {
+  const c = p.payload && p.payload.cta;
+  if (!c) return '';
+  const href = safeUrl(c.url);
+  const label = String(c.label || '').trim();
+  if (!href || !label) return '';
+  return '<div><a class="cta" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' +
+    esc(label) + '<span class="ext">↗</span></a></div>';
+}
+
 function mediaHtml(p) {
   const media = (p.pass_media || []).slice().sort((a,b) => (a.sort||0) - (b.sort||0));
   const link  = media.find(m => m.kind === 'link' || m.kind === 'video');
@@ -1391,6 +1466,7 @@ function buildComposer() {
   };
   document.addEventListener('click', e => { if (!e.target.closest('.findWrap')) closeFind(); });
   ['notifyPush','notifyEmail'].forEach(id => $(id).onchange = syncComposer);
+  ['ctaLabel','ctaUrl'].forEach(id => $(id).addEventListener('input', syncComposer));
   $('cmpPost').onclick = submitPost;
 
   // ---- attachments ----
@@ -1480,6 +1556,7 @@ function addRecip(id) {
 function syncComposer() {
   const shout = KIND === 'shoutout';
   $('cmpTitle').classList.toggle('hidden', shout);
+  $('ctaBlock').classList.toggle('hidden', shout);
   $('shoutBlock').classList.toggle('hidden', !shout);
   $('audBlock').classList.toggle('hidden', shout);
   $('cmpText').placeholder = shout
@@ -1505,6 +1582,16 @@ function syncComposer() {
           PICKED.map(id => (LOCATIONS.find(l => l.id === id) || {}).name).filter(Boolean).join(' + ')) + '</b>.'
       : 'Pick at least one.';
   }
+  if (!shout) {
+    const cl = $('ctaLabel').value.trim(), cu = $('ctaUrl').value.trim();
+    $('ctaHint').innerHTML = (!cl && !cu)
+      ? 'Adds one button under the post. Both fields or neither.'
+      : (cl && safeUrl(cu))
+        ? 'Shows as <b>' + esc(cl) + '</b> and opens ' + esc(new URL(safeUrl(cu)).hostname) + '.'
+        : !cl ? 'Give the button some words.'
+              : 'That link needs to start with https://';
+  }
+
   const push = $('notifyPush').checked, mail = $('notifyEmail').checked;
   $('notifyHint').textContent = (!push && !mail)
     ? 'Nothing is sent. The post simply appears in the feed.'
@@ -1521,6 +1608,15 @@ async function submitPost() {
   if (shout && !RECIPS.length) { msg.textContent = 'Name at least one person.'; return; }
   if (!shout && !PICKED.length){ msg.textContent = 'Pick an audience.'; return; }
 
+  // The button is all-or-nothing: half of one is a dead end for the reader.
+  let cta = null;
+  if (!shout) {
+    const cl = $('ctaLabel').value.trim(), cu = safeUrl($('ctaUrl').value);
+    if (cl && !cu) { msg.textContent = 'The button link needs to start with https://'; return; }
+    if (cu && !cl) { msg.textContent = 'Give the button some words.'; return; }
+    if (cl && cu)  cta = { label: cl, url: cu };
+  }
+
   const audience = shout ? { all:false, locations:[] }
     : PICKED.includes('all') ? { all:true } : { locations:PICKED };
 
@@ -1530,6 +1626,7 @@ async function submitPost() {
     author_id: ME.id,
     author_name: ME.full_name || ME.email,
     title: (!shout && $('cmpTitle').value.trim()) || null,
+    payload: cta ? { cta } : null,
     comments_on: $('cmpComments').value === 'on',
     body,
     audience,
@@ -1577,7 +1674,9 @@ async function submitPost() {
   DRAFT_IMGS = []; DRAFT_LINK = null; LINK_SEEN = new Set();
   renderThumbs(); $('linkZone').innerHTML = '';
 
-  $('cmpText').value = ''; $('cmpTitle').value = ''; RECIPS = []; VALUE = null;
+  $('cmpText').value = ''; $('cmpTitle').value = '';
+  $('ctaLabel').value = ''; $('ctaUrl').value = '';
+  RECIPS = []; VALUE = null;
   $('cmpComments').value = 'on';
   $('cmpBody').classList.remove('open');
   await Promise.all([loadFeed(), loadRecognition()]);
@@ -1632,13 +1731,14 @@ async function loadService() {
       '<div class="shiftHead"><span></span><span>Lunch</span><span>Dinner</span></div>' +
       '<div class="sRow"><span class="k">Booked covers</span><span class="v">' + n(L.covers || 0) +
         '</span><span class="v">' + n(D.covers || 0) + '</span></div>' +
-      '<div class="sRow"><span class="k">Bookings</span><span class="v">' + n(L.bookings || 0) +
-        '</span><span class="v">' + n(D.bookings || 0) + '</span></div>' +
+      // The plain booking count is off the card: covers is what the floor plans
+      // against, and a table count next to a cover count invites the wrong sum.
+      // get_pass_today still returns it if a later card wants it.
       '<div class="sRow"><span class="k">VIP bookings</span><span class="v">' + vipCell(L) +
         '</span><span class="v">' + vipCell(D) + '</span></div>' +
       '<div class="sRow tot"><span class="k">Total covers</span><span class="v tv">' +
         n(r.total_covers) + '</span></div>' +
-      pdrBlock(r.pdr || []) +
+      pdrBlock(r.pdr || [], l.name) +
     '</div>';
   };
 
@@ -1646,24 +1746,100 @@ async function loadService() {
   $('svcBody').innerHTML = shown.map(block).join('') +
     (shown.length > 1
       ? '<div class="sRow tot" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--hairline)">' +
-        '<span class="k">Group today</span><span class="v tv">' + groupTotal + '</span></div>'
+        '<span class="k">Group covers today</span><span class="v tv">' + groupTotal + '</span></div>'
       : '');
   $('svcNote').textContent = 'Straight from the reservation book, refreshed when you load the page. ' +
-    'Counts and room names only — guest details never come through here.';
+    'Tap a function to read its brief. Only the three function rooms are listed — ' +
+    'the wine rooms and the communal table are ordinary tables SevenRooms happens to tag the same way.';
+
+  $('svcBody').onclick = e => {
+    const row = e.target.closest('.pdrRow'); if (!row) return;
+    openSheet(row.dataset.pdr, row.dataset.venue);
+  };
 }
 
-function pdrBlock(list) {
-  if (!list.length) return '';
-  return '<div class="pdrHead">Private dining · ' + list.length +
-    (list.length === 1 ? ' today' : ' today') + '</div>' +
-    list.map(f => '<div class="pdrRow">' +
-      '<span class="pShift' + (f.shift === 'dinner' ? ' dn' : '') + '">' + esc(f.shift) + '</span>' +
-      '<span class="pWhen">' + esc(f.time || '') + (f.room ? ' · ' + esc(shortRoom(f.room)) : '') + '</span>' +
-      '<span class="pCov">' + (f.covers || 0) + '</span></div>').join('');
+// ── the function brief ──────────────────────────────────────────────────
+// The counts on the card come from an anon-key call and carry nothing personal.
+// The brief is different: it has the host's name and what the guest asked for,
+// so it goes through reporting-proxy, which checks the session, the Pass
+// permission and that the location is yours before the reporting database is
+// touched at all.
+let SHEET_OPENER = null;
+
+async function openSheet(id, venue) {
+  if (!id) return;
+  SHEET_OPENER = document.activeElement;
+  const sheet = $('sheet'), card = $('sheetCard');
+  card.innerHTML = '<div class="lpBusy"><span class="spin"></span>Fetching the brief…</div>';
+  sheet.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  let d = null, err = null;
+  try {
+    const { data, error } = await sb.functions.invoke('reporting-proxy', {
+      body: { rpc:'get_pass_pdr_note', args:{ p_id:id, p_venue:venue } },
+    });
+    if (error) throw new Error((data && data.error) || error.message);
+    if (data && data.error) throw new Error(data.error);
+    d = data && data.data;
+  } catch (e) {
+    err = e.message || 'Could not load that booking';
+  }
+
+  const head = t => '<div class="sheetTop"><div class="sheetTitle">' + t +
+    '</div><button type="button" class="x" id="shX" aria-label="Close">×</button></div>';
+
+  if (err || !d) {
+    card.innerHTML = head(err ? 'Not available' : 'Booking not found') +
+      '<div class="sheetBody none" style="margin-top:14px">' +
+      esc(err || 'That function is no longer in the reservation book.') + '</div>';
+  } else {
+    const when = [d.shift, d.time].filter(Boolean).join(' · ');
+    card.innerHTML =
+      head(esc(d.host || 'Private dining')) +
+      '<div class="sheetSub">' + esc([when, d.room, d.venue].filter(Boolean).join(' · ')) + '</div>' +
+      '<div class="sheetStats">' +
+        '<div><b>' + (d.covers || 0) + '</b><span>Covers</span></div>' +
+        '<div><b>' + esc(d.time || '—') + '</b><span>Arrival</span></div>' +
+        '<div><b>' + (d.duration_minutes ? Math.round(d.duration_minutes / 60 * 10) / 10 + 'h' : '—') +
+          '</b><span>Service</span></div>' +
+      '</div>' +
+      (d.status ? '<div class="sheetLabel">Status</div><div class="sheetBody">' + esc(d.status) + '</div>' : '') +
+      '<div class="sheetLabel">Reservation notes</div>' +
+      '<div class="sheetBody' + (d.notes ? '' : ' none') + '">' +
+        esc(d.notes || 'Nothing recorded on the booking.') + '</div>' +
+      (d.requests ? '<div class="sheetLabel">Guest requests</div><div class="sheetBody">' +
+        esc(d.requests) + '</div>' : '') +
+      '<div class="note">Straight from the booking in SevenRooms. Visible to people at this location ' +
+        'and to head office. Never shown in the feed, and no contact details come through here.</div>';
+  }
+  const x = $('shX'); if (x) x.focus();
 }
-// SevenRooms names rooms "The Gidley — Wine Room"; inside a card already
-// headed The Gidley, the prefix is noise.
-const shortRoom = r => String(r).split(/\s+—\s+|\s+-\s+/).pop();
+
+function closeSheet() {
+  const sheet = $('sheet');
+  if (sheet.classList.contains('hidden')) return;
+  sheet.classList.add('hidden');
+  $('sheetCard').innerHTML = '';
+  document.body.style.overflow = '';
+  if (SHEET_OPENER && document.body.contains(SHEET_OPENER)) SHEET_OPENER.focus();
+  SHEET_OPENER = null;
+}
+
+$('sheet').addEventListener('click', e => {
+  if (e.target === $('sheet') || e.target.closest('#shX')) closeSheet();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+function pdrBlock(list, venue) {
+  if (!list.length) return '';
+  return '<div class="pdrHead">Private dining · ' + list.length + ' today</div>' +
+    list.map(f => '<button type="button" class="pdrRow" data-pdr="' + esc(f.id || '') +
+      '" data-venue="' + esc(venue || '') + '">' +
+      '<span class="pShift' + (f.shift === 'dinner' ? ' dn' : '') + '">' + esc(f.shift) + '</span>' +
+      '<span class="pWhen">' + esc(f.time || '') + (f.room ? ' · ' + esc(f.room) : '') + '</span>' +
+      '<span class="pCov">' + (f.covers || 0) + '</span></button>').join('');
+}
 
 // ── recognition rail ────────────────────────────────────────────────────
 async function loadRecognition() {
