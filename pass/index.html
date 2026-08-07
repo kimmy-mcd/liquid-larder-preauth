@@ -113,6 +113,90 @@
   .chan { display:flex; align-items:center; gap:11px; font-size:12.5px; }
   .chan small { display:block; font-size:10.5px; color:var(--dim); margin-top:2px; }
 
+  /* ---------- attachments (composer) ---------- */
+  .attachRow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:11px; }
+  .attachBtn { background:var(--surface); border:1px solid var(--border); color:var(--dim);
+    border-radius:999px; padding:8px 14px; font-size:11.5px; font-weight:600; box-shadow:none;
+    letter-spacing:0; text-transform:none; display:inline-flex; align-items:center; gap:7px; }
+  .attachBtn:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .attachBtn:disabled { opacity:.45; cursor:not-allowed; }
+  .attachBtn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .attachNote { font-size:10.5px; color:var(--dim); }
+
+  .thumbs { display:flex; gap:9px; flex-wrap:wrap; margin-top:11px; }
+  .thumb { position:relative; width:82px; height:82px; border-radius:11px; overflow:hidden;
+    border:1px solid var(--border); background:var(--surface); flex:none; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb .x { position:absolute; top:4px; right:4px; width:21px; height:21px; border-radius:50%;
+    background:rgb(0 0 0 / .58); color:#fff; font-size:12px; line-height:1; padding:0; box-shadow:none;
+    display:flex; align-items:center; justify-content:center; }
+  .thumb .x:hover { background:rgb(0 0 0 / .78); transform:none; filter:none; }
+  .thumb .bar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgb(var(--tint-rgb) / .25); }
+  .thumb .bar i { display:block; height:100%; background:var(--green); width:0; transition:width .2s; }
+
+  /* link preview inside the composer — same card as the feed, plus a remove */
+  .lpWrap { position:relative; margin-top:12px; }
+  .lpWrap .x { position:absolute; top:8px; right:8px; z-index:3; width:24px; height:24px; border-radius:50%;
+    background:rgb(0 0 0 / .58); color:#fff; font-size:13px; line-height:1; padding:0; box-shadow:none;
+    display:flex; align-items:center; justify-content:center; }
+  .lpWrap .x:hover { background:rgb(0 0 0 / .78); transform:none; filter:none; }
+  .lpBusy { display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--dim);
+    background:var(--surface); border-radius:12px; padding:13px 15px; margin-top:12px; }
+  .spin { width:14px; height:14px; flex:none; border-radius:50%; border:2px solid rgb(var(--tint-rgb) / .25);
+    border-top-color:var(--green); animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ---------- link card + media (feed and composer share these) ---------- */
+  .lcard { display:block; margin-top:13px; border:1px solid var(--border); border-radius:13px;
+    overflow:hidden; background:var(--surface); text-decoration:none; color:inherit; }
+  a.lcard:hover { border-color:rgb(var(--tint-rgb) / .40); }
+  .lcard .shot { position:relative; display:block; width:100%; aspect-ratio:16/9; background:var(--sand-soft); }
+  .lcard .shot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .lcard .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .lcard .play i { width:58px; height:40px; border-radius:11px; background:rgb(0 0 0 / .68);
+    display:flex; align-items:center; justify-content:center; }
+  .lcard .play i::after { content:''; border-left:14px solid #fff; border-top:9px solid transparent;
+    border-bottom:9px solid transparent; margin-left:3px; }
+  .lcard:hover .play i { background:#c00; }
+  .lcard .meta { padding:12px 14px; }
+  .lcard .site { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .lcard .t { font-size:13px; font-weight:600; margin-top:5px; line-height:1.45; }
+  .lcard .d { font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.6; }
+  .lcard.mini { display:flex; align-items:stretch; }
+  .lcard.mini .shot { width:104px; aspect-ratio:auto; flex:none; }
+  .lcard.mini .meta { flex:1; min-width:0; }
+  .lcard iframe { width:100%; aspect-ratio:16/9; border:0; display:block; }
+
+  .mgrid { display:grid; gap:5px; margin-top:13px; border-radius:13px; overflow:hidden; }
+  .mgrid.n1 { grid-template-columns:1fr; }
+  .mgrid.n2 { grid-template-columns:1fr 1fr; }
+  .mgrid.n3 { grid-template-columns:2fr 1fr; grid-template-rows:1fr 1fr; }
+  .mgrid.n3 > *:first-child { grid-row:span 2; }
+  .mgrid.n4 { grid-template-columns:1fr 1fr; }
+  .mgrid button { padding:0; background:var(--sand-soft); box-shadow:none; border-radius:0;
+    position:relative; overflow:hidden; display:block; }
+  .mgrid button:hover { transform:none; filter:brightness(.94); }
+  .mgrid img { width:100%; height:100%; object-fit:cover; display:block; }
+  .mgrid.n1 img { max-height:460px; }
+  .mgrid:not(.n1) button { aspect-ratio:1; }
+  .mgrid .more { position:absolute; inset:0; background:rgb(0 0 0 / .55); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:600; }
+
+  /* ---------- lightbox ---------- */
+  .lbox { position:fixed; inset:0; z-index:200; background:rgb(0 0 0 / .92);
+    display:flex; align-items:center; justify-content:center; }
+  .lbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:4px; }
+  .lbox .close, .lbox .nav { position:absolute; background:rgb(255 255 255 / .13); color:#fff;
+    border-radius:50%; width:44px; height:44px; padding:0; box-shadow:none; font-size:17px; line-height:1;
+    display:flex; align-items:center; justify-content:center; }
+  .lbox .close:hover, .lbox .nav:hover { background:rgb(255 255 255 / .26); transform:none; filter:none; }
+  .lbox .close { top:18px; right:18px; }
+  .lbox .nav.prev { left:18px; }
+  .lbox .nav.next { right:18px; }
+  .lbox .count { position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    color:rgb(255 255 255 / .72); font-size:11.5px; letter-spacing:.1em; }
+
   /* ---------- posts ---------- */
   .post { padding:20px 22px; margin-bottom:16px; position:relative; }
   .post.pinned { border-color:rgb(var(--gold-rgb) / .45); }
@@ -257,6 +341,17 @@
           <div class="cmpBody" id="cmpBody">
             <div class="segs" id="cmpType"></div>
             <textarea id="cmpText" placeholder="What's happening?"></textarea>
+
+            <div class="attachRow">
+              <button type="button" class="attachBtn" id="attachBtn">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.6" cy="9.4" r="1.7"/><path d="M3.4 17.2l4.8-4.6a2 2 0 0 1 2.7-.1l3.4 3 1.9-1.7a2 2 0 0 1 2.7.1l2.1 2"/></svg>
+                Add photos
+              </button>
+              <span class="attachNote" id="attachNote">Up to 6. Resized in your browser before they upload.</span>
+              <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            </div>
+            <div class="thumbs" id="thumbs"></div>
+            <div id="linkZone"></div>
 
             <div class="block hidden" id="shoutBlock">
               <div class="miniLabel" style="margin-bottom:9px">Who are you thanking?</div>
@@ -427,7 +522,29 @@ async function loadFeed() {
     .limit(60);
   if (error) { $('feed').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(error.message) + '</div></div>'; return; }
   POSTS = data || [];
+  await signMedia();
   renderFeed();
+}
+
+// The media bucket is private, so images are reached through short-lived
+// signed URLs. Minted in ONE batch per feed load rather than per image, and
+// held in a Map the renderer reads from. An hour is long enough to scroll and
+// short enough that a copied URL is not a permanent leak.
+const SIGNED = new Map();
+async function signMedia() {
+  const want = [];
+  for (const p of POSTS) {
+    for (const m of (p.pass_media || [])) {
+      for (const path of [m.full_path, m.thumb_path]) {
+        if (path && !SIGNED.has(path)) want.push(path);
+      }
+    }
+  }
+  if (!want.length) return;
+  const { data } = await sb.storage.from('pass-media').createSignedUrls(want, 3600);
+  for (const row of (data || [])) {
+    if (row.signedUrl && !row.error) SIGNED.set(row.path, row.signedUrl);
+  }
 }
 
 const inScope = p => SCOPE === 'all'
@@ -476,6 +593,7 @@ function postHtml(p) {
     (p.title ? '<div class="pTitle">' + esc(p.title) + '</div>' : '') +
     '<div class="pBody">' + (recips.length ? recips.map(n => '<span class="mention">@' + esc(n) + '</span> ').join('') : '') +
       esc(p.body || '') + '</div>' +
+    mediaHtml(p) +
     (p.value_key ? '<div style="margin-top:12px"><span class="tag val">◆ ' + esc(valueLabel(p.value_key)) + '</span>' +
       (recips.length > 1 ? '<span class="tag" style="margin-left:7px">' + recips.length + ' people · 1 shout-out</span>' : '') + '</div>' : '') +
     '<div class="pFoot">' +
@@ -525,6 +643,30 @@ function ago(ts) {
 $('feed').addEventListener('click', async e => {
   const card = e.target.closest('.post'); if (!card) return;
   const id = card.dataset.id, post = POSTS.find(p => p.id === id);
+
+  // an image in the grid opens the viewer at that image
+  const th = e.target.closest('.mThumb');
+  if (th) {
+    const imgs = (post.pass_media || []).filter(m => m.kind === 'image')
+      .sort((a,b) => (a.sort||0) - (b.sort||0));
+    // The viewer shows the full-size file, not the thumbnail it was opened from.
+    openLightbox(imgs.map(m => m.full_path || m.thumb_path), Number(th.dataset.i) || 0);
+    return;
+  }
+
+  // a video card swaps its still for the real player, on click only — an
+  // autoloading iframe per post would drag a YouTube payload into every scroll
+  const vc = e.target.closest('.lcard[data-embed]');
+  if (vc) {
+    const id = vc.dataset.embed, kind = vc.dataset.vkind;
+    if (id) {
+      const src = kind === 'vimeo'
+        ? 'https://player.vimeo.com/video/' + encodeURIComponent(id) + '?autoplay=1'
+        : 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0';
+      vc.innerHTML = '<iframe src="' + src + '" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Video"></iframe>';
+    }
+    return;
+  }
 
   const r = e.target.closest('.react');
   if (r) {
@@ -593,6 +735,239 @@ $('feed').addEventListener('click', async e => {
 document.addEventListener('click', () => document.querySelectorAll('.pMenu').forEach(m => m.remove()));
 
 // ── composer ────────────────────────────────────────────────────────────
+// ── attachments: photos and link previews ───────────────────────────────
+// Both live only in the composer until the post is created, then they are
+// written into pass_media as rows that belong to the post.
+let DRAFT_IMGS = [];      // { id, file, blob, thumb, w, h, path, thumbPath, done }
+let DRAFT_LINK = null;    // the unfurl result currently attached
+let LINK_SEEN  = new Set();  // urls already offered, so a dismissal sticks
+let LINK_BUSY  = false;
+const MAX_IMGS = 6;
+
+const URL_RE = /https?:\/\/[^\s<>"']+/i;
+
+// Resizing in the browser is not a nicety. A phone photo is 4-6 MB; six of
+// them is 30 MB of upload on venue wifi and 30 MB of storage forever, to draw
+// a card that is never wider than about 600 CSS pixels. 1600px long edge at
+// WebP quality .82 lands around 150-250 KB and is still sharp on a retina
+// screen.
+async function shrink(file, maxEdge, quality) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+
+  let blob;
+  if (typeof OffscreenCanvas === 'function') {
+    const c = new OffscreenCanvas(w, h);
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(bmp, 0, 0, w, h);
+    blob = await c.convertToBlob({ type:'image/webp', quality });
+  } else {
+    // Safari below 17 has no OffscreenCanvas. Same result, older road.
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(bmp, 0, 0, w, h);
+    blob = await new Promise(res => c.toBlob(res, 'image/webp', quality));
+  }
+  bmp.close && bmp.close();
+  return { blob, w, h };
+}
+
+async function addFiles(files) {
+  const room = MAX_IMGS - DRAFT_IMGS.length;
+  const list = [...files].filter(f => /^image\//.test(f.type)).slice(0, Math.max(0, room));
+  if (!list.length) return;
+
+  for (const file of list) {
+    const item = { id: crypto.randomUUID(), name:file.name, pct:0, done:false, error:null };
+    DRAFT_IMGS.push(item);
+    renderThumbs();
+    try {
+      const [full, thumb] = await Promise.all([
+        shrink(file, 1600, 0.82),
+        shrink(file, 480, 0.72),
+      ]);
+      item.w = full.w; item.h = full.h;
+      item.preview = URL.createObjectURL(thumb.blob);
+      item.pct = 35; renderThumbs();
+
+      const base = ME.id + '/' + item.id;
+      const up = await Promise.all([
+        sb.storage.from('pass-media').upload(base + '.webp', full.blob, { contentType:'image/webp' }),
+        sb.storage.from('pass-media').upload(base + '_t.webp', thumb.blob, { contentType:'image/webp' }),
+      ]);
+      const bad = up.find(r => r.error);
+      if (bad) throw new Error(bad.error.message);
+
+      item.path = base + '.webp';
+      item.thumbPath = base + '_t.webp';
+      item.bytes = full.blob.size;
+      item.pct = 100; item.done = true;
+    } catch (err) {
+      item.error = err.message || 'Could not add that image';
+    }
+    renderThumbs();
+  }
+}
+
+function renderThumbs() {
+  $('thumbs').innerHTML = DRAFT_IMGS.map(i =>
+    '<div class="thumb" data-img="' + i.id + '">' +
+      (i.preview ? '<img src="' + i.preview + '" alt="">' : '') +
+      '<button type="button" class="x" aria-label="Remove image">×</button>' +
+      (i.done ? '' : '<span class="bar"><i style="width:' + i.pct + '%"></i></span>') +
+    '</div>').join('');
+  const n = DRAFT_IMGS.length;
+  $('attachBtn').disabled = n >= MAX_IMGS;
+  const failed = DRAFT_IMGS.filter(i => i.error);
+  $('attachNote').textContent = failed.length
+    ? failed.length + ' could not be added'
+    : n ? n + ' of ' + MAX_IMGS + ' added'
+        : 'Up to ' + MAX_IMGS + '. Resized in your browser before they upload.';
+}
+
+// Some sites answer a crawler with a login wall dressed as a page: Instagram
+// returns a 200 whose only metadata is the word "Instagram". A card with no
+// picture, no description and a title that is just the site name tells the
+// reader less than the bare link does, so it is not worth drawing.
+function hollow(d) {
+  if (d.image || d.description) return false;
+  const t = (d.title || '').trim().toLowerCase();
+  const s = (d.site  || '').trim().toLowerCase();
+  return !t || t === s || t === s.replace(/\.\w+$/, '');
+}
+
+// The unfurl itself happens server-side; a browser is not allowed to read
+// another site's HTML. See the pass-unfurl edge function.
+async function tryUnfurl(text) {
+  if (DRAFT_LINK || LINK_BUSY) return;
+  const m = text.match(URL_RE);
+  if (!m) return;
+  const url = m[0].replace(/[.,)\]]+$/, '');
+  if (LINK_SEEN.has(url)) return;
+  LINK_SEEN.add(url);
+
+  LINK_BUSY = true;
+  $('linkZone').innerHTML = '<div class="lpBusy"><span class="spin"></span>Fetching a preview…</div>';
+  try {
+    const { data, error } = await sb.functions.invoke('pass-unfurl', { body:{ url } });
+    if (error || !data || !data.ok || hollow(data)) { $('linkZone').innerHTML = ''; return; }
+    DRAFT_LINK = data;
+    $('linkZone').innerHTML = '<div class="lpWrap">' +
+      '<button type="button" class="x" id="lpX" aria-label="Remove preview">×</button>' +
+      linkCardHtml(data, false) + '</div>';
+  } catch {
+    $('linkZone').innerHTML = '';
+  } finally {
+    LINK_BUSY = false;
+  }
+}
+
+// One renderer for both the composer preview and the feed. `live` decides
+// whether the card is a real link and whether a video can start playing.
+function linkCardHtml(m, live) {
+  const url   = m.url || '';
+  const title = m.title || url;
+  const site  = m.site || '';
+  const img   = m.image || m.link_image || null;
+  const video = m.kind === 'youtube' || m.kind === 'vimeo' || m.kind === 'video';
+  const tag   = live && !video ? 'a' : 'div';
+  const attrs = tag === 'a'
+    ? ' href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"'
+    : '';
+  const cls = 'lcard' + (!img ? ' mini' : '');
+
+  const shot = img
+    ? '<span class="shot">' +
+        '<img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' +
+        (video ? '<span class="play"><i></i></span>' : '') +
+      '</span>'
+    : '';
+
+  return '<' + tag + ' class="' + cls + '"' + attrs +
+    (video && live ? ' data-embed="' + esc(m.embed_id || '') + '" data-vkind="' + esc(m.kind) + '"' : '') + '>' +
+    shot +
+    '<span class="meta">' +
+      (site ? '<span class="site">' + esc(site) + '</span>' : '') +
+      '<span class="t">' + esc(title) + '</span>' +
+      (m.description || m.link_desc ? '<span class="d">' + esc(m.description || m.link_desc) + '</span>' : '') +
+    '</span>' +
+  '</' + tag + '>';
+}
+
+function mediaHtml(p) {
+  const media = (p.pass_media || []).slice().sort((a,b) => (a.sort||0) - (b.sort||0));
+  const link  = media.find(m => m.kind === 'link' || m.kind === 'video');
+  const imgs  = media.filter(m => m.kind === 'image');
+
+  let out = '';
+  if (imgs.length) {
+    const shown = imgs.slice(0, 4);
+    out += '<div class="mgrid n' + shown.length + '">' + shown.map((m, i) => {
+      const src = SIGNED.get(m.thumb_path || m.full_path) || '';
+      const extra = (i === 3 && imgs.length > 4) ? '<span class="more">+' + (imgs.length - 4) + '</span>' : '';
+      return '<button type="button" class="mThumb" data-i="' + i + '">' +
+        '<img src="' + esc(src) + '" alt="' + esc(m.alt || '') + '" loading="lazy">' + extra + '</button>';
+    }).join('') + '</div>';
+  }
+  if (link) {
+    out += linkCardHtml({
+      url: link.url, title: link.link_title, description: link.link_desc,
+      image: link.link_image, site: link.link_site,
+      kind: link.kind === 'video' ? (link.embed_id ? 'youtube' : 'video') : 'link',
+      embed_id: link.embed_id,
+    }, true);
+  }
+  return out;
+}
+
+// ── lightbox ────────────────────────────────────────────────────────────
+let LB = null;
+function openLightbox(paths, start) {
+  closeLightbox();
+  LB = { paths, i: start };
+  const el = document.createElement('div');
+  el.className = 'lbox';
+  el.innerHTML =
+    '<button class="close" aria-label="Close">✕</button>' +
+    (paths.length > 1 ? '<button class="nav prev" aria-label="Previous">‹</button>' +
+                        '<button class="nav next" aria-label="Next">›</button>' : '') +
+    '<img alt="">' +
+    (paths.length > 1 ? '<div class="count"></div>' : '');
+  document.body.appendChild(el);
+  LB.el = el;
+  el.addEventListener('click', ev => {
+    if (ev.target.closest('.close') || ev.target === el) return closeLightbox();
+    if (ev.target.closest('.prev')) return stepLightbox(-1);
+    if (ev.target.closest('.next')) return stepLightbox(1);
+  });
+  paintLightbox();
+}
+function paintLightbox() {
+  if (!LB) return;
+  LB.el.querySelector('img').src = SIGNED.get(LB.paths[LB.i]) || '';
+  const c = LB.el.querySelector('.count');
+  if (c) c.textContent = (LB.i + 1) + ' of ' + LB.paths.length;
+}
+function stepLightbox(d) {
+  if (!LB) return;
+  LB.i = (LB.i + d + LB.paths.length) % LB.paths.length;
+  paintLightbox();
+}
+function closeLightbox() {
+  if (LB) { LB.el.remove(); LB = null; }
+}
+document.addEventListener('keydown', e => {
+  if (!LB) return;
+  if (e.key === 'Escape')     closeLightbox();
+  if (e.key === 'ArrowLeft')  stepLightbox(-1);
+  if (e.key === 'ArrowRight') stepLightbox(1);
+});
+
 function buildComposer() {
   $('composer').classList.remove('hidden');
   const kinds = [];
@@ -646,6 +1021,39 @@ function buildComposer() {
     syncComposer(); };
   ['notifyPush','notifyEmail'].forEach(id => $(id).onchange = syncComposer);
   $('cmpPost').onclick = submitPost;
+
+  // ---- attachments ----
+  $('attachBtn').onclick = () => $('fileInput').click();
+  $('fileInput').onchange = async e => {
+    // FileList is LIVE: resetting value empties it, so copy before clearing.
+    const files = [...e.target.files];
+    e.target.value = '';                    // so the same file can be re-picked
+    await addFiles(files);
+  };
+  $('thumbs').onclick = e => {
+    const x = e.target.closest('.x'); if (!x) return;
+    const id = x.closest('.thumb').dataset.img;
+    const item = DRAFT_IMGS.find(i => i.id === id);
+    // Best effort: an orphaned object costs nothing but tidy is tidy.
+    if (item && item.path) {
+      sb.storage.from('pass-media').remove([item.path, item.thumbPath].filter(Boolean));
+    }
+    if (item && item.preview) URL.revokeObjectURL(item.preview);
+    DRAFT_IMGS = DRAFT_IMGS.filter(i => i.id !== id);
+    renderThumbs();
+  };
+  $('linkZone').onclick = e => {
+    if (!e.target.closest('#lpX')) return;
+    DRAFT_LINK = null;                      // stays dismissed: LINK_SEEN remembers
+    $('linkZone').innerHTML = '';
+  };
+
+  let linkTimer = null;
+  $('cmpText').addEventListener('input', () => {
+    clearTimeout(linkTimer);
+    const v = $('cmpText').value;
+    linkTimer = setTimeout(() => tryUnfurl(v), 600);
+  });
 }
 
 function syncComposer() {
@@ -708,6 +1116,30 @@ async function submitPost() {
   $('cmpPost').disabled = false;
   if (error) { msg.textContent = error.message; return; }
 
+  // Media rows are written after the post exists, because they reference it.
+  // Images were already uploaded while the person was still typing, so this is
+  // just the bookkeeping.
+  const rows = [];
+  DRAFT_IMGS.filter(i => i.done && i.path).forEach((i, n) => rows.push({
+    post_id: data.id, kind:'image', sort:n,
+    full_path: i.path, thumb_path: i.thumbPath,
+    width: i.w, height: i.h, bytes: i.bytes, mime:'image/webp',
+  }));
+  if (DRAFT_LINK) {
+    const v = DRAFT_LINK.kind === 'youtube' || DRAFT_LINK.kind === 'vimeo' || DRAFT_LINK.kind === 'video';
+    rows.push({
+      post_id: data.id, kind: v ? 'video' : 'link', sort: rows.length,
+      url: DRAFT_LINK.url, link_title: DRAFT_LINK.title, link_desc: DRAFT_LINK.description,
+      link_image: DRAFT_LINK.image, link_site: DRAFT_LINK.site, embed_id: DRAFT_LINK.embed_id || null,
+    });
+  }
+  if (rows.length) {
+    const { error: e3 } = await sb.from('pass_media').insert(rows);
+    // The post is already up. A failed attachment is worth saying out loud but
+    // not worth pretending the whole thing failed.
+    if (e3) msg.textContent = 'Posted, but the attachments did not save: ' + e3.message;
+  }
+
   if (shout && RECIPS.length) {
     // the trigger recomputes the audience from these: recipients' locations,
     // the author's own, and head office
@@ -716,6 +1148,10 @@ async function submitPost() {
     if (e2) { msg.textContent = e2.message; return; }
   }
   await sb.from('pass_follows').upsert({ post_id:data.id, user_id:ME.id });
+
+  DRAFT_IMGS.forEach(i => i.preview && URL.revokeObjectURL(i.preview));
+  DRAFT_IMGS = []; DRAFT_LINK = null; LINK_SEEN = new Set();
+  renderThumbs(); $('linkZone').innerHTML = '';
 
   $('cmpText').value = ''; RECIPS = []; VALUE = null;
   $('cmpBody').classList.remove('open');
