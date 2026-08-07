@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>The Pass — Liquid &amp; Larder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
+<link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1d3e3b">
+<!-- Theme resolves before the stylesheets so a dark page never flashes light. -->
+<script>!function(){try{var p=localStorage.getItem("ll-theme")||"system",d=p==="dark"||p!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches;var r=document.documentElement;r.setAttribute("data-theme",d?"dark":"light");r.setAttribute("data-theme-pref",p)}catch(e){document.documentElement.setAttribute("data-theme","light")}}();</script>
+<link rel="stylesheet" href="/styles/core.css?v=7">
+<link rel="stylesheet" href="/styles/hub.css?v=8">
+<script defer src="/scripts/hub-motion.js?v=2"></script>
+<style>
+  body { min-height:100vh; padding:0; }
+  .hidden { display:none !important; }
+
+  /* ---------- shell: the home page's sidebar, verbatim ---------- */
+  #shell { display:flex; min-height:100vh; }
+  aside.side { width:248px; flex:0 0 248px; position:sticky; top:0; height:100vh;
+    display:flex; flex-direction:column; padding:26px 18px 20px;
+    border-right:1px solid var(--hairline); background:rgb(var(--bg-rgb) / .6);
+    backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+  .sideBrand { display:flex; align-items:center; gap:12px; padding:0 8px 24px; }
+  .monogram { width:38px; height:38px; flex:none; border-radius:11px; display:flex; align-items:center;
+    justify-content:center; background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); font-family:'Gilda Display',serif; font-size:14px; }
+  .sideBrand .t .n { font-size:13px; font-weight:600; }
+  .sideBrand .t .s { font-size:9px; letter-spacing:.26em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  nav.sideNav { flex:1; overflow-y:auto; }
+  .navGroup { margin-bottom:22px; }
+  .navGroup .g { font-size:9.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding:0 10px; margin-bottom:8px; }
+  a.navItem { display:flex; align-items:center; gap:11px; padding:9px 10px; border-radius:10px;
+    color:var(--ink); text-decoration:none; font-size:13px; font-weight:500; transition:background .13s; }
+  a.navItem svg { width:16px; height:16px; stroke:var(--dim); stroke-width:1.7; fill:none;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 16px; }
+  a.navItem:hover { background:rgb(var(--tint-rgb) / .07); }
+  a.navItem.active { background:var(--green); color:var(--on-accent); box-shadow:0 2px 8px rgb(var(--green-rgb) / .28); }
+  a.navItem.active svg { stroke:var(--on-accent-soft); }
+  a.navItem .count { margin-left:auto; font-size:10px; font-weight:600; color:var(--gold);
+    background:rgb(var(--gold-rgb) / .12); border-radius:999px; padding:2px 8px; }
+  a.navItem.active .count { color:var(--on-accent); background:rgb(255 255 255 / .18); }
+  .sideUser { border-top:1px solid var(--hairline); padding-top:16px; display:flex;
+    align-items:center; gap:11px; flex-wrap:wrap; }
+  .avatar { width:36px; height:36px; border-radius:50%; flex:0 0 36px;
+    background:linear-gradient(135deg,var(--green-hi),var(--green)); color:var(--on-accent);
+    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; }
+  .sideUser .meta { line-height:1.3; min-width:0; }
+  .sideUser .meta .n { font-size:12.5px; font-weight:600; }
+  .sideUser .meta .r { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.14em; margin-top:3px; }
+
+  main { flex:1; min-width:0; padding:30px 34px 90px; max-width:1180px; }
+  .pageHead { display:flex; justify-content:space-between; align-items:flex-start; gap:16px;
+    margin-bottom:22px; flex-wrap:wrap; }
+  .pageHead > div { min-width:0; max-width:100%; }
+  .hello { font-family:'Gilda Display',serif; font-size:29px; color:var(--accent-ink); line-height:1.15; }
+  .dateLine { font-size:10.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-top:8px; }
+  .scopeRow { display:flex; align-items:center; gap:9px; margin-top:12px; flex-wrap:wrap; }
+  .miniLabel { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  select.mini, input.mini { background:var(--surface); color:var(--ink); border:1px solid var(--border);
+    border-radius:8px; padding:8px 10px; font-size:12px; font-family:'Montserrat',sans-serif; max-width:100%; }
+  .cols { display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:26px; align-items:start; }
+
+  /* ---------- composer ---------- */
+  .composer { padding:16px 18px; margin-bottom:18px; }
+  .cmpTop { display:flex; gap:12px; align-items:center; }
+  .cmpTop .fake { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:999px;
+    padding:11px 16px; color:var(--dim); font-size:13px; cursor:text; }
+  .thankBtn { flex:none; background:var(--sand-soft); color:var(--accent-ink); border-radius:999px;
+    padding:11px 18px; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; }
+  .thankBtn:hover { background:var(--sand-hi); transform:none; filter:none; }
+  .cmpBody { display:none; margin-top:14px; }
+  .cmpBody.open { display:block; }
+  .segs { display:inline-flex; gap:3px; background:var(--sand-soft); border-radius:999px; padding:3px;
+    margin-bottom:12px; flex-wrap:wrap; }
+  .segs button { background:transparent; padding:7px 14px; border-radius:999px; font-size:10px; font-weight:600;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--dim); box-shadow:none; }
+  .segs button[aria-pressed="true"] { background:var(--card); color:var(--accent-ink);
+    box-shadow:0 1px 3px rgb(var(--green-rgb) / .12); }
+  .segs button:hover { transform:none; filter:none; }
+  .cmpBody textarea { width:100%; min-height:82px; background:var(--surface); color:var(--ink);
+    border:1px solid var(--border); border-radius:var(--r-input); padding:12px 14px;
+    font-family:'Montserrat',sans-serif; font-size:13.5px; resize:vertical; }
+  .cmpBody textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .block { margin-top:14px; background:var(--surface); border-radius:12px; padding:14px 15px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chips button { background:var(--card); border:1px solid var(--border); color:var(--dim); border-radius:999px;
+    padding:8px 14px; font-size:11.5px; font-weight:600; box-shadow:none; letter-spacing:0; text-transform:none; }
+  .chips button:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .chips button[aria-pressed="true"] { background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-color:transparent; }
+  .chips button:disabled { opacity:.4; cursor:not-allowed; }
+  input.cmpTitle { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:11px 13px; margin-bottom:9px;
+    font-family:'Gilda Display',serif; font-size:17px; color:var(--accent-ink); }
+  input.cmpTitle:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .cmtToggle { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  #cmpComments { flex:none; width:auto; min-width:88px; }
+  .opt { font-size:9px; letter-spacing:.14em; color:var(--dim); font-weight:600; margin-left:4px; }
+
+  /* Recipient search. Sixty-odd people is already too many chips to lay out;
+     two hundred would bury the composer. Type, pick, and the choice becomes a
+     removable pill. */
+  .picked { display:flex; gap:6px; flex-wrap:wrap; }
+  .picked:not(:empty) { margin-bottom:9px; }
+  .picked span { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-radius:999px; padding:7px 8px 7px 13px; font-size:11.5px; font-weight:600; }
+  .picked span button { width:17px; height:17px; flex:none; border-radius:50%; padding:0; box-shadow:none;
+    background:rgb(255 255 255 / .20); color:var(--on-accent); font-size:12px; line-height:1;
+    display:flex; align-items:center; justify-content:center; letter-spacing:0; }
+  .picked span button:hover { background:rgb(255 255 255 / .34); transform:none; filter:none; }
+  .ctaRow { display:flex; gap:8px; flex-wrap:wrap; }
+  .ctaRow input { flex:1 1 150px; min-width:0; }
+  .findWrap { position:relative; }
+  input.find { width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--r-input,10px);
+    padding:10px 13px; font-family:'Montserrat',sans-serif; font-size:13px; color:var(--ink); }
+  input.find:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  input.find:disabled { opacity:.5; }
+  .findList { position:absolute; z-index:6; top:calc(100% + 5px); left:0; right:0; max-height:236px;
+    overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:12px;
+    box-shadow:var(--shadow-card); padding:5px; }
+  .findList button { display:block; width:100%; text-align:left; background:none; box-shadow:none;
+    border-radius:8px; padding:9px 11px; font-size:12.5px; font-weight:500; color:var(--ink);
+    letter-spacing:0; text-transform:none; }
+  .findList button:hover, .findList button.on { background:var(--surface-hover); transform:none; filter:none; }
+  .findList button small { display:block; font-size:10.5px; color:var(--dim); font-weight:400; margin-top:2px; }
+  .findList .none { padding:10px 11px; font-size:11.5px; color:var(--dim); }
+  .hint { font-size:11px; color:var(--dim); line-height:1.6; margin-top:10px; }
+  .hint b { color:var(--accent-ink); font-weight:600; }
+  .cmpRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  .cmpRow .spacer { flex:1; }
+  .notifyRow { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:14px;
+    padding-top:14px; border-top:1px solid var(--hairline); }
+  .tog { position:relative; display:inline-block; width:40px; height:23px; flex:none; cursor:pointer; }
+  .tog input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:2; }
+  .tog .sw { position:absolute; inset:0; z-index:1; background:var(--border); border-radius:999px; transition:background .13s; }
+  .tog .sw::before { content:''; position:absolute; width:17px; height:17px; left:3px; top:3px;
+    border-radius:50%; background:var(--card); transition:transform .22s cubic-bezier(.34,1.4,.5,1); }
+  .tog input:checked ~ .sw { background:var(--green); }
+  .tog input:checked ~ .sw::before { transform:translateX(17px); }
+  .tog input:disabled ~ .sw { opacity:.28; }
+  .chan { display:flex; align-items:center; gap:11px; font-size:12.5px; }
+  .chan small { display:block; font-size:10.5px; color:var(--dim); margin-top:2px; }
+
+  /* ---------- attachments (composer) ---------- */
+  .attachRow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:11px; }
+  .attachBtn { background:var(--surface); border:1px solid var(--border); color:var(--dim);
+    border-radius:999px; padding:8px 14px; font-size:11.5px; font-weight:600; box-shadow:none;
+    letter-spacing:0; text-transform:none; display:inline-flex; align-items:center; gap:7px; }
+  .attachBtn:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .attachBtn:disabled { opacity:.45; cursor:not-allowed; }
+  .attachBtn svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .attachNote { font-size:10.5px; color:var(--dim); }
+
+  .thumbs { display:flex; gap:9px; flex-wrap:wrap; margin-top:11px; }
+  .thumb { position:relative; width:82px; height:82px; border-radius:11px; overflow:hidden;
+    border:1px solid var(--border); background:var(--surface); flex:none; }
+  .thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+  .thumb .x { position:absolute; top:4px; right:4px; width:21px; height:21px; border-radius:50%;
+    background:rgb(0 0 0 / .58); color:#fff; font-size:12px; line-height:1; padding:0; box-shadow:none;
+    display:flex; align-items:center; justify-content:center; }
+  .thumb .x:hover { background:rgb(0 0 0 / .78); transform:none; filter:none; }
+  .thumb .bar { position:absolute; left:0; right:0; bottom:0; height:3px; background:rgb(var(--tint-rgb) / .25); }
+  .thumb .bar i { display:block; height:100%; background:var(--green); width:0; transition:width .2s; }
+
+  /* link preview inside the composer — same card as the feed, plus a remove */
+  .lpWrap { position:relative; margin-top:12px; }
+  .lpWrap .x { position:absolute; top:8px; right:8px; z-index:3; width:24px; height:24px; border-radius:50%;
+    background:rgb(0 0 0 / .58); color:#fff; font-size:13px; line-height:1; padding:0; box-shadow:none;
+    display:flex; align-items:center; justify-content:center; }
+  .lpWrap .x:hover { background:rgb(0 0 0 / .78); transform:none; filter:none; }
+  .lpBusy { display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--dim);
+    background:var(--surface); border-radius:12px; padding:13px 15px; margin-top:12px; }
+  .spin { width:14px; height:14px; flex:none; border-radius:50%; border:2px solid rgb(var(--tint-rgb) / .25);
+    border-top-color:var(--green); animation:spin .7s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ---------- link card + media (feed and composer share these) ---------- */
+  /* Horizontal card: a left-hand still and the words beside it. A full-width
+     16/9 still pushed the title a long way down the post and read as a video
+     player rather than a link. */
+  .lcard { display:flex; align-items:stretch; margin-top:13px; border:1px solid var(--hairline);
+    border-radius:13px; overflow:hidden; background:var(--surface); text-decoration:none; color:inherit;
+    transition:border-color var(--t-fast), transform var(--t-fast) var(--e-out); }
+  a.lcard:hover { border-color:rgb(var(--tint-rgb) / .40); transform:translateY(-1px); }
+  .lcard .shot { position:relative; display:block; flex:0 0 176px; min-height:116px;
+    background:linear-gradient(140deg,var(--sand-hi),var(--sand-cream) 70%,var(--sand-soft)); }
+  .lcard .shot img { width:100%; height:100%; object-fit:cover; display:block; }
+  .lcard .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .lcard .play i { width:42px; height:42px; border-radius:50%; background:rgb(var(--green-rgb) / .82);
+    box-shadow:0 6px 20px rgb(0 0 0 / .28); display:flex; align-items:center; justify-content:center; }
+  .lcard .play i::after { content:''; border-left:13px solid var(--on-accent); border-top:8px solid transparent;
+    border-bottom:8px solid transparent; margin-left:3px; }
+  .lcard:hover .play i { background:var(--green); }
+  .lcard .dur { position:absolute; right:8px; bottom:8px; background:rgb(0 0 0 / .60); color:#fff;
+    font-size:10px; font-weight:600; letter-spacing:.04em; padding:3px 7px; border-radius:6px; }
+  .lcard .meta { flex:1; min-width:0; align-self:center; padding:14px 16px; }
+  /* these are spans so the whole card can be one <a>; they still stack */
+  .lcard .site, .lcard .t, .lcard .d { display:block; }
+  .lcard .site { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .lcard .t { font-size:13.5px; font-weight:600; margin-top:6px; line-height:1.45; }
+  .lcard .d { font-size:12px; color:var(--dim); margin-top:6px; line-height:1.6; }
+  .lcard.mini .shot { flex:0 0 104px; min-height:84px; }
+  /* once the real player is in, the card is a plain block again */
+  .lcard.playing { display:block; }
+  .lcard iframe { width:100%; aspect-ratio:16/9; border:0; display:block; }
+  @media (max-width:560px) {
+    .lcard { flex-direction:column; }
+    .lcard .shot, .lcard.mini .shot { flex:none; width:100%; height:160px; min-height:0; }
+    .lcard .meta { padding:0 15px 15px; }
+  }
+
+  .mgrid { display:grid; gap:5px; margin-top:13px; border-radius:13px; overflow:hidden; }
+  .mgrid.n1 { grid-template-columns:1fr; }
+  .mgrid.n2 { grid-template-columns:1fr 1fr; }
+  .mgrid.n3 { grid-template-columns:2fr 1fr; grid-template-rows:1fr 1fr; }
+  .mgrid.n3 > *:first-child { grid-row:span 2; }
+  .mgrid.n4 { grid-template-columns:1fr 1fr; }
+  .mgrid button { padding:0; background:var(--sand-soft); box-shadow:none; border-radius:0;
+    position:relative; overflow:hidden; display:block; }
+  .mgrid button:hover { transform:none; filter:brightness(.94); }
+  .mgrid img { width:100%; height:100%; object-fit:cover; display:block; }
+  .mgrid.n1 img { max-height:460px; }
+  .mgrid:not(.n1) button { aspect-ratio:1; }
+  .mgrid .more { position:absolute; inset:0; background:rgb(0 0 0 / .55); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:600; }
+
+  /* ---------- lightbox ---------- */
+  .lbox { position:fixed; inset:0; z-index:200; background:rgb(0 0 0 / .92);
+    display:flex; align-items:center; justify-content:center; }
+  .lbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:4px; }
+  .lbox .cap { position:fixed; left:0; right:0; bottom:0; z-index:2; display:flex; gap:14px;
+    align-items:center; justify-content:space-between; padding:16px 20px;
+    background:linear-gradient(0deg, rgb(0 0 0 / .55), transparent);
+    color:rgb(255 255 255 / .82); font-size:12px; line-height:1.5; }
+  .lbox .cap .n { flex:none; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; }
+  .lbox .close, .lbox .nav { position:absolute; background:rgb(255 255 255 / .13); color:#fff;
+    border-radius:50%; width:44px; height:44px; padding:0; box-shadow:none; font-size:17px; line-height:1;
+    display:flex; align-items:center; justify-content:center; }
+  .lbox .close:hover, .lbox .nav:hover { background:rgb(255 255 255 / .26); transform:none; filter:none; }
+  .lbox .close { top:18px; right:18px; }
+  .lbox .nav.prev { left:18px; }
+  .lbox .nav.next { right:18px; }
+  .lbox .count { position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    color:rgb(255 255 255 / .72); font-size:11.5px; letter-spacing:.1em; }
+
+  /* ---------- posts ---------- */
+  .post { padding:20px 22px; margin-bottom:16px; position:relative; }
+  .post.pinned { border-color:rgb(var(--gold-rgb) / .45); }
+  html[data-theme="dark"] .pinTag { color:#1a1508; }
+  .pinTag { position:absolute; top:-9px; left:20px; background:var(--gold); color:var(--on-accent);
+    font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
+  .pHead { display:flex; gap:12px; align-items:center; margin-bottom:13px; position:relative; }
+  .pAv { width:38px; height:38px; flex:none; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:12px; font-weight:600;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); }
+  .pAv.sys { background:var(--sand-soft); color:var(--accent-ink); border-radius:11px; }
+  .pAv.sys svg { width:18px; height:18px; stroke:currentColor; fill:none; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; }
+  .pWho { flex:1; min-width:0; }
+  .pWho .n { font-size:13px; font-weight:600; }
+  .pWho .m { font-size:10.5px; color:var(--dim); margin-top:3px; display:flex; gap:7px; flex-wrap:wrap; align-items:center; }
+  .tag { font-size:8.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:3px 8px;
+    border-radius:999px; background:var(--sand-soft); color:var(--accent-ink); }
+  .tag.must { background:rgb(var(--gold-rgb) / .14); color:var(--gold-ink); }
+  .tag.val  { background:rgb(var(--gold-rgb) / .14); color:var(--gold-ink); letter-spacing:.10em; }
+  .tag.shout{ background:rgb(var(--err-rgb) / .11); color:var(--err); }
+  .pTitle { font-family:'Gilda Display',serif; font-size:18px; color:var(--accent-ink); margin-bottom:9px; line-height:1.3; }
+  .pBody { font-size:13.5px; line-height:1.75; white-space:pre-wrap; }
+  .mention { color:var(--accent-ink); font-weight:600; background:var(--sand-soft); padding:1px 6px; border-radius:6px; }
+  .pFoot { display:flex; align-items:center; gap:8px; margin-top:15px; padding-top:13px;
+    border-top:1px solid var(--hairline); flex-wrap:wrap; }
+  .react { background:var(--surface); border:1px solid var(--hairline); border-radius:999px; padding:6px 12px;
+    font-size:12px; display:inline-flex; gap:6px; align-items:center; box-shadow:none;
+    letter-spacing:0; text-transform:none; color:var(--ink); }
+  .react:hover { transform:translateY(-1px); filter:none; border-color:rgb(var(--tint-rgb) / .35); }
+  .react[aria-pressed="true"] { background:rgb(var(--tint-rgb) / .12); border-color:rgb(var(--tint-rgb) / .40); }
+  .react .c { font-size:11px; font-weight:600; color:var(--dim); }
+  .pFoot .link { margin-left:auto; font-size:11px; color:var(--dim); cursor:pointer; font-weight:600; background:none; box-shadow:none; letter-spacing:0; text-transform:none; padding:0; }
+  .pFoot .link:hover { color:var(--accent-ink); transform:none; filter:none; }
+  .pMore { margin-left:auto; flex:none; width:30px; height:30px; border-radius:999px; background:transparent;
+    color:var(--dim); font-size:16px; line-height:1; box-shadow:none; padding:0; }
+  .pMore:hover { background:var(--surface-hover); color:var(--accent-ink); transform:none; filter:none; }
+  .pMenu { position:absolute; top:34px; right:0; z-index:60; min-width:236px; padding:6px; }
+  .pmItem { display:block; width:100%; background:transparent; color:var(--ink); text-align:left;
+    border-radius:9px; padding:10px 12px; font-size:12.5px; font-weight:500; box-shadow:none;
+    letter-spacing:0; text-transform:none; }
+  .pmItem:hover { background:var(--surface-hover); transform:none; filter:none; }
+  .pmItem.danger { color:var(--err); }
+  .tomb { display:flex; gap:13px; align-items:flex-start; font-size:12.5px; line-height:1.65; color:var(--dim); }
+  .tomb b { color:var(--ink); }
+
+  /* ---------- comments ---------- */
+  .thread { margin-top:14px; padding-top:15px; border-top:1px solid var(--hairline); }
+  .cRow { display:flex; gap:11px; padding:9px 0; }
+  .cAv { width:30px; height:30px; flex:none; border-radius:50%; display:flex; align-items:center;
+    justify-content:center; font-size:10.5px; font-weight:600;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent); }
+  .cBody { flex:1; min-width:0; }
+  .cTop { display:flex; align-items:baseline; gap:8px; }
+  .cTop b { font-size:12.5px; font-weight:600; }
+  .cTop span { font-size:10.5px; color:var(--dim); }
+  .cText { font-size:13px; line-height:1.65; margin-top:4px; white-space:pre-wrap; }
+  .cCompose { display:flex; gap:11px; margin-top:12px; padding-top:13px; border-top:1px solid var(--hairline); }
+  .cField { flex:1; min-width:0; }
+  .cField textarea { width:100%; min-height:46px; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:11px 13px; font-family:'Montserrat',sans-serif; font-size:13px;
+    color:var(--ink); resize:vertical; }
+  .cField textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+
+  /* ---------- feed type filters ---------- */
+  .filters { display:flex; gap:7px; flex-wrap:wrap; margin:18px 0 4px; }
+  .filters button { background:var(--card); border:1px solid var(--border); color:var(--dim);
+    border-radius:999px; padding:9px 15px; font-size:12px; font-weight:600; box-shadow:none;
+    letter-spacing:0; text-transform:none; transition:all var(--t-fast); }
+  .filters button:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .filters button[aria-pressed="true"] { background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-color:transparent; }
+
+  /* ---------- rail ---------- */
+  .rail { display:flex; flex-direction:column; gap:16px; position:sticky; top:24px; }
+  .railCard { padding:18px; }
+  .railTitle { font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin-bottom:14px; }
+  .railCard.mine { border-top:3px solid var(--gold); }
+  .railCard.tonight { border-top:3px solid var(--green); }
+  .nudge { font-size:11.5px; color:var(--accent-ink); line-height:1.65; margin-top:12px; }
+
+  /* today's service. Two columns, lunch and dinner, because that is how the
+     floor thinks about a day and a single daily figure hides a quiet lunch. */
+  .svcVenue + .svcVenue { margin-top:18px; padding-top:16px; border-top:1px solid var(--hairline); }
+  .svcName { font-size:11px; font-weight:600; color:var(--accent-ink); margin-bottom:10px; }
+  .shiftHead, .sRow { display:grid; grid-template-columns:1fr 52px 58px; align-items:baseline; }
+  .shiftHead { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding-bottom:8px; border-bottom:1px solid var(--hairline); }
+  .shiftHead span:not(:first-child), .sRow .v { text-align:right; }
+  .sRow { padding:9px 0; font-size:12.5px; border-bottom:1px solid var(--hairline); }
+  .sRow .k { color:var(--dim); font-size:12px; }
+  .sRow .v { font-variant-numeric:tabular-nums; }
+  .sRow .sub2 { display:block; font-style:normal; font-size:9.5px; color:var(--dim); margin-top:2px; }
+  .sRow.tot { border-bottom:0; padding-top:12px; }
+  .sRow.tot .k { color:var(--ink); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600; }
+  .sRow.tot .tv { grid-column:2 / span 2; font-family:'Gilda Display',serif; font-size:23px;
+    color:var(--accent-ink); line-height:1; }
+  .pdrHead { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin:15px 0 8px; }
+  .pdrRow { display:grid; grid-template-columns:auto 1fr auto; gap:9px; align-items:center;
+    background:var(--surface); border-radius:10px; padding:9px 11px; margin-bottom:6px; }
+  .pShift { font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+    color:var(--dim); background:var(--card); border-radius:999px; padding:4px 8px; }
+  .pShift.dn { color:var(--accent-ink); background:rgb(var(--tint-rgb) / .10); }
+  .pWhen { font-size:11.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pCov { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink); line-height:1; }
+
+  /* a call to action the author adds to a post: one button, one link */
+  a.cta { display:inline-flex; align-items:center; gap:8px; margin-top:14px; text-decoration:none;
+    background:linear-gradient(180deg,var(--green-hi),var(--green)); color:var(--on-accent);
+    border-radius:999px; padding:11px 20px; font-size:11px; font-weight:600;
+    letter-spacing:.14em; text-transform:uppercase; box-shadow:var(--shadow-btn); }
+  a.cta:hover { transform:translateY(-1px); }
+  a.cta .ext { font-size:13px; letter-spacing:0; }
+
+  /* the function brief, opened from a private dining row */
+  .pdrRow { width:100%; text-align:left; box-shadow:none; letter-spacing:0; text-transform:none;
+    border:1px solid transparent; transition:border-color var(--t-fast), background var(--t-fast); }
+  button.pdrRow:hover { border-color:rgb(var(--tint-rgb) / .35); background:var(--surface-hover);
+    transform:none; filter:none; }
+  .sheet { position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center;
+    padding:22px; background:rgb(8 18 17 / .55); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); }
+  .sheetCard { width:100%; max-width:440px; max-height:calc(100vh - 44px); overflow-y:auto; padding:22px 24px; }
+  .sheetTop { display:flex; align-items:flex-start; gap:12px; }
+  .sheetTop .x { flex:none; width:28px; height:28px; border-radius:50%; padding:0; box-shadow:none;
+    background:var(--surface); color:var(--dim); font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; }
+  .sheetTop .x:hover { background:var(--surface-hover); color:var(--accent-ink); transform:none; filter:none; }
+  .sheetTitle { font-family:'Gilda Display',serif; font-size:21px; color:var(--accent-ink); line-height:1.25; flex:1; }
+  .sheetSub { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin-top:7px; }
+  .sheetStats { display:flex; gap:10px; margin-top:16px; }
+  .sheetStats div { flex:1; background:var(--surface); border-radius:11px; padding:11px 12px; }
+  .sheetStats b { display:block; font-family:'Gilda Display',serif; font-size:19px;
+    color:var(--accent-ink); font-weight:400; line-height:1; }
+  .sheetStats span { display:block; font-size:8.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--dim); margin-top:6px; }
+  .sheetLabel { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin:18px 0 8px; }
+  .sheetBody { font-size:13px; line-height:1.75; white-space:pre-line; }
+  .sheetBody.none { color:var(--dim); font-style:italic; }
+
+  /* ---------- moderation ---------- */
+  .pmHead { font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding:9px 12px 4px; }
+  .pmSep { height:1px; background:var(--hairline); margin:5px 0; }
+  .reasonBox { margin-top:14px; background:var(--surface); border-radius:12px; padding:14px 15px; }
+  .reasonBox select, .reasonBox input { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:9px 12px; font-family:'Montserrat',sans-serif;
+    font-size:12.5px; color:var(--ink); margin-top:8px; }
+  .reasonBox select:focus, .reasonBox input:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .editBox textarea { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:11px 13px; font-family:'Montserrat',sans-serif;
+    font-size:13.5px; color:var(--ink); min-height:96px; resize:vertical; }
+  .editBox textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .edited { font-size:10px; color:var(--dim); font-style:italic; margin-left:6px; }
+  .tally { display:flex; gap:12px; }
+  .tCell { flex:1; background:var(--surface); border-radius:12px; padding:13px 14px; }
+  .tV { font-family:'Gilda Display',serif; font-size:25px; color:var(--accent-ink); line-height:1; }
+  .tK { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:6px; }
+  .note { font-size:10.5px; color:var(--dim); line-height:1.7; margin-top:12px; padding-top:12px;
+    border-top:1px solid var(--hairline); }
+  .empty { text-align:center; padding:44px 20px; color:var(--dim); font-size:13px; line-height:1.8; }
+  .endCap { text-align:center; padding:26px 0; color:var(--dim); font-size:11.5px;
+    letter-spacing:.12em; text-transform:uppercase; }
+  .sk { height:132px; border-radius:var(--r-card); margin-bottom:16px;
+    background:linear-gradient(90deg,var(--rule) 25%,var(--rule-hi) 37%,var(--rule) 63%);
+    background-size:400% 100%; animation:skShim 1.35s ease infinite; }
+  @keyframes skShim { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
+
+  /* ---------- mobile: the sidebar is hidden, so a tab bar replaces it ---------- */
+  .mobileTop { display:none; }
+  .tabbar { display:none; }
+  @media (max-width:860px) {
+    aside.side { display:none; }
+    .mobileTop { display:flex; align-items:center; gap:11px; padding:16px 16px 0; }
+    .mobileTop .monogram { width:34px; height:34px; flex:none; border-radius:10px;
+      display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;
+      color:var(--on-accent); background:linear-gradient(150deg,var(--green-hi),var(--green)); }
+    .mobileTop .n { font-size:13px; font-weight:600; color:var(--accent-ink); }
+    .mobileTop .s { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:2px; }
+    main { padding:20px 16px 110px; }
+    .hello { font-size:23px; }
+    .cols { grid-template-columns:minmax(0,1fr); }
+    .rail { position:static; }
+    .tabbar { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:90;
+      background:rgb(var(--bg-rgb) / .94); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+      border-top:1px solid var(--hairline);
+      padding:8px 6px calc(8px + env(safe-area-inset-bottom)); }
+    .tabbar a { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px;
+      text-decoration:none; color:var(--dim); font-size:9.5px; font-weight:600; letter-spacing:.06em; }
+    .tabbar a svg { width:19px; height:19px; stroke:currentColor; stroke-width:1.7; fill:none;
+      stroke-linecap:round; stroke-linejoin:round; }
+    .tabbar a.on { color:var(--accent-ink); }
+  }
+  @media (max-width:1020px) { .cols { grid-template-columns:minmax(0,1fr); } .rail { position:static; } }
+</style>
+</head>
+<body>
+
+<div id="boot" class="wrap" style="padding-top:60px"><div class="sk"></div><div class="sk"></div></div>
+
+<div id="shell" class="hidden">
+  <div class="mobileTop">
+    <div class="monogram">L&amp;L</div>
+    <div><div class="n">The Pass</div><div class="s">Liquid &amp; Larder</div></div>
+  </div>
+  <aside class="side">
+    <div class="sideBrand">
+      <div class="monogram">L&amp;L</div>
+      <div class="t"><div class="n">Liquid &amp; Larder</div><div class="s">Team Hub</div></div>
+    </div>
+    <nav class="sideNav" id="sideNav"></nav>
+    <div class="sideUser">
+      <div class="avatar" id="avatar"></div>
+      <div class="meta"><div class="n" id="whoName"></div><div class="r" id="whoRole"></div></div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="pageHead">
+      <div>
+        <div class="hello" id="hello">The Pass</div>
+        <div class="dateLine" id="dateLine"></div>
+        <div class="scopeRow">
+          <span class="miniLabel">Viewing</span>
+          <select class="mini" id="scopeSel"><option value="all">All locations</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="card composer hidden" id="composer">
+          <div class="cmpTop">
+            <div class="avatar" id="cmpAv"></div>
+            <div class="fake" id="cmpOpen">Share something with the team…</div>
+            <button class="thankBtn" id="thankBtn">Thank someone</button>
+          </div>
+          <div class="cmpBody" id="cmpBody">
+            <div class="segs" id="cmpType"></div>
+            <input type="text" id="cmpTitle" class="cmpTitle" maxlength="120"
+                   placeholder="Headline (optional)" aria-label="Headline">
+            <textarea id="cmpText" placeholder="What's happening?"></textarea>
+
+            <div class="attachRow">
+              <button type="button" class="attachBtn" id="attachBtn">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.6" cy="9.4" r="1.7"/><path d="M3.4 17.2l4.8-4.6a2 2 0 0 1 2.7-.1l3.4 3 1.9-1.7a2 2 0 0 1 2.7.1l2.1 2"/></svg>
+                Add photos
+              </button>
+              <span class="attachNote" id="attachNote">Up to 6. Full resolution up to 2560px, resized in your browser before they upload.</span>
+              <input type="file" id="fileInput" accept="image/*" multiple hidden>
+            </div>
+            <div class="thumbs" id="thumbs"></div>
+            <div id="linkZone"></div>
+
+            <div class="block hidden" id="shoutBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Who are you thanking?</div>
+              <div class="picked" id="recipPicked"></div>
+              <div class="findWrap">
+                <input type="text" id="recipFind" class="find" autocomplete="off" spellcheck="false"
+                       placeholder="Start typing a name…" aria-label="Search for someone to thank"
+                       role="combobox" aria-expanded="false" aria-controls="recipList">
+                <div class="findList hidden" id="recipList" role="listbox"></div>
+              </div>
+              <div class="hint" id="recipHint"></div>
+              <div class="miniLabel" style="margin:16px 0 9px">Which value did they show? <span class="opt">Optional</span></div>
+              <div class="chips" id="valueChips"></div>
+            </div>
+
+            <div class="block" id="ctaBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Button <span class="opt">Optional</span></div>
+              <div class="ctaRow">
+                <input type="text" id="ctaLabel" class="find" maxlength="40" autocomplete="off"
+                       placeholder="RSVP here" aria-label="Button text">
+                <input type="url" id="ctaUrl" class="find" autocomplete="off"
+                       placeholder="https://…" aria-label="Button link">
+              </div>
+              <div class="hint" id="ctaHint">Adds one button under the post. Both fields or neither.</div>
+            </div>
+
+            <div class="block" id="audBlock">
+              <div class="miniLabel" style="margin-bottom:9px">Audience</div>
+              <div class="chips" id="audChips"></div>
+              <div class="hint" id="audHint"></div>
+            </div>
+
+            <div class="notifyRow" id="notifyRow">
+              <label class="chan"><span class="tog"><input type="checkbox" id="notifyPush"><span class="sw"></span></span>
+                <span><b>Push</b><small>Buzzes their phone now</small></span></label>
+              <label class="chan"><span class="tog"><input type="checkbox" id="notifyEmail"><span class="sw"></span></span>
+                <span><b>Email</b><small>Everyone with an account</small></span></label>
+            </div>
+            <div class="hint" id="notifyHint"></div>
+
+            <div class="cmpRow">
+              <label class="cmtToggle" for="cmpComments">Comments</label>
+              <select class="mini" id="cmpComments">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
+              <div class="msg err" id="cmpMsg"></div>
+              <span class="spacer"></span>
+              <button class="ghost" id="cmpCancel">Cancel</button>
+              <button id="cmpPost">Post</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="filters" id="filters"></div>
+        <div id="feed"></div>
+        <div class="endCap hidden" id="endCap">You're up to date</div>
+      </div>
+
+      <div class="rail">
+        <div class="card railCard tonight hidden" id="svcCard">
+          <div class="railTitle" id="svcTitle">Today</div>
+          <div id="svcBody"></div>
+          <div class="note" id="svcNote"></div>
+        </div>
+        <div class="card railCard mine">
+          <div class="railTitle">Your recognition · <span id="monthLbl"></span></div>
+          <div class="tally">
+            <div class="tCell"><div class="tV" id="tRecv">0</div><div class="tK">Received</div></div>
+            <div class="tCell"><div class="tV" id="tGiven">0</div><div class="tK">Given</div></div>
+          </div>
+          <div class="nudge" id="tNudge"></div>
+          <div class="note">Only you can see these numbers. There is no company leaderboard.</div>
+        </div>
+        <div class="card railCard">
+          <div class="railTitle">Who's joining in · <span id="monthLbl2"></span></div>
+          <div id="joinBars"></div>
+          <div class="note">The share of each team who have thanked someone this month. A share, not a
+            count, so one enthusiastic person can't carry a location and a small team isn't punished
+            for being small.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-label="Function brief">
+  <div class="card sheetCard" id="sheetCard"></div>
+</div>
+
+<nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+
+<script>
+// ── auth (accounts project) ─────────────────────────────────────────────
+const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
+const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
+const sb = window.__sbStub || supabase.createClient(AUTH_URL, AUTH_ANON);
+
+// Covers and bookings live in the reporting project, not the accounts one.
+// Same split the metrics apps already use. Read-only, no session: everything
+// it can reach comes back through get_pass_today, which returns counts and
+// room names only — never a guest name, a note or a phone number.
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataSb = window.__dataStub ||
+  supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
+const $   = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials = n => (String(n||'?').match(/\b[a-zA-Z]/g) || ['?']).slice(0,2).join('').toUpperCase();
+
+const ICONS = {
+  pass:'<svg viewBox="0 0 24 24"><path d="M3 10.5v3a1.5 1.5 0 0 0 1.5 1.5H7l6 4.5V5.5L7 10H4.5A1.5 1.5 0 0 0 3 11.5Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
+  'Handbook':'<svg viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13H5.5A1.5 1.5 0 0 0 4 18.5Z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H19"/><path d="M8 7.5h7"/><path d="M8 11h7"/></svg>',
+  'Pre-Authorisations':'<svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><path d="M6 14.5h4"/></svg>',
+  'Return Rate':'<svg viewBox="0 0 24 24"><path d="M4 19 9 13l4 3 7-9"/><path d="M15 7h5v5"/></svg>',
+  'Quality Audits':'<svg viewBox="0 0 24 24"><path d="M9 5h6a2 2 0 0 1 2 2v13H7V7a2 2 0 0 1 2-2Z"/><path d="M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/><path d="m9.5 13 2 2 3.5-4"/></svg>',
+  'VIPs':'<svg viewBox="0 0 24 24"><path d="M4 8l4.5 3.5L12 5l3.5 6.5L20 8l-1.6 10H5.6L4 8Z"/><path d="M5.6 20h12.8"/></svg>',
+  'VIP Outreach':'<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
+  _home:'<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
+  _default:'<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
+};
+const iconFor = n => ICONS[n] || ICONS._default;
+const SECTION_ORDER = ['Handbook','Accounts','Scoreboard','Marketing'];
+
+let ME = null, CAN = {}, MY_LOCS = [], LOCATIONS = [], VALUES = [], PEOPLE = [];
+let POSTS = [], SCOPE = 'all', KIND = 'announcement', PICKED = [], RECIPS = [], VALUE = null;
+let FILTER = 'all', UNREAD = 0, AT_HO = false;
+
+// The second filter axis: location scope answers "where", this answers "what".
+// A chip is only drawn if something in the feed actually matches it, so the row
+// never offers a dead end.
+const CATS = [
+  { k:'all',      label:'Everything',  test:() => true },
+  { k:'announce', label:'Announcements', test:p => p.kind === 'announcement' || p.kind === 'location' },
+  { k:'shoutout', label:'Shout-outs',  test:p => p.kind === 'shoutout' },
+  { k:'policy',   label:'Policies',    test:p => p.source_app === 'handbook' },
+  { k:'quality',  label:'Quality',     test:p => p.source_app === 'quality' },
+  { k:'numbers',  label:'Scoreboard',  test:p => p.source_app === 'actual-vs-forecast' ||
+                                                 !!(p.payload && p.payload.metric) },
+  { k:'photos',   label:'Photos & video', test:p => (p.pass_media || []).length > 0 },
+];
+
+// ── boot ────────────────────────────────────────────────────────────────
+async function boot() {
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session) { location.replace('/'); return; }
+  const { data:{ user } } = await sb.auth.getUser();
+  const { data:profile } = await sb.from('portal_profiles').select('*').eq('id', user.id).maybeSingle();
+  if (!profile || !profile.active) { location.replace('/'); return; }
+  ME = profile;
+
+  const acts = ['read','post','post_other_location','post_all','shoutout','notify','pin','moderate','moderate_location'];
+  const [perms, locIds, locs, vals, people, apps] = await Promise.all([
+    Promise.all(acts.map(a => sb.rpc('hub_my_can', { p_app_slug:'pass', p_action_key:a }))),
+    sb.rpc('pass_my_location_ids'),
+    sb.rpc('pass_locations'),
+    sb.from('pass_values').select('*').order('sort'),
+    sb.from('portal_profiles').select('id,full_name,email').eq('active', true).order('full_name'),
+    sb.from('portal_apps').select('name,section,sort_order,url').order('sort_order'),
+  ]);
+  acts.forEach((a,i) => CAN[a] = !!(perms[i] && perms[i].data));
+  MY_LOCS  = (locIds.data || []).map(r => (r && r.pass_my_location_ids) || r).filter(Boolean);
+  LOCATIONS = locs.data || [];
+
+  // Head office is a location like any other in hub_venues, but being assigned
+  // there is the whole job: you are there to speak to the restaurants. So an
+  // assignment at a head-office venue carries post_other_location with it
+  // rather than needing it granted hat by hat. post_all — the whole company at
+  // once — stays a deliberate grant.
+  const HO = LOCATIONS.filter(l => l.is_head_office).map(l => l.id);
+  AT_HO = MY_LOCS.some(id => HO.includes(id));
+  if (AT_HO) CAN.post_other_location = true;
+  VALUES    = vals.data || [];
+  PEOPLE    = (people.data || []).filter(p => p.id !== ME.id);
+
+  if (!CAN.read) {
+    $('boot').innerHTML = '<div class="card" style="padding:34px"><div class="cardTitle">The Pass</div>' +
+      '<div class="msg">You do not have access to The Pass yet. Ask People &amp; Culture to add it to your hat.</div></div>';
+    return;
+  }
+
+  renderShell(apps.data || []);
+  $('boot').classList.add('hidden');
+  $('shell').classList.remove('hidden');
+  await Promise.all([loadFeed(), loadRecognition(), loadService()]);
+}
+
+function renderShell(apps) {
+  const name = ME.full_name || ME.email;
+  $('avatar').textContent = initials(name);
+  $('cmpAv').textContent  = initials(name);
+  $('whoName').textContent = name;
+  $('whoRole').textContent = ME.is_super_admin ? 'Super admin' : 'Team';
+  $('hello').textContent = greeting() + ', ' + String(name).split(' ')[0];
+  $('dateLine').textContent = new Date().toLocaleDateString('en-AU',
+    { weekday:'long', day:'numeric', month:'long' });
+  const m = new Date().toLocaleDateString('en-AU', { month:'long' });
+  $('monthLbl').textContent = m; $('monthLbl2').textContent = m;
+
+  // sidebar: The Pass on top, then the real sections from portal_apps
+  const groups = {};
+  apps.forEach(a => { (groups[a.section] = groups[a.section] || []).push(a); });
+  const order = SECTION_ORDER.concat(Object.keys(groups).filter(s => !SECTION_ORDER.includes(s)));
+  $('sideNav').innerHTML =
+    '<div class="navGroup"><a class="navItem active" href="/pass/">' + ICONS.pass + 'The Pass</a>' +
+    '<a class="navItem" href="/">' + ICONS._home + 'Home</a></div>' +
+    order.filter(s => groups[s]).map(s =>
+      '<div class="navGroup"><div class="g">' + esc(s) + '</div>' +
+      groups[s].map(a => '<a class="navItem" href="' + esc(a.url) + '">' + iconFor(a.name) + esc(a.name) + '</a>').join('') +
+      '</div>').join('');
+
+  $('tabbar').innerHTML =
+    '<a href="/pass/" class="on">' + ICONS.pass + 'The Pass</a>' +
+    '<a href="/handbook/">' + ICONS['Handbook'] + 'Handbook</a>' +
+    '<a href="/metrics/vips/">' + ICONS['Return Rate'] + 'Scoreboard</a>' +
+    '<a href="/">' + ICONS._default + 'All apps</a>';
+
+  $('scopeSel').innerHTML = '<option value="all">All locations</option>' +
+    LOCATIONS.map(l => '<option value="' + l.id + '">' + esc(l.name) + '</option>').join('');
+  $('scopeSel').onchange = e => { SCOPE = e.target.value; renderFeed(); };
+
+  if (CAN.post || CAN.shoutout) buildComposer();
+}
+const greeting = () => { const h = new Date().getHours();
+  return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; };
+
+// The badge answers "is there anything I have not seen", so it is counted
+// before the reads are written and the writing happens once, on load. Marking
+// each post as it scrolls past belongs with the notifications work.
+async function countUnread() {
+  const visible = POSTS.filter(inScope);
+  if (!visible.length) { paintCount(0); return; }
+  const { data } = await sb.from('pass_reads').select('post_id').eq('user_id', ME.id);
+  const seen = new Set((data || []).map(r => r.post_id));
+  UNREAD = visible.filter(p => !seen.has(p.id) && p.author_id !== ME.id).length;
+  paintCount(UNREAD);
+  const fresh = visible.filter(p => !seen.has(p.id));
+  if (fresh.length) {
+    await sb.from('pass_reads').upsert(
+      fresh.map(p => ({ post_id:p.id, user_id:ME.id })), { onConflict:'post_id,user_id' });
+  }
+}
+function paintCount(n) {
+  const a = document.querySelector('#sideNav a.navItem.active');
+  if (!a) return;
+  const old = a.querySelector('.count'); if (old) old.remove();
+  if (n > 0) {
+    const el = document.createElement('span');
+    el.className = 'count'; el.textContent = n;
+    a.appendChild(el);
+  }
+}
+
+// ── feed ────────────────────────────────────────────────────────────────
+async function loadFeed() {
+  const { data, error } = await sb.from('pass_posts')
+    .select('*, pass_media(*), pass_post_recipients(user_id), pass_reactions(emoji,user_id), pass_comments(id,post_id,author_id,author_name,body,created_at,deleted_at)')
+    .is('deleted_at', null)
+    .order('created_at', { ascending:false })
+    .limit(60);
+  if (error) { $('feed').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(error.message) + '</div></div>'; return; }
+  POSTS = data || [];
+  await countUnread();
+  await signMedia();
+  renderFeed();
+}
+
+// The media bucket is private, so images are reached through short-lived
+// signed URLs. Minted in ONE batch per feed load rather than per image, and
+// held in a Map the renderer reads from. An hour is long enough to scroll and
+// short enough that a copied URL is not a permanent leak.
+const SIGNED = new Map();
+async function signMedia() {
+  const want = [];
+  for (const p of POSTS) {
+    for (const m of (p.pass_media || [])) {
+      for (const path of [m.full_path, m.thumb_path]) {
+        if (path && !SIGNED.has(path)) want.push(path);
+      }
+    }
+  }
+  if (!want.length) return;
+  const { data } = await sb.storage.from('pass-media').createSignedUrls(want, 3600);
+  for (const row of (data || [])) {
+    if (row.signedUrl && !row.error) SIGNED.set(row.path, row.signedUrl);
+  }
+}
+
+const inScope = p => SCOPE === 'all'
+  || (p.audience && p.audience.all)
+  || ((p.audience && p.audience.locations) || []).includes(SCOPE);
+
+function renderFeed() {
+  const inView = POSTS.filter(inScope);
+  const cat = CATS.find(c => c.k === FILTER) || CATS[0];
+  const list = inView.filter(cat.test)
+    .sort((a,b) => (b.pinned_at ? 1 : 0) - (a.pinned_at ? 1 : 0)
+                || new Date(b.created_at) - new Date(a.created_at));
+
+  // chips come from what is actually there, plus whatever is currently selected
+  // so the row cannot rearrange itself out from under your finger
+  $('filters').innerHTML = CATS
+    .filter(c => c.k === 'all' || c.k === FILTER || inView.some(c.test))
+    .map(c => '<button data-f="' + c.k + '" aria-pressed="' + (c.k === FILTER) + '">' +
+      esc(c.label) + '</button>').join('');
+  $('filters').classList.toggle('hidden', inView.length === 0);
+
+  if (!list.length) {
+    $('feed').innerHTML = '<div class="card empty">' + (inView.length
+      ? 'Nothing here with those filters.<br>Try Everything, or another location.'
+      : 'Nothing here yet.<br>' + (CAN.post ? 'Be the first to post something.' : 'Check back soon.')) +
+      '</div>';
+    $('endCap').classList.add('hidden');
+    return;
+  }
+  $('feed').innerHTML = list.map(postHtml).join('');
+  $('endCap').classList.remove('hidden');
+}
+
+const EMOJI = ['\u{1F44F}','\u{1F525}','❤️'];
+
+function postHtml(p) {
+  const sys = p.kind === 'event';
+  const who = sys ? sourceName(p.source_app) : (p.author_name || 'Someone');
+  const recips = (p.pass_post_recipients || []).map(r => nameOf(r.user_id)).filter(Boolean);
+  const comments = (p.pass_comments || []).filter(c => !c.deleted_at);
+
+  let tag = '';
+  if (p.kind === 'shoutout')          tag = '<span class="tag shout">Shout-out</span>';
+  else if (p.kind === 'announcement') tag = '<span class="tag">Announcement</span>';
+  // 'Location post' is no longer a type you can choose. Rows made before that
+  // change are the same object as an announcement to one location, so they say so.
+  else if (p.kind === 'location')     tag = '<span class="tag">Announcement</span>';
+  else if (p.payload && p.payload.must_know) tag = '<span class="tag must">Must know</span>';
+
+  const canEdit = p.author_id === ME.id;
+  const canMod  = CAN.moderate || CAN.moderate_location;
+
+  return '<div class="card post' + (p.pinned_at ? ' pinned' : '') + '" data-id="' + p.id + '">' +
+    (p.pinned_at ? '<span class="pinTag">Pinned</span>' : '') +
+    '<div class="pHead">' +
+      '<div class="pAv' + (sys ? ' sys' : '') + '">' + (sys ? iconFor(sourceName(p.source_app)) : esc(initials(who))) + '</div>' +
+      '<div class="pWho"><div class="n">' + esc(who) + '</div>' +
+        '<div class="m">' + tag + '<span>' + esc(audienceLabel(p.audience)) + ' · ' + ago(p.created_at) +
+        (p.edited_at ? '<i class="edited">edited</i>' : '') + '</span></div></div>' +
+      ((canEdit || canMod) ? '<button class="pMore" aria-label="Post actions">⋯</button>' : '') +
+    '</div>' +
+    (p.title ? '<div class="pTitle">' + esc(p.title) + '</div>' : '') +
+    '<div class="pBody">' + (recips.length ? recips.map(n => '<span class="mention">@' + esc(n) + '</span> ').join('') : '') +
+      esc(p.body || '') + '</div>' +
+    mediaHtml(p) +
+    ctaHtml(p) +
+    (p.value_key ? '<div style="margin-top:12px"><span class="tag val">◆ ' + esc(valueLabel(p.value_key)) + '</span>' +
+      (recips.length > 1 ? '<span class="tag" style="margin-left:7px">' + recips.length + ' people · 1 shout-out</span>' : '') + '</div>' : '') +
+    '<div class="pFoot">' +
+      EMOJI.map(e => reactBtn(p, e)).join('') +
+      (p.comments_on ? '<button class="link cmt">' + (comments.length ? comments.length + ' comment' + (comments.length === 1 ? '' : 's') : 'Comment') + '</button>' : '') +
+    '</div>' +
+    (p.comments_on ? '<div class="thread hidden">' + comments.map(commentHtml).join('') + composerHtml() + '</div>' : '') +
+  '</div>';
+}
+
+function reactBtn(p, emoji) {
+  const rs  = (p.pass_reactions || []).filter(r => r.emoji === emoji);
+  const mine = rs.some(r => r.user_id === ME.id);
+  return '<button class="react" data-emoji="' + emoji + '" aria-pressed="' + mine + '">' + emoji +
+    (rs.length ? ' <span class="c">' + rs.length + '</span>' : '') + '</button>';
+}
+const commentHtml = c =>
+  '<div class="cRow"><div class="cAv">' + esc(initials(c.author_name)) + '</div><div class="cBody">' +
+  '<div class="cTop"><b>' + esc(c.author_name || 'Someone') + '</b><span>' + ago(c.created_at) + '</span></div>' +
+  '<div class="cText">' + esc(c.body) + '</div></div></div>';
+const composerHtml = () =>
+  '<div class="cCompose"><div class="cAv">' + esc(initials(ME.full_name || ME.email)) + '</div>' +
+  '<div class="cField"><textarea placeholder="Write a comment…"></textarea>' +
+  '<div class="cmpRow"><span class="spacer"></span><button class="ghost cSend">Comment</button></div></div></div>';
+
+const nameOf = id => { const p = PEOPLE.find(x => x.id === id); return p ? (p.full_name || p.email) : (id === ME.id ? (ME.full_name || ME.email) : null); };
+const valueLabel = k => (VALUES.find(v => v.key === k) || {}).label || k;
+const sourceName = s => ({ handbook:'Handbook', quality:'Quality Audits', team:'Team',
+  'actual-vs-forecast':'Actual vs Forecast' })[s] || s;
+function audienceLabel(a) {
+  if (!a || a.all) return 'All users';
+  const names = (a.locations || []).map(id => (LOCATIONS.find(l => l.id === id) || {}).name).filter(Boolean);
+  return names.length ? names.join(' + ') : 'Limited audience';
+}
+function ago(ts) {
+  const t = ts ? new Date(ts) : null;
+  if (!t || isNaN(t)) return 'just now';   // a row read back before the DB default lands
+  const s = Math.max(1, (Date.now() - t) / 1000);
+  if (s < 60)     return 'just now';
+  if (s < 3600)   return Math.floor(s/60) + 'm ago';
+  if (s < 86400)  return Math.floor(s/3600) + 'h ago';
+  if (s < 604800) return Math.floor(s/86400) + 'd ago';
+  return new Date(ts).toLocaleDateString('en-AU', { day:'numeric', month:'short' });
+}
+
+$('filters').addEventListener('click', e => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  FILTER = b.dataset.f;
+  renderFeed();
+});
+
+// ── feed interactions ───────────────────────────────────────────────────
+$('feed').addEventListener('click', async e => {
+  const card = e.target.closest('.post'); if (!card) return;
+  const id = card.dataset.id, post = POSTS.find(p => p.id === id);
+
+  // an image in the grid opens the viewer at that image
+  const th = e.target.closest('.mThumb');
+  if (th) {
+    const imgs = (post.pass_media || []).filter(m => m.kind === 'image')
+      .sort((a,b) => (a.sort||0) - (b.sort||0));
+    // The viewer shows the full-size file, not the thumbnail it was opened from.
+    openLightbox(imgs.map(m => ({ path:m.full_path || m.thumb_path, cap:m.alt || '' })),
+                 Number(th.dataset.i) || 0, th);
+    return;
+  }
+
+  // a video card swaps its still for the real player, on click only — an
+  // autoloading iframe per post would drag a YouTube payload into every scroll
+  const vc = e.target.closest('.lcard[data-embed]');
+  if (vc) {
+    const id = vc.dataset.embed, kind = vc.dataset.vkind;
+    if (id) {
+      const src = kind === 'vimeo'
+        ? 'https://player.vimeo.com/video/' + encodeURIComponent(id) + '?autoplay=1'
+        : 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0';
+      vc.classList.add('playing');   // the card is horizontal until the player lands
+      vc.innerHTML = '<iframe src="' + src + '" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Video"></iframe>';
+    }
+    return;
+  }
+
+  const r = e.target.closest('.react');
+  if (r) {
+    const emoji = r.dataset.emoji, on = r.getAttribute('aria-pressed') === 'true';
+    r.setAttribute('aria-pressed', String(!on));            // optimistic
+    if (on) {
+      await sb.from('pass_reactions').delete().match({ post_id:id, user_id:ME.id, emoji });
+      post.pass_reactions = (post.pass_reactions || []).filter(x => !(x.user_id === ME.id && x.emoji === emoji));
+    } else {
+      await sb.from('pass_reactions').insert({ post_id:id, user_id:ME.id, emoji });
+      (post.pass_reactions = post.pass_reactions || []).push({ emoji, user_id:ME.id });
+    }
+    renderFeed();
+    return;
+  }
+
+  if (e.target.closest('.cmt')) { card.querySelector('.thread').classList.toggle('hidden'); return; }
+
+  if (e.target.closest('.cSend')) {
+    const ta = card.querySelector('.thread textarea'), body = ta.value.trim();
+    if (!body) return;
+    const { error } = await sb.from('pass_comments').insert({
+      post_id:id, author_id:ME.id, author_name:ME.full_name || ME.email, body });
+    if (error) { alert(error.message); return; }
+    ta.value = '';
+    await sb.from('pass_follows').upsert({ post_id:id, user_id:ME.id });
+    await loadFeed();
+    document.querySelector('.post[data-id="' + id + '"] .thread').classList.remove('hidden');
+    return;
+  }
+
+  if (e.target.closest('.pMore')) {
+    e.stopPropagation();
+    document.querySelectorAll('.pMenu').forEach(m => m.remove());
+    const mine = post.author_id === ME.id && post.kind !== 'event';
+    const mod  = CAN.moderate || CAN.moderate_location;
+    const menu = document.createElement('div');
+    menu.className = 'card pMenu';
+    menu.innerHTML =
+      (mine ? '<button class="pmItem" data-a="edit">Edit post<br><small style="color:var(--dim)">' +
+                (editFree(post) ? 'Free for another ' + freeMins(post) + ' min, then it shows as edited'
+                                : 'It will show as edited') + '</small></button>' +
+              '<button class="pmItem danger" data-a="del-own">Delete<br><small style="color:var(--dim)">Removes the comments underneath it too</small></button>' : '') +
+      (mod  ? (mine ? '<div class="pmSep"></div>' : '') +
+              '<div class="pmHead">People &amp; Culture</div>' +
+              '<button class="pmItem danger" data-a="del-mod">Remove from the feed<br><small style="color:var(--dim)">Reason required. The author is told.</small></button>' : '') +
+      (mine || mod ? '<div class="pmSep"></div>' : '') +
+      '<button class="pmItem" data-a="copy">Copy link to this post</button>';
+    card.querySelector('.pHead').appendChild(menu);
+    menu.addEventListener('click', ev => { if (!ev.target.closest('.pmItem')) ev.stopPropagation(); });
+    return;
+  }
+
+  // ---- edit ----
+  if (e.target.closest('.edCancel')) { renderFeed(); return; }
+  if (e.target.closest('.edSave')) {
+    const box = card.querySelector('.editBox');
+    const body = box.querySelector('textarea').value.trim();
+    const tIn  = box.querySelector('input');
+    if (!body) return;
+    const patch = { body };
+    if (tIn) patch.title = tIn.value.trim() || null;
+    if (!editFree(post)) patch.edited_at = new Date().toISOString();
+    const { error } = await sb.from('pass_posts').update(patch).eq('id', id);
+    if (error) { alert(error.message); return; }
+    await loadFeed();
+    return;
+  }
+
+  // ---- removal: pick a reason, then a tombstone you can undo ----
+  if (e.target.closest('.rxCancel')) { renderFeed(); return; }
+  if (e.target.closest('.rxGo')) {
+    const box = card.querySelector('.reasonBox');
+    const pick = box.querySelector('select').value;
+    const extra = box.querySelector('input').value.trim();
+    const reason = extra ? pick + ' — ' + extra : pick;
+    await softDelete(id, reason, card);
+    return;
+  }
+  if (e.target.closest('.tbUndo')) {
+    const { error } = await sb.from('pass_posts').update({
+      deleted_at:null, deleted_by:null, deleted_by_name:null, delete_reason:null
+    }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    await loadFeed();
+    return;
+  }
+
+  const item = e.target.closest('.pmItem');
+  if (item) {
+    const a = item.dataset.a;
+    document.querySelectorAll('.pMenu').forEach(m => m.remove());
+
+    if (a === 'copy') {
+      navigator.clipboard && navigator.clipboard.writeText(location.origin + '/pass/p/' + post.slug);
+      return;
+    }
+    if (a === 'edit') {
+      const body = card.querySelector('.pBody');
+      const box = document.createElement('div');
+      box.className = 'block editBox';
+      box.innerHTML =
+        (post.kind !== 'shoutout'
+          ? '<div class="miniLabel" style="margin-bottom:9px">Headline <span class="opt">Optional</span></div>' +
+            '<input type="text" class="cmpTitle" maxlength="120" value="' + esc(post.title || '') + '">'
+          : '') +
+        '<textarea>' + esc(post.body || '') + '</textarea>' +
+        '<div class="cmpRow"><span class="spacer"></span>' +
+        '<button class="ghost edCancel">Cancel</button><button class="edSave">Save</button></div>';
+      body.replaceWith(box);
+      box.querySelector('textarea').focus();
+      return;
+    }
+    if (a === 'del-own') { await softDelete(id, null, card); return; }
+    if (a === 'del-mod') {
+      const box = document.createElement('div');
+      box.className = 'reasonBox';
+      box.innerHTML =
+        '<div class="miniLabel">Why is this coming down?</div>' +
+        '<select>' + ['Inappropriate content','Named a guest','Wrong audience','Duplicate','The author asked']
+          .map(r => '<option>' + r + '</option>').join('') + '</select>' +
+        '<input type="text" placeholder="Anything else worth recording (optional)">' +
+        '<div class="hint">The author is told, and the reason is kept on the record. ' +
+        'Nothing is really deleted — it comes out of the feed.</div>' +
+        '<div class="cmpRow"><span class="spacer"></span>' +
+        '<button class="ghost rxCancel">Cancel</button><button class="rxGo">Remove</button></div>';
+      card.appendChild(box);
+      box.querySelector('select').focus();
+      return;
+    }
+  }
+});
+
+// A post is never really deleted. It leaves a tombstone the length of one
+// glance, with an undo, because the wrong post gets removed sometimes and
+// finding it again in the table is not a thing anyone should have to do.
+async function softDelete(id, reason, card) {
+  const { error } = await sb.from('pass_posts').update({
+    deleted_at: new Date().toISOString(), deleted_by: ME.id,
+    deleted_by_name: ME.full_name || ME.email, delete_reason: reason
+  }).eq('id', id);
+  if (error) { alert(error.message); return; }
+  card.classList.remove('pinned');
+  card.innerHTML =
+    '<div class="tomb"><b>Post removed</b> by ' + esc(ME.full_name || ME.email) + ' · just now' +
+    (reason ? '<div style="margin-top:6px;font-style:italic">' + esc(reason) + '</div>' : '') +
+    '<div style="margin-top:10px">Nothing is really deleted. It is out of the feed and on the record.' +
+    // Only a moderator can put it back: the row-level rule stops an author
+    // updating a post once it is deleted, so offering them Undo would fail.
+    (CAN.moderate || CAN.moderate_location ? ' <button class="link tbUndo">Undo</button>' : '') +
+    '</div></div>';
+}
+
+const EDIT_FREE_MS = 15 * 60 * 1000;
+const editFree = p => Date.now() - new Date(p.created_at).getTime() < EDIT_FREE_MS;
+const freeMins = p => Math.max(1,
+  Math.ceil((EDIT_FREE_MS - (Date.now() - new Date(p.created_at).getTime())) / 60000));
+document.addEventListener('click', () => document.querySelectorAll('.pMenu').forEach(m => m.remove()));
+
+// ── composer ────────────────────────────────────────────────────────────
+// ── attachments: photos and link previews ───────────────────────────────
+// Both live only in the composer until the post is created, then they are
+// written into pass_media as rows that belong to the post.
+let DRAFT_IMGS = [];      // { id, file, blob, thumb, w, h, path, thumbPath, done }
+let DRAFT_LINK = null;    // the unfurl result currently attached
+let LINK_SEEN  = new Set();  // urls already offered, so a dismissal sticks
+let LINK_BUSY  = false;
+const MAX_IMGS = 6;
+
+const URL_RE = /https?:\/\/[^\s<>"']+/i;
+
+// Resizing in the browser is not a nicety. A phone photo is 4-6 MB; six of
+// them is 30 MB of upload on venue wifi and 30 MB of storage forever.
+// 2560px long edge at WebP quality .88 lands around 500-900 KB — roughly a
+// fifth of the original, and enough to fill a 5K display in the pop-out
+// viewer or survive a crop for something else. The 900px thumbnail is what
+// the feed grid actually draws, so the big file is only fetched when someone
+// opens an image.
+async function shrink(file, maxEdge, quality) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
+  const w = Math.max(1, Math.round(bmp.width * scale));
+  const h = Math.max(1, Math.round(bmp.height * scale));
+
+  let blob;
+  if (typeof OffscreenCanvas === 'function') {
+    const c = new OffscreenCanvas(w, h);
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(bmp, 0, 0, w, h);
+    blob = await c.convertToBlob({ type:'image/webp', quality });
+  } else {
+    // Safari below 17 has no OffscreenCanvas. Same result, older road.
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(bmp, 0, 0, w, h);
+    blob = await new Promise(res => c.toBlob(res, 'image/webp', quality));
+  }
+  bmp.close && bmp.close();
+  return { blob, w, h };
+}
+
+async function addFiles(files) {
+  const room = MAX_IMGS - DRAFT_IMGS.length;
+  const list = [...files].filter(f => /^image\//.test(f.type)).slice(0, Math.max(0, room));
+  if (!list.length) return;
+
+  for (const file of list) {
+    const item = { id: crypto.randomUUID(), name:file.name, pct:0, done:false, error:null };
+    DRAFT_IMGS.push(item);
+    renderThumbs();
+    try {
+      const [full, thumb] = await Promise.all([
+        shrink(file, 2560, 0.88),
+        shrink(file, 900, 0.80),
+      ]);
+      item.w = full.w; item.h = full.h;
+      item.preview = URL.createObjectURL(thumb.blob);
+      item.pct = 35; renderThumbs();
+
+      const base = ME.id + '/' + item.id;
+      const up = await Promise.all([
+        sb.storage.from('pass-media').upload(base + '.webp', full.blob, { contentType:'image/webp' }),
+        sb.storage.from('pass-media').upload(base + '_t.webp', thumb.blob, { contentType:'image/webp' }),
+      ]);
+      const bad = up.find(r => r.error);
+      if (bad) throw new Error(bad.error.message);
+
+      item.path = base + '.webp';
+      item.thumbPath = base + '_t.webp';
+      item.bytes = full.blob.size;
+      item.pct = 100; item.done = true;
+    } catch (err) {
+      item.error = err.message || 'Could not add that image';
+    }
+    renderThumbs();
+  }
+}
+
+function renderThumbs() {
+  $('thumbs').innerHTML = DRAFT_IMGS.map(i =>
+    '<div class="thumb" data-img="' + i.id + '">' +
+      (i.preview ? '<img src="' + i.preview + '" alt="">' : '') +
+      '<button type="button" class="x" aria-label="Remove image">×</button>' +
+      (i.done ? '' : '<span class="bar"><i style="width:' + i.pct + '%"></i></span>') +
+    '</div>').join('');
+  const n = DRAFT_IMGS.length;
+  $('attachBtn').disabled = n >= MAX_IMGS;
+  const failed = DRAFT_IMGS.filter(i => i.error);
+  $('attachNote').textContent = failed.length
+    ? failed.length + ' could not be added'
+    : n ? n + ' of ' + MAX_IMGS + ' added'
+        : 'Up to ' + MAX_IMGS + '. Full resolution up to 2560px, resized in your browser before they upload.';
+}
+
+// Some sites answer a crawler with a login wall dressed as a page: Instagram
+// returns a 200 whose only metadata is the word "Instagram". A card with no
+// picture, no description and a title that is just the site name tells the
+// reader less than the bare link does, so it is not worth drawing.
+function hollow(d) {
+  if (d.image || d.description) return false;
+  const t = (d.title || '').trim().toLowerCase();
+  const s = (d.site  || '').trim().toLowerCase();
+  return !t || t === s || t === s.replace(/\.\w+$/, '');
+}
+
+// The unfurl itself happens server-side; a browser is not allowed to read
+// another site's HTML. See the pass-unfurl edge function.
+async function tryUnfurl(text) {
+  if (DRAFT_LINK || LINK_BUSY) return;
+  const m = text.match(URL_RE);
+  if (!m) return;
+  const url = m[0].replace(/[.,)\]]+$/, '');
+  if (LINK_SEEN.has(url)) return;
+  LINK_SEEN.add(url);
+
+  LINK_BUSY = true;
+  $('linkZone').innerHTML = '<div class="lpBusy"><span class="spin"></span>Fetching a preview…</div>';
+  try {
+    const { data, error } = await sb.functions.invoke('pass-unfurl', { body:{ url } });
+    if (error || !data || !data.ok || hollow(data)) { $('linkZone').innerHTML = ''; return; }
+    DRAFT_LINK = data;
+    $('linkZone').innerHTML = '<div class="lpWrap">' +
+      '<button type="button" class="x" id="lpX" aria-label="Remove preview">×</button>' +
+      linkCardHtml(data, false) + '</div>';
+  } catch {
+    $('linkZone').innerHTML = '';
+  } finally {
+    LINK_BUSY = false;
+  }
+}
+
+// One renderer for both the composer preview and the feed. `live` decides
+// whether the card is a real link and whether a video can start playing.
+function linkCardHtml(m, live) {
+  const url   = m.url || '';
+  const title = m.title || url;
+  const site  = m.site || '';
+  const img   = m.image || m.link_image || null;
+  const video = m.kind === 'youtube' || m.kind === 'vimeo' || m.kind === 'video';
+  const tag   = live && !video ? 'a' : 'div';
+  const attrs = tag === 'a'
+    ? ' href="' + esc(url) + '" target="_blank" rel="noopener noreferrer"'
+    : '';
+  const cls = 'lcard' + (!img ? ' mini' : '');
+
+  // YouTube hands out hqdefault (480px) in its oEmbed answer. maxresdefault is
+  // the same frame at 1280px and costs nothing extra, but it does not exist for
+  // every video, so fall back to whatever the unfurl gave us if it 404s.
+  const id  = m.embed_id || '';
+  const hi  = (m.kind === 'youtube' && id)
+    ? 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/maxresdefault.jpg'
+    : null;
+  const src = hi || img;
+  const fallback = hi && img
+    ? ' onerror="if(this.dataset.fb){return}this.dataset.fb=1;this.src=\'' + esc(img) + '\'"'
+    : '';
+  const dur = m.duration ? '<span class="dur">' + esc(m.duration) + '</span>' : '';
+
+  const shot = img
+    ? '<span class="shot">' +
+        '<img src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + fallback + '>' +
+        (video ? '<span class="play"><i></i></span>' : '') + dur +
+      '</span>'
+    : '';
+
+  return '<' + tag + ' class="' + cls + '"' + attrs +
+    (video && live ? ' data-embed="' + esc(m.embed_id || '') + '" data-vkind="' + esc(m.kind) + '"' : '') + '>' +
+    shot +
+    '<span class="meta">' +
+      (site ? '<span class="site">' + esc(site) + '</span>' : '') +
+      '<span class="t">' + esc(title) + '</span>' +
+      (m.description || m.link_desc ? '<span class="d">' + esc(m.description || m.link_desc) + '</span>' : '') +
+    '</span>' +
+  '</' + tag + '>';
+}
+
+// A post can carry one call to action. The label is the author's words, so it
+// is escaped like any other text; the href is the part that matters. Only
+// http and https survive safeUrl — a javascript: or data: link in an anchor
+// runs on click, and an author is not necessarily the person who typed it.
+function safeUrl(raw) {
+  if (!raw) return null;
+  let u;
+  try { u = new URL(String(raw).trim()); } catch { return null; }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
+  return u.toString();
+}
+
+function ctaHtml(p) {
+  const c = p.payload && p.payload.cta;
+  if (!c) return '';
+  const href = safeUrl(c.url);
+  const label = String(c.label || '').trim();
+  if (!href || !label) return '';
+  return '<div><a class="cta" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' +
+    esc(label) + '<span class="ext">↗</span></a></div>';
+}
+
+function mediaHtml(p) {
+  const media = (p.pass_media || []).slice().sort((a,b) => (a.sort||0) - (b.sort||0));
+  const link  = media.find(m => m.kind === 'link' || m.kind === 'video');
+  const imgs  = media.filter(m => m.kind === 'image');
+
+  let out = '';
+  if (imgs.length) {
+    const shown = imgs.slice(0, 4);
+    out += '<div class="mgrid n' + shown.length + '">' + shown.map((m, i) => {
+      const src = SIGNED.get(m.thumb_path || m.full_path) || '';
+      const extra = (i === 3 && imgs.length > 4) ? '<span class="more">+' + (imgs.length - 4) + '</span>' : '';
+      return '<button type="button" class="mThumb" data-i="' + i + '">' +
+        '<img src="' + esc(src) + '" alt="' + esc(m.alt || '') + '" loading="lazy">' + extra + '</button>';
+    }).join('') + '</div>';
+  }
+  if (link) {
+    out += linkCardHtml({
+      url: link.url, title: link.link_title, description: link.link_desc,
+      image: link.link_image, site: link.link_site,
+      kind: link.kind === 'video' ? (link.embed_id ? 'youtube' : 'video') : 'link',
+      embed_id: link.embed_id,
+    }, true);
+  }
+  return out;
+}
+
+// ── lightbox ────────────────────────────────────────────────────────────
+let LB = null;
+function openLightbox(items, start, opener) {
+  closeLightbox();
+  LB = { items, i: start, opener: opener || null };
+  const el = document.createElement('div');
+  el.className = 'lbox';
+  el.innerHTML =
+    '<button class="close" aria-label="Close">✕</button>' +
+    (items.length > 1 ? '<button class="nav prev" aria-label="Previous">‹</button>' +
+                        '<button class="nav next" aria-label="Next">›</button>' : '') +
+    '<img alt="">' +
+    '<div class="cap"><span class="t"></span><span class="n"></span></div>';
+  document.body.appendChild(el);
+  LB.el = el;
+  document.body.style.overflow = 'hidden';   // the page behind must not scroll
+  el.addEventListener('click', ev => {
+    if (ev.target.closest('.close') || ev.target === el) return closeLightbox();
+    if (ev.target.closest('.prev')) return stepLightbox(-1);
+    if (ev.target.closest('.next')) return stepLightbox(1);
+  });
+  // a phone expects a swipe, not a hunt for a 44px arrow
+  let x0 = null;
+  el.addEventListener('touchstart', ev => { x0 = ev.touches[0].clientX; }, { passive:true });
+  el.addEventListener('touchend', ev => {
+    if (x0 === null) return;
+    const dx = ev.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 45) stepLightbox(dx < 0 ? 1 : -1);
+  });
+  el.querySelector('.close').focus();
+  paintLightbox();
+}
+function paintLightbox() {
+  if (!LB) return;
+  const it = LB.items[LB.i];
+  LB.el.querySelector('img').src = SIGNED.get(it.path) || '';
+  LB.el.querySelector('.cap .t').textContent = it.cap || '';
+  LB.el.querySelector('.cap .n').textContent =
+    LB.items.length > 1 ? (LB.i + 1) + ' of ' + LB.items.length : '';
+}
+function stepLightbox(d) {
+  if (!LB) return;
+  LB.i = (LB.i + d + LB.items.length) % LB.items.length;
+  paintLightbox();
+}
+function closeLightbox() {
+  if (!LB) return;
+  const opener = LB.opener;
+  LB.el.remove(); LB = null;
+  document.body.style.overflow = '';
+  // back where the eye was, not at the top of the document
+  if (opener && document.body.contains(opener)) opener.focus();
+}
+document.addEventListener('keydown', e => {
+  if (!LB) return;
+  if (e.key === 'Escape')     closeLightbox();
+  if (e.key === 'ArrowLeft')  stepLightbox(-1);
+  if (e.key === 'ArrowRight') stepLightbox(1);
+});
+
+function buildComposer() {
+  $('composer').classList.remove('hidden');
+  const kinds = [];
+  // 'Location post' was removed: an announcement with a single location picked
+  // as its audience is the same object, and two names for one thing made people
+  // hesitate. Older rows with kind='location' still render (see postHtml).
+  if (CAN.post)     kinds.push({ k:'announcement', label:'Announcement' });
+  if (CAN.shoutout) kinds.push({ k:'shoutout', label:'Shout-out' });
+  KIND = kinds[0] && kinds[0].k;
+  $('cmpType').innerHTML = kinds.map(x =>
+    '<button data-k="' + x.k + '" aria-pressed="' + (x.k === KIND) + '">' + x.label + '</button>').join('');
+
+  $('audChips').innerHTML =
+    (CAN.post_all ? '<button data-loc="all">All users</button>' : '') +
+    LOCATIONS.map(l => {
+      const ok = MY_LOCS.includes(l.id) || CAN.post_other_location;
+      return '<button data-loc="' + l.id + '"' + (ok ? '' : ' disabled title="You are not assigned here"') + '>' +
+        esc(l.name) + '</button>';
+    }).join('');
+  $('valueChips').innerHTML = VALUES.map(v =>
+    '<button data-v="' + v.key + '">' + esc(v.label) + '</button>').join('');
+  renderPicked();
+  $('notifyRow').classList.toggle('hidden', !CAN.notify);
+
+  const first = MY_LOCS[0] || (LOCATIONS[0] || {}).id;
+  if (first) PICKED = [first];
+  syncComposer();
+
+  $('cmpOpen').onclick   = () => { $('cmpBody').classList.add('open'); $('cmpText').focus(); };
+  $('thankBtn').onclick  = () => {
+    $('cmpBody').classList.add('open');
+    const b = $('cmpType').querySelector('[data-k="shoutout"]'); if (b) b.click();
+    $('cmpText').focus();
+  };
+  $('cmpCancel').onclick = () => { $('cmpBody').classList.remove('open'); $('cmpMsg').textContent = ''; };
+  $('cmpType').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    KIND = b.dataset.k;
+    $('cmpType').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    syncComposer(); };
+  $('audChips').onclick = e => { const b = e.target.closest('button'); if (!b || b.disabled) return;
+    const loc = b.dataset.loc;
+    if (loc === 'all') PICKED = PICKED.includes('all') ? [] : ['all'];
+    else PICKED = PICKED.filter(x => x !== 'all').includes(loc)
+      ? PICKED.filter(x => x !== loc) : PICKED.filter(x => x !== 'all').concat(loc);
+    syncComposer(); };
+  $('valueChips').onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    VALUE = VALUE === b.dataset.v ? null : b.dataset.v; syncComposer(); };
+  $('recipFind').addEventListener('input', e => renderFindList(e.target.value));
+  $('recipFind').addEventListener('keydown', e => {
+    const btns = [...$('recipList').querySelectorAll('button[data-add]')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!btns.length) return;
+      e.preventDefault();
+      FIND_I = (FIND_I + (e.key === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length;
+      btns.forEach((b, i) => b.classList.toggle('on', i === FIND_I));
+      btns[FIND_I].scrollIntoView({ block:'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (btns[FIND_I]) addRecip(btns[FIND_I].dataset.add);
+    } else if (e.key === 'Escape') {
+      closeFind();
+    } else if (e.key === 'Backspace' && !e.target.value && RECIPS.length) {
+      // an empty field and a backspace takes the last pill off, as it does everywhere else
+      RECIPS = RECIPS.slice(0, -1);
+      syncComposer();
+    }
+  });
+  $('recipList').onclick = e => {
+    const b = e.target.closest('button[data-add]'); if (b) addRecip(b.dataset.add);
+  };
+  $('recipPicked').onclick = e => {
+    const b = e.target.closest('button[data-drop]'); if (!b) return;
+    RECIPS = RECIPS.filter(x => x !== b.dataset.drop);
+    syncComposer();
+  };
+  document.addEventListener('click', e => { if (!e.target.closest('.findWrap')) closeFind(); });
+  ['notifyPush','notifyEmail'].forEach(id => $(id).onchange = syncComposer);
+  ['ctaLabel','ctaUrl'].forEach(id => $(id).addEventListener('input', syncComposer));
+  $('cmpPost').onclick = submitPost;
+
+  // ---- attachments ----
+  $('attachBtn').onclick = () => $('fileInput').click();
+  $('fileInput').onchange = async e => {
+    // FileList is LIVE: resetting value empties it, so copy before clearing.
+    const files = [...e.target.files];
+    e.target.value = '';                    // so the same file can be re-picked
+    await addFiles(files);
+  };
+  $('thumbs').onclick = e => {
+    const x = e.target.closest('.x'); if (!x) return;
+    const id = x.closest('.thumb').dataset.img;
+    const item = DRAFT_IMGS.find(i => i.id === id);
+    // Best effort: an orphaned object costs nothing but tidy is tidy.
+    if (item && item.path) {
+      sb.storage.from('pass-media').remove([item.path, item.thumbPath].filter(Boolean));
+    }
+    if (item && item.preview) URL.revokeObjectURL(item.preview);
+    DRAFT_IMGS = DRAFT_IMGS.filter(i => i.id !== id);
+    renderThumbs();
+  };
+  $('linkZone').onclick = e => {
+    if (!e.target.closest('#lpX')) return;
+    DRAFT_LINK = null;                      // stays dismissed: LINK_SEEN remembers
+    $('linkZone').innerHTML = '';
+  };
+
+  let linkTimer = null;
+  $('cmpText').addEventListener('input', () => {
+    clearTimeout(linkTimer);
+    const v = $('cmpText').value;
+    linkTimer = setTimeout(() => tryUnfurl(v), 600);
+  });
+}
+
+// ── recipient search ────────────────────────────────────────────────────
+// A chip per person works at eight people and collapses at eighty. Type a
+// name, pick it, and it becomes a pill you can take off again.
+let FIND_I = -1;
+
+function renderPicked() {
+  $('recipPicked').innerHTML = RECIPS.map(id => {
+    const n = nameOf(id) || 'Someone';
+    return '<span>' + esc(n) +
+      '<button type="button" data-drop="' + esc(id) + '" aria-label="Remove ' + esc(n) + '">×</button></span>';
+  }).join('');
+  const full = RECIPS.length >= 8;
+  const f = $('recipFind');
+  f.disabled = full;
+  f.placeholder = full ? 'Eight is the limit'
+    : RECIPS.length ? 'Add someone else…' : 'Start typing a name…';
+}
+
+function renderFindList(q) {
+  const box = $('recipList');
+  const s = q.trim().toLowerCase();
+  if (!s) { closeFind(); return; }
+  const rows = PEOPLE.filter(p => !RECIPS.includes(p.id) &&
+      ((p.full_name || '') + ' ' + (p.email || '')).toLowerCase().includes(s))
+    .slice(0, 8);
+  FIND_I = rows.length ? 0 : -1;
+  box.innerHTML = rows.length
+    ? rows.map((p, i) => '<button type="button" role="option" data-add="' + esc(p.id) + '"' +
+        (i === 0 ? ' class="on"' : '') + '>' + esc(p.full_name || p.email) +
+        (p.full_name ? '<small>' + esc(p.email) + '</small>' : '') + '</button>').join('')
+    : '<div class="none">No one by that name.</div>';
+  box.classList.remove('hidden');
+  $('recipFind').setAttribute('aria-expanded', 'true');
+}
+
+function closeFind() {
+  const box = $('recipList');
+  box.classList.add('hidden'); box.innerHTML = ''; FIND_I = -1;
+  const f = $('recipFind'); if (f) f.setAttribute('aria-expanded', 'false');
+}
+
+function addRecip(id) {
+  if (!id || RECIPS.includes(id) || RECIPS.length >= 8) return;
+  RECIPS = RECIPS.concat(id);
+  $('recipFind').value = '';
+  closeFind();
+  syncComposer();
+  if (RECIPS.length < 8) $('recipFind').focus();
+}
+
+function syncComposer() {
+  const shout = KIND === 'shoutout';
+  $('cmpTitle').classList.toggle('hidden', shout);
+  $('ctaBlock').classList.toggle('hidden', shout);
+  $('shoutBlock').classList.toggle('hidden', !shout);
+  $('audBlock').classList.toggle('hidden', shout);
+  $('cmpText').placeholder = shout
+    ? "Who are you thanking, and what did they actually do? The detail is the gift."
+    : "What's happening?";
+
+  $('audChips').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(PICKED.includes(b.dataset.loc))));
+  $('valueChips').querySelectorAll('button').forEach(b =>
+    b.setAttribute('aria-pressed', String(VALUE === b.dataset.v)));
+  renderPicked();
+
+  if (shout) {
+    $('recipHint').innerHTML = RECIPS.length
+      ? RECIPS.length + ' of 8. One shout-out, ' + RECIPS.length + ' ' + (RECIPS.length === 1 ? 'person' : 'people') +
+        ' — it counts once for you and once for each of them.'
+      : 'Anyone, at any location. Shout-outs ignore posting permissions.';
+    $('recipHint').innerHTML += RECIPS.length >= 8
+      ? ' <b>Eight is the limit.</b> Thanking a whole team? An announcement to their location carries it better.' : '';
+  } else {
+    $('audHint').innerHTML = PICKED.length
+      ? 'Goes to <b>' + esc(PICKED.includes('all') ? 'all users' :
+          PICKED.map(id => (LOCATIONS.find(l => l.id === id) || {}).name).filter(Boolean).join(' + ')) + '</b>.'
+      : 'Pick at least one.';
+  }
+  if (!shout) {
+    const cl = $('ctaLabel').value.trim(), cu = $('ctaUrl').value.trim();
+    $('ctaHint').innerHTML = (!cl && !cu)
+      ? 'Adds one button under the post. Both fields or neither.'
+      : (cl && safeUrl(cu))
+        ? 'Shows as <b>' + esc(cl) + '</b> and opens ' + esc(new URL(safeUrl(cu)).hostname) + '.'
+        : !cl ? 'Give the button some words.'
+              : 'That link needs to start with https://';
+  }
+
+  const push = $('notifyPush').checked, mail = $('notifyEmail').checked;
+  $('notifyHint').textContent = (!push && !mail)
+    ? 'Nothing is sent. The post simply appears in the feed.'
+    : 'Sends ' + [push && 'a push', mail && 'an email'].filter(Boolean).join(' and ') +
+      '. Anyone who has already read it is skipped.';
+}
+
+async function submitPost() {
+  const body = $('cmpText').value.trim();
+  const msg = $('cmpMsg'); msg.textContent = '';
+  if (!body) { msg.textContent = 'Write something first.'; return; }
+
+  const shout = KIND === 'shoutout';
+  if (shout && !RECIPS.length) { msg.textContent = 'Name at least one person.'; return; }
+  if (!shout && !PICKED.length){ msg.textContent = 'Pick an audience.'; return; }
+
+  // The button is all-or-nothing: half of one is a dead end for the reader.
+  let cta = null;
+  if (!shout) {
+    const cl = $('ctaLabel').value.trim(), cu = safeUrl($('ctaUrl').value);
+    if (cl && !cu) { msg.textContent = 'The button link needs to start with https://'; return; }
+    if (cu && !cl) { msg.textContent = 'Give the button some words.'; return; }
+    if (cl && cu)  cta = { label: cl, url: cu };
+  }
+
+  const audience = shout ? { all:false, locations:[] }
+    : PICKED.includes('all') ? { all:true } : { locations:PICKED };
+
+  $('cmpPost').disabled = true;
+  const { data, error } = await sb.from('pass_posts').insert({
+    kind: KIND,
+    author_id: ME.id,
+    author_name: ME.full_name || ME.email,
+    title: (!shout && $('cmpTitle').value.trim()) || null,
+    payload: cta ? { cta } : null,
+    comments_on: $('cmpComments').value === 'on',
+    body,
+    audience,
+    value_key: shout ? VALUE : null,
+    notify_push:  CAN.notify && $('notifyPush').checked,
+    notify_email: CAN.notify && $('notifyEmail').checked,
+  }).select().single();
+  $('cmpPost').disabled = false;
+  if (error) { msg.textContent = error.message; return; }
+
+  // Media rows are written after the post exists, because they reference it.
+  // Images were already uploaded while the person was still typing, so this is
+  // just the bookkeeping.
+  const rows = [];
+  DRAFT_IMGS.filter(i => i.done && i.path).forEach((i, n) => rows.push({
+    post_id: data.id, kind:'image', sort:n,
+    full_path: i.path, thumb_path: i.thumbPath,
+    width: i.w, height: i.h, bytes: i.bytes, mime:'image/webp',
+  }));
+  if (DRAFT_LINK) {
+    const v = DRAFT_LINK.kind === 'youtube' || DRAFT_LINK.kind === 'vimeo' || DRAFT_LINK.kind === 'video';
+    rows.push({
+      post_id: data.id, kind: v ? 'video' : 'link', sort: rows.length,
+      url: DRAFT_LINK.url, link_title: DRAFT_LINK.title, link_desc: DRAFT_LINK.description,
+      link_image: DRAFT_LINK.image, link_site: DRAFT_LINK.site, embed_id: DRAFT_LINK.embed_id || null,
+    });
+  }
+  if (rows.length) {
+    const { error: e3 } = await sb.from('pass_media').insert(rows);
+    // The post is already up. A failed attachment is worth saying out loud but
+    // not worth pretending the whole thing failed.
+    if (e3) msg.textContent = 'Posted, but the attachments did not save: ' + e3.message;
+  }
+
+  if (shout && RECIPS.length) {
+    // the trigger recomputes the audience from these: recipients' locations,
+    // the author's own, and head office
+    const { error: e2 } = await sb.from('pass_post_recipients')
+      .insert(RECIPS.map(u => ({ post_id:data.id, user_id:u })));
+    if (e2) { msg.textContent = e2.message; return; }
+  }
+  await sb.from('pass_follows').upsert({ post_id:data.id, user_id:ME.id });
+
+  DRAFT_IMGS.forEach(i => i.preview && URL.revokeObjectURL(i.preview));
+  DRAFT_IMGS = []; DRAFT_LINK = null; LINK_SEEN = new Set();
+  renderThumbs(); $('linkZone').innerHTML = '';
+
+  $('cmpText').value = ''; $('cmpTitle').value = '';
+  $('ctaLabel').value = ''; $('ctaUrl').value = '';
+  RECIPS = []; VALUE = null;
+  $('cmpComments').value = 'on';
+  $('cmpBody').classList.remove('open');
+  await Promise.all([loadFeed(), loadRecognition()]);
+}
+
+// ── today's service ─────────────────────────────────────────────────────
+// A location manager sees their own room. Head office is there to see the
+// group, so head office sees every restaurant, one block each, plus a group
+// total — that is the whole reason the card is worth their rail space.
+async function loadService() {
+  const rooms = LOCATIONS.filter(l => !l.is_head_office);
+  const mine  = AT_HO ? rooms : rooms.filter(l => MY_LOCS.includes(l.id));
+  const want  = mine.length ? mine : rooms;          // no assignment yet: show the group
+  if (!want.length) return;
+
+  let rows = [];
+  try {
+    const { data, error } = await dataSb.rpc('get_pass_today');
+    if (error) throw new Error(error.message);
+    rows = data || [];
+  } catch (err) {
+    $('svcCard').classList.remove('hidden');
+    $('svcTitle').textContent = 'Today';
+    $('svcBody').innerHTML = '<div style="font-size:12px;color:var(--dim)">Covers are not answering right now.</div>';
+    $('svcNote').textContent = err.message || '';
+    return;
+  }
+
+  const byName = {};
+  rows.forEach(r => { byName[r.venue] = r; });
+  const shown = want.filter(l => byName[l.name]);
+
+  $('svcCard').classList.remove('hidden');
+  $('svcTitle').textContent = shown.length === 1 ? 'Today at ' + shown[0].name
+    : want.length > 1 ? 'Today across the group' : 'Today';
+
+  if (!shown.length) {
+    $('svcBody').innerHTML = '<div style="font-size:12px;color:var(--dim)">Nothing on the books today.</div>';
+    $('svcNote').textContent = 'Straight from the reservation book. Numbers only — no guest details.';
+    return;
+  }
+
+  const n = v => (v == null ? '—' : String(v));
+  const block = l => {
+    const r  = byName[l.name];
+    const sh = r.shifts || {};
+    const L  = sh.lunch || {}, D = sh.dinner || {};
+    const vipCell = (x) => n(x.vip_bookings || 0) +
+      (x.vip_bookings ? '<i class="sub2">' + x.vip_covers + ' covers</i>' : '<i class="sub2">—</i>');
+    return '<div class="svcVenue">' +
+      (shown.length > 1 ? '<div class="svcName">' + esc(l.name) + '</div>' : '') +
+      '<div class="shiftHead"><span></span><span>Lunch</span><span>Dinner</span></div>' +
+      '<div class="sRow"><span class="k">Booked covers</span><span class="v">' + n(L.covers || 0) +
+        '</span><span class="v">' + n(D.covers || 0) + '</span></div>' +
+      // The plain booking count is off the card: covers is what the floor plans
+      // against, and a table count next to a cover count invites the wrong sum.
+      // get_pass_today still returns it if a later card wants it.
+      '<div class="sRow"><span class="k">VIP bookings</span><span class="v">' + vipCell(L) +
+        '</span><span class="v">' + vipCell(D) + '</span></div>' +
+      '<div class="sRow tot"><span class="k">Total covers</span><span class="v tv">' +
+        n(r.total_covers) + '</span></div>' +
+      pdrBlock(r.pdr || [], l.name) +
+    '</div>';
+  };
+
+  const groupTotal = shown.reduce((t, l) => t + (byName[l.name].total_covers || 0), 0);
+  $('svcBody').innerHTML = shown.map(block).join('') +
+    (shown.length > 1
+      ? '<div class="sRow tot" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--hairline)">' +
+        '<span class="k">Group covers today</span><span class="v tv">' + groupTotal + '</span></div>'
+      : '');
+  $('svcNote').textContent = 'Straight from the reservation book, refreshed when you load the page. ' +
+    'Tap a function to read its brief. Only the three function rooms are listed — ' +
+    'the wine rooms and the communal table are ordinary tables SevenRooms happens to tag the same way.';
+
+  $('svcBody').onclick = e => {
+    const row = e.target.closest('.pdrRow'); if (!row) return;
+    openSheet(row.dataset.pdr, row.dataset.venue);
+  };
+}
+
+// ── the function brief ──────────────────────────────────────────────────
+// The counts on the card come from an anon-key call and carry nothing personal.
+// The brief is different: it has the host's name and what the guest asked for,
+// so it goes through reporting-proxy, which checks the session, the Pass
+// permission and that the location is yours before the reporting database is
+// touched at all.
+let SHEET_OPENER = null;
+
+async function openSheet(id, venue) {
+  if (!id) return;
+  SHEET_OPENER = document.activeElement;
+  const sheet = $('sheet'), card = $('sheetCard');
+  card.innerHTML = '<div class="lpBusy"><span class="spin"></span>Fetching the brief…</div>';
+  sheet.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  let d = null, err = null;
+  try {
+    const { data, error } = await sb.functions.invoke('reporting-proxy', {
+      body: { rpc:'get_pass_pdr_note', args:{ p_id:id, p_venue:venue } },
+    });
+    if (error) throw new Error((data && data.error) || error.message);
+    if (data && data.error) throw new Error(data.error);
+    d = data && data.data;
+  } catch (e) {
+    err = e.message || 'Could not load that booking';
+  }
+
+  const head = t => '<div class="sheetTop"><div class="sheetTitle">' + t +
+    '</div><button type="button" class="x" id="shX" aria-label="Close">×</button></div>';
+
+  if (err || !d) {
+    card.innerHTML = head(err ? 'Not available' : 'Booking not found') +
+      '<div class="sheetBody none" style="margin-top:14px">' +
+      esc(err || 'That function is no longer in the reservation book.') + '</div>';
+  } else {
+    const when = [d.shift, d.time].filter(Boolean).join(' · ');
+    card.innerHTML =
+      head(esc(d.host || 'Private dining')) +
+      '<div class="sheetSub">' + esc([when, d.room, d.venue].filter(Boolean).join(' · ')) + '</div>' +
+      '<div class="sheetStats">' +
+        '<div><b>' + (d.covers || 0) + '</b><span>Covers</span></div>' +
+        '<div><b>' + esc(d.time || '—') + '</b><span>Arrival</span></div>' +
+        '<div><b>' + (d.duration_minutes ? Math.round(d.duration_minutes / 60 * 10) / 10 + 'h' : '—') +
+          '</b><span>Service</span></div>' +
+      '</div>' +
+      (d.status ? '<div class="sheetLabel">Status</div><div class="sheetBody">' + esc(d.status) + '</div>' : '') +
+      '<div class="sheetLabel">Reservation notes</div>' +
+      '<div class="sheetBody' + (d.notes ? '' : ' none') + '">' +
+        esc(d.notes || 'Nothing recorded on the booking.') + '</div>' +
+      (d.requests ? '<div class="sheetLabel">Guest requests</div><div class="sheetBody">' +
+        esc(d.requests) + '</div>' : '') +
+      '<div class="note">Straight from the booking in SevenRooms. Visible to people at this location ' +
+        'and to head office. Never shown in the feed, and no contact details come through here.</div>';
+  }
+  const x = $('shX'); if (x) x.focus();
+}
+
+function closeSheet() {
+  const sheet = $('sheet');
+  if (sheet.classList.contains('hidden')) return;
+  sheet.classList.add('hidden');
+  $('sheetCard').innerHTML = '';
+  document.body.style.overflow = '';
+  if (SHEET_OPENER && document.body.contains(SHEET_OPENER)) SHEET_OPENER.focus();
+  SHEET_OPENER = null;
+}
+
+$('sheet').addEventListener('click', e => {
+  if (e.target === $('sheet') || e.target.closest('#shX')) closeSheet();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+
+function pdrBlock(list, venue) {
+  if (!list.length) return '';
+  return '<div class="pdrHead">Private dining · ' + list.length + ' today</div>' +
+    list.map(f => '<button type="button" class="pdrRow" data-pdr="' + esc(f.id || '') +
+      '" data-venue="' + esc(venue || '') + '">' +
+      '<span class="pShift' + (f.shift === 'dinner' ? ' dn' : '') + '">' + esc(f.shift) + '</span>' +
+      '<span class="pWhen">' + esc(f.time || '') + (f.room ? ' · ' + esc(f.room) : '') + '</span>' +
+      '<span class="pCov">' + (f.covers || 0) + '</span></button>').join('');
+}
+
+// ── recognition rail ────────────────────────────────────────────────────
+async function loadRecognition() {
+  const since = new Date(); since.setDate(1); since.setHours(0,0,0,0);
+  const { data } = await sb.from('pass_posts')
+    .select('id,author_id,created_at,pass_post_recipients(user_id)')
+    .eq('kind','shoutout').is('deleted_at', null).gte('created_at', since.toISOString());
+  const posts = data || [];
+  const mine  = posts.filter(p => p.author_id === ME.id);
+  $('tGiven').textContent = mine.length;
+  $('tRecv').textContent  = posts.filter(p =>
+    (p.pass_post_recipients || []).some(r => r.user_id === ME.id)).length;
+
+  // one line, and it is an invitation rather than a target
+  const thanked = new Set();
+  mine.forEach(p => (p.pass_post_recipients || []).forEach(r => thanked.add(r.user_id)));
+  $('tNudge').textContent = thanked.size
+    ? "You've thanked " + thanked.size + (thanked.size === 1 ? ' person' : ' people') +
+      ' this month. Anyone else worth a mention?'
+    : 'No one yet this month. Someone probably deserves it.';
+
+  // Participation, not volume: the share of each team who have given one. The
+  // hub_ tables are not readable from a browser by design, so the team sizes and
+  // the giver counts are both computed by pass_participation.
+  const { data: part } = await sb.rpc('pass_participation', { p_since: since.toISOString() });
+  const rows = (part || [])
+    .map(r => ({ name: r.venue_name, size: r.team_size,
+                 pct: r.team_size ? Math.round(100 * r.givers / r.team_size) : 0 }))
+    .filter(r => r.size > 0)
+    .sort((a,b) => b.pct - a.pct);
+
+  $('joinBars').innerHTML = rows.length ? rows.map(r =>
+    '<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:5px">' +
+    '<span>' + esc(r.name) + '</span><b style="font-family:\'Gilda Display\',serif;font-size:15px;color:var(--accent-ink);font-weight:400">' + r.pct + '%</b></div>' +
+    '<div style="height:7px;border-radius:999px;background:var(--surface);overflow:hidden">' +
+    '<i style="display:block;height:100%;border-radius:999px;width:' + r.pct + '%;background:linear-gradient(90deg,var(--green),var(--green-hi))"></i></div></div>').join('')
+    : '<div style="font-size:12px;color:var(--dim)">No one is assigned to a location yet.</div>';
+}
+
+boot().catch(e => {
+  $('boot').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(e.message) + '</div></div>';
+});
+</script>
+</body>
+</html>
