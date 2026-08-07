@@ -611,7 +611,7 @@ async function boot() {
   const [perms, locIds, locs, vals, people, apps] = await Promise.all([
     Promise.all(acts.map(a => sb.rpc('hub_my_can', { p_app_slug:'pass', p_action_key:a }))),
     sb.rpc('pass_my_location_ids'),
-    sb.from('hub_venues').select('id,name,is_head_office,sort_order').eq('active', true).order('sort_order'),
+    sb.rpc('pass_locations'),
     sb.from('pass_values').select('*').order('sort'),
     sb.from('portal_profiles').select('id,full_name,email').eq('active', true).order('full_name'),
     sb.from('portal_apps').select('name,section,sort_order,url').order('sort_order'),
@@ -1685,19 +1685,15 @@ async function loadRecognition() {
       ' this month. Anyone else worth a mention?'
     : 'No one yet this month. Someone probably deserves it.';
 
-  // participation, not volume: the share of each team who have given one
-  const givers = new Set(posts.map(p => p.author_id));
-  const { data: asg } = await sb.from('hub_hat_assignments').select('user_id,venue_id');
-  const byLoc = {};
-  (asg || []).forEach(a => {
-    if (!a.venue_id) return;
-    (byLoc[a.venue_id] = byLoc[a.venue_id] || new Set()).add(a.user_id);
-  });
-  const rows = LOCATIONS.map(l => {
-    const team = byLoc[l.id] ? [...byLoc[l.id]] : [];
-    const pct = team.length ? Math.round(100 * team.filter(u => givers.has(u)).length / team.length) : 0;
-    return { name:l.name, pct, size:team.length };
-  }).filter(r => r.size > 0).sort((a,b) => b.pct - a.pct);
+  // Participation, not volume: the share of each team who have given one. The
+  // hub_ tables are not readable from a browser by design, so the team sizes and
+  // the giver counts are both computed by pass_participation.
+  const { data: part } = await sb.rpc('pass_participation', { p_since: since.toISOString() });
+  const rows = (part || [])
+    .map(r => ({ name: r.venue_name, size: r.team_size,
+                 pct: r.team_size ? Math.round(100 * r.givers / r.team_size) : 0 }))
+    .filter(r => r.size > 0)
+    .sort((a,b) => b.pct - a.pct);
 
   $('joinBars').innerHTML = rows.length ? rows.map(r =>
     '<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:5px">' +
