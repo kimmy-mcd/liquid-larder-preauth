@@ -6,7 +6,7 @@
 <title>The Pass — Liquid &amp; Larder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="icon" href="/assets/favicon-light.svg" media="(prefers-color-scheme: light)">
 <link rel="icon" href="/assets/favicon-dark.svg" media="(prefers-color-scheme: dark)">
@@ -96,6 +96,39 @@
   .chips button[aria-pressed="true"] { background:linear-gradient(180deg,var(--green-hi),var(--green));
     color:var(--on-accent); border-color:transparent; }
   .chips button:disabled { opacity:.4; cursor:not-allowed; }
+  input.cmpTitle { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:11px 13px; margin-bottom:9px;
+    font-family:'Gilda Display',serif; font-size:17px; color:var(--accent-ink); }
+  input.cmpTitle:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .cmtToggle { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  #cmpComments { flex:none; width:auto; min-width:88px; }
+  .opt { font-size:9px; letter-spacing:.14em; color:var(--dim); font-weight:600; margin-left:4px; }
+
+  /* Recipient search. Sixty-odd people is already too many chips to lay out;
+     two hundred would bury the composer. Type, pick, and the choice becomes a
+     removable pill. */
+  .picked { display:flex; gap:6px; flex-wrap:wrap; }
+  .picked:not(:empty) { margin-bottom:9px; }
+  .picked span { display:inline-flex; align-items:center; gap:7px; background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-radius:999px; padding:7px 8px 7px 13px; font-size:11.5px; font-weight:600; }
+  .picked span button { width:17px; height:17px; flex:none; border-radius:50%; padding:0; box-shadow:none;
+    background:rgb(255 255 255 / .20); color:var(--on-accent); font-size:12px; line-height:1;
+    display:flex; align-items:center; justify-content:center; letter-spacing:0; }
+  .picked span button:hover { background:rgb(255 255 255 / .34); transform:none; filter:none; }
+  .findWrap { position:relative; }
+  input.find { width:100%; background:var(--card); border:1px solid var(--border); border-radius:var(--r-input,10px);
+    padding:10px 13px; font-family:'Montserrat',sans-serif; font-size:13px; color:var(--ink); }
+  input.find:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  input.find:disabled { opacity:.5; }
+  .findList { position:absolute; z-index:6; top:calc(100% + 5px); left:0; right:0; max-height:236px;
+    overflow-y:auto; background:var(--card); border:1px solid var(--border); border-radius:12px;
+    box-shadow:var(--shadow-card); padding:5px; }
+  .findList button { display:block; width:100%; text-align:left; background:none; box-shadow:none;
+    border-radius:8px; padding:9px 11px; font-size:12.5px; font-weight:500; color:var(--ink);
+    letter-spacing:0; text-transform:none; }
+  .findList button:hover, .findList button.on { background:var(--surface-hover); transform:none; filter:none; }
+  .findList button small { display:block; font-size:10.5px; color:var(--dim); font-weight:400; margin-top:2px; }
+  .findList .none { padding:10px 11px; font-size:11.5px; color:var(--dim); }
   .hint { font-size:11px; color:var(--dim); line-height:1.6; margin-top:10px; }
   .hint b { color:var(--accent-ink); font-weight:600; }
   .cmpRow { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
@@ -148,25 +181,39 @@
   @keyframes spin { to { transform:rotate(360deg); } }
 
   /* ---------- link card + media (feed and composer share these) ---------- */
-  .lcard { display:block; margin-top:13px; border:1px solid var(--border); border-radius:13px;
-    overflow:hidden; background:var(--surface); text-decoration:none; color:inherit; }
-  a.lcard:hover { border-color:rgb(var(--tint-rgb) / .40); }
-  .lcard .shot { position:relative; display:block; width:100%; aspect-ratio:16/9; background:var(--sand-soft); }
+  /* Horizontal card: a left-hand still and the words beside it. A full-width
+     16/9 still pushed the title a long way down the post and read as a video
+     player rather than a link. */
+  .lcard { display:flex; align-items:stretch; margin-top:13px; border:1px solid var(--hairline);
+    border-radius:13px; overflow:hidden; background:var(--surface); text-decoration:none; color:inherit;
+    transition:border-color var(--t-fast), transform var(--t-fast) var(--e-out); }
+  a.lcard:hover { border-color:rgb(var(--tint-rgb) / .40); transform:translateY(-1px); }
+  .lcard .shot { position:relative; display:block; flex:0 0 176px; min-height:116px;
+    background:linear-gradient(140deg,var(--sand-hi),var(--sand-cream) 70%,var(--sand-soft)); }
   .lcard .shot img { width:100%; height:100%; object-fit:cover; display:block; }
   .lcard .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
-  .lcard .play i { width:58px; height:40px; border-radius:11px; background:rgb(0 0 0 / .68);
-    display:flex; align-items:center; justify-content:center; }
-  .lcard .play i::after { content:''; border-left:14px solid #fff; border-top:9px solid transparent;
-    border-bottom:9px solid transparent; margin-left:3px; }
-  .lcard:hover .play i { background:#c00; }
-  .lcard .meta { padding:12px 14px; }
-  .lcard .site { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim); font-weight:600; }
-  .lcard .t { font-size:13px; font-weight:600; margin-top:5px; line-height:1.45; }
-  .lcard .d { font-size:11.5px; color:var(--dim); margin-top:5px; line-height:1.6; }
-  .lcard.mini { display:flex; align-items:stretch; }
-  .lcard.mini .shot { width:104px; aspect-ratio:auto; flex:none; }
-  .lcard.mini .meta { flex:1; min-width:0; }
+  .lcard .play i { width:42px; height:42px; border-radius:50%; background:rgb(var(--green-rgb) / .82);
+    box-shadow:0 6px 20px rgb(0 0 0 / .28); display:flex; align-items:center; justify-content:center; }
+  .lcard .play i::after { content:''; border-left:13px solid var(--on-accent); border-top:8px solid transparent;
+    border-bottom:8px solid transparent; margin-left:3px; }
+  .lcard:hover .play i { background:var(--green); }
+  .lcard .dur { position:absolute; right:8px; bottom:8px; background:rgb(0 0 0 / .60); color:#fff;
+    font-size:10px; font-weight:600; letter-spacing:.04em; padding:3px 7px; border-radius:6px; }
+  .lcard .meta { flex:1; min-width:0; align-self:center; padding:14px 16px; }
+  /* these are spans so the whole card can be one <a>; they still stack */
+  .lcard .site, .lcard .t, .lcard .d { display:block; }
+  .lcard .site { font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); font-weight:600; }
+  .lcard .t { font-size:13.5px; font-weight:600; margin-top:6px; line-height:1.45; }
+  .lcard .d { font-size:12px; color:var(--dim); margin-top:6px; line-height:1.6; }
+  .lcard.mini .shot { flex:0 0 104px; min-height:84px; }
+  /* once the real player is in, the card is a plain block again */
+  .lcard.playing { display:block; }
   .lcard iframe { width:100%; aspect-ratio:16/9; border:0; display:block; }
+  @media (max-width:560px) {
+    .lcard { flex-direction:column; }
+    .lcard .shot, .lcard.mini .shot { flex:none; width:100%; height:160px; min-height:0; }
+    .lcard .meta { padding:0 15px 15px; }
+  }
 
   .mgrid { display:grid; gap:5px; margin-top:13px; border-radius:13px; overflow:hidden; }
   .mgrid.n1 { grid-template-columns:1fr; }
@@ -187,6 +234,11 @@
   .lbox { position:fixed; inset:0; z-index:200; background:rgb(0 0 0 / .92);
     display:flex; align-items:center; justify-content:center; }
   .lbox img { max-width:94vw; max-height:88vh; object-fit:contain; border-radius:4px; }
+  .lbox .cap { position:fixed; left:0; right:0; bottom:0; z-index:2; display:flex; gap:14px;
+    align-items:center; justify-content:space-between; padding:16px 20px;
+    background:linear-gradient(0deg, rgb(0 0 0 / .55), transparent);
+    color:rgb(255 255 255 / .82); font-size:12px; line-height:1.5; }
+  .lbox .cap .n { flex:none; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; }
   .lbox .close, .lbox .nav { position:absolute; background:rgb(255 255 255 / .13); color:#fff;
     border-radius:50%; width:44px; height:44px; padding:0; box-shadow:none; font-size:17px; line-height:1;
     display:flex; align-items:center; justify-content:center; }
@@ -200,6 +252,7 @@
   /* ---------- posts ---------- */
   .post { padding:20px 22px; margin-bottom:16px; position:relative; }
   .post.pinned { border-color:rgb(var(--gold-rgb) / .45); }
+  html[data-theme="dark"] .pinTag { color:#1a1508; }
   .pinTag { position:absolute; top:-9px; left:20px; background:var(--gold); color:var(--on-accent);
     font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; padding:3px 10px; border-radius:999px; }
   .pHead { display:flex; gap:12px; align-items:center; margin-bottom:13px; position:relative; }
@@ -260,12 +313,64 @@
     color:var(--ink); resize:vertical; }
   .cField textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
 
+  /* ---------- feed type filters ---------- */
+  .filters { display:flex; gap:7px; flex-wrap:wrap; margin:18px 0 4px; }
+  .filters button { background:var(--card); border:1px solid var(--border); color:var(--dim);
+    border-radius:999px; padding:9px 15px; font-size:12px; font-weight:600; box-shadow:none;
+    letter-spacing:0; text-transform:none; transition:all var(--t-fast); }
+  .filters button:hover { transform:none; filter:none; border-color:rgb(var(--tint-rgb) / .40); color:var(--ink); }
+  .filters button[aria-pressed="true"] { background:linear-gradient(180deg,var(--green-hi),var(--green));
+    color:var(--on-accent); border-color:transparent; }
+
   /* ---------- rail ---------- */
   .rail { display:flex; flex-direction:column; gap:16px; position:sticky; top:24px; }
   .railCard { padding:18px; }
   .railTitle { font-size:9.5px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);
     font-weight:600; margin-bottom:14px; }
   .railCard.mine { border-top:3px solid var(--gold); }
+  .railCard.tonight { border-top:3px solid var(--green); }
+  .nudge { font-size:11.5px; color:var(--accent-ink); line-height:1.65; margin-top:12px; }
+
+  /* today's service. Two columns, lunch and dinner, because that is how the
+     floor thinks about a day and a single daily figure hides a quiet lunch. */
+  .svcVenue + .svcVenue { margin-top:18px; padding-top:16px; border-top:1px solid var(--hairline); }
+  .svcName { font-size:11px; font-weight:600; color:var(--accent-ink); margin-bottom:10px; }
+  .shiftHead, .sRow { display:grid; grid-template-columns:1fr 52px 58px; align-items:baseline; }
+  .shiftHead { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding-bottom:8px; border-bottom:1px solid var(--hairline); }
+  .shiftHead span:not(:first-child), .sRow .v { text-align:right; }
+  .sRow { padding:9px 0; font-size:12.5px; border-bottom:1px solid var(--hairline); }
+  .sRow .k { color:var(--dim); font-size:12px; }
+  .sRow .v { font-variant-numeric:tabular-nums; }
+  .sRow .sub2 { display:block; font-style:normal; font-size:9.5px; color:var(--dim); margin-top:2px; }
+  .sRow.tot { border-bottom:0; padding-top:12px; }
+  .sRow.tot .k { color:var(--ink); font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; font-weight:600; }
+  .sRow.tot .tv { grid-column:2 / span 2; font-family:'Gilda Display',serif; font-size:23px;
+    color:var(--accent-ink); line-height:1; }
+  .pdrHead { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; margin:15px 0 8px; }
+  .pdrRow { display:grid; grid-template-columns:auto 1fr auto; gap:9px; align-items:center;
+    background:var(--surface); border-radius:10px; padding:9px 11px; margin-bottom:6px; }
+  .pShift { font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; font-weight:600;
+    color:var(--dim); background:var(--card); border-radius:999px; padding:4px 8px; }
+  .pShift.dn { color:var(--accent-ink); background:rgb(var(--tint-rgb) / .10); }
+  .pWhen { font-size:11.5px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pCov { font-family:'Gilda Display',serif; font-size:16px; color:var(--accent-ink); line-height:1; }
+
+  /* ---------- moderation ---------- */
+  .pmHead { font-size:8.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim);
+    font-weight:600; padding:9px 12px 4px; }
+  .pmSep { height:1px; background:var(--hairline); margin:5px 0; }
+  .reasonBox { margin-top:14px; background:var(--surface); border-radius:12px; padding:14px 15px; }
+  .reasonBox select, .reasonBox input { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:9px 12px; font-family:'Montserrat',sans-serif;
+    font-size:12.5px; color:var(--ink); margin-top:8px; }
+  .reasonBox select:focus, .reasonBox input:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .editBox textarea { width:100%; background:var(--card); border:1px solid var(--border);
+    border-radius:var(--r-input,10px); padding:11px 13px; font-family:'Montserrat',sans-serif;
+    font-size:13.5px; color:var(--ink); min-height:96px; resize:vertical; }
+  .editBox textarea:focus { outline:none; border-color:var(--accent-ink); box-shadow:var(--ring); }
+  .edited { font-size:10px; color:var(--dim); font-style:italic; margin-left:6px; }
   .tally { display:flex; gap:12px; }
   .tCell { flex:1; background:var(--surface); border-radius:12px; padding:13px 14px; }
   .tV { font-family:'Gilda Display',serif; font-size:25px; color:var(--accent-ink); line-height:1; }
@@ -281,9 +386,16 @@
   @keyframes skShim { 0%{background-position:100% 0} 100%{background-position:-100% 0} }
 
   /* ---------- mobile: the sidebar is hidden, so a tab bar replaces it ---------- */
+  .mobileTop { display:none; }
   .tabbar { display:none; }
   @media (max-width:860px) {
     aside.side { display:none; }
+    .mobileTop { display:flex; align-items:center; gap:11px; padding:16px 16px 0; }
+    .mobileTop .monogram { width:34px; height:34px; flex:none; border-radius:10px;
+      display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600;
+      color:var(--on-accent); background:linear-gradient(150deg,var(--green-hi),var(--green)); }
+    .mobileTop .n { font-size:13px; font-weight:600; color:var(--accent-ink); }
+    .mobileTop .s { font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim); margin-top:2px; }
     main { padding:20px 16px 110px; }
     .hello { font-size:23px; }
     .cols { grid-template-columns:minmax(0,1fr); }
@@ -306,6 +418,10 @@
 <div id="boot" class="wrap" style="padding-top:60px"><div class="sk"></div><div class="sk"></div></div>
 
 <div id="shell" class="hidden">
+  <div class="mobileTop">
+    <div class="monogram">L&amp;L</div>
+    <div><div class="n">The Pass</div><div class="s">Liquid &amp; Larder</div></div>
+  </div>
   <aside class="side">
     <div class="sideBrand">
       <div class="monogram">L&amp;L</div>
@@ -340,6 +456,8 @@
           </div>
           <div class="cmpBody" id="cmpBody">
             <div class="segs" id="cmpType"></div>
+            <input type="text" id="cmpTitle" class="cmpTitle" maxlength="120"
+                   placeholder="Headline (optional)" aria-label="Headline">
             <textarea id="cmpText" placeholder="What's happening?"></textarea>
 
             <div class="attachRow">
@@ -347,7 +465,7 @@
                 <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.6" cy="9.4" r="1.7"/><path d="M3.4 17.2l4.8-4.6a2 2 0 0 1 2.7-.1l3.4 3 1.9-1.7a2 2 0 0 1 2.7.1l2.1 2"/></svg>
                 Add photos
               </button>
-              <span class="attachNote" id="attachNote">Up to 6. Resized in your browser before they upload.</span>
+              <span class="attachNote" id="attachNote">Up to 6. Full resolution up to 2560px, resized in your browser before they upload.</span>
               <input type="file" id="fileInput" accept="image/*" multiple hidden>
             </div>
             <div class="thumbs" id="thumbs"></div>
@@ -355,9 +473,15 @@
 
             <div class="block hidden" id="shoutBlock">
               <div class="miniLabel" style="margin-bottom:9px">Who are you thanking?</div>
-              <div class="chips" id="recipChips"></div>
+              <div class="picked" id="recipPicked"></div>
+              <div class="findWrap">
+                <input type="text" id="recipFind" class="find" autocomplete="off" spellcheck="false"
+                       placeholder="Start typing a name…" aria-label="Search for someone to thank"
+                       role="combobox" aria-expanded="false" aria-controls="recipList">
+                <div class="findList hidden" id="recipList" role="listbox"></div>
+              </div>
               <div class="hint" id="recipHint"></div>
-              <div class="miniLabel" style="margin:16px 0 9px">Which value did they show?</div>
+              <div class="miniLabel" style="margin:16px 0 9px">Which value did they show? <span class="opt">Optional</span></div>
               <div class="chips" id="valueChips"></div>
             </div>
 
@@ -376,6 +500,11 @@
             <div class="hint" id="notifyHint"></div>
 
             <div class="cmpRow">
+              <label class="cmtToggle" for="cmpComments">Comments</label>
+              <select class="mini" id="cmpComments">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+              </select>
               <div class="msg err" id="cmpMsg"></div>
               <span class="spacer"></span>
               <button class="ghost" id="cmpCancel">Cancel</button>
@@ -384,17 +513,24 @@
           </div>
         </div>
 
+        <div class="filters" id="filters"></div>
         <div id="feed"></div>
         <div class="endCap hidden" id="endCap">You're up to date</div>
       </div>
 
       <div class="rail">
+        <div class="card railCard tonight hidden" id="svcCard">
+          <div class="railTitle" id="svcTitle">Today</div>
+          <div id="svcBody"></div>
+          <div class="note" id="svcNote"></div>
+        </div>
         <div class="card railCard mine">
           <div class="railTitle">Your recognition · <span id="monthLbl"></span></div>
           <div class="tally">
             <div class="tCell"><div class="tV" id="tRecv">0</div><div class="tK">Received</div></div>
             <div class="tCell"><div class="tV" id="tGiven">0</div><div class="tK">Given</div></div>
           </div>
+          <div class="nudge" id="tNudge"></div>
           <div class="note">Only you can see these numbers. There is no company leaderboard.</div>
         </div>
         <div class="card railCard">
@@ -417,6 +553,15 @@ const AUTH_URL  = 'https://lkoqyllmtoodthrtjgfm.supabase.co';
 const AUTH_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxrb3F5bGxtdG9vZHRocnRqZ2ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM0MjI4MDAsImV4cCI6MjA5ODk5ODgwMH0.xdPjk-z2HvvLc-mw9b3buZ9Hj1I1ykXFy6cFtRr1isg';
 const sb = window.__sbStub || supabase.createClient(AUTH_URL, AUTH_ANON);
 
+// Covers and bookings live in the reporting project, not the accounts one.
+// Same split the metrics apps already use. Read-only, no session: everything
+// it can reach comes back through get_pass_today, which returns counts and
+// room names only — never a guest name, a note or a phone number.
+const DATA_URL  = 'https://fppqqcpgpbdqshhldpth.supabase.co';
+const DATA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwcHFxY3BncGJkcXNoaGxkcHRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMjc0NDYsImV4cCI6MjA5NjkwMzQ0Nn0._T8DALtq5nRQwj-fjPRWbNwhHX_Hv4TJT__tCdzhH8Q';
+const dataSb = window.__dataStub ||
+  supabase.createClient(DATA_URL, DATA_ANON, { auth:{ persistSession:false, autoRefreshToken:false } });
+
 const $   = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const initials = n => (String(n||'?').match(/\b[a-zA-Z]/g) || ['?']).slice(0,2).join('').toUpperCase();
@@ -437,6 +582,21 @@ const SECTION_ORDER = ['Handbook','Accounts','Scoreboard','Marketing'];
 
 let ME = null, CAN = {}, MY_LOCS = [], LOCATIONS = [], VALUES = [], PEOPLE = [];
 let POSTS = [], SCOPE = 'all', KIND = 'announcement', PICKED = [], RECIPS = [], VALUE = null;
+let FILTER = 'all', UNREAD = 0, AT_HO = false;
+
+// The second filter axis: location scope answers "where", this answers "what".
+// A chip is only drawn if something in the feed actually matches it, so the row
+// never offers a dead end.
+const CATS = [
+  { k:'all',      label:'Everything',  test:() => true },
+  { k:'announce', label:'Announcements', test:p => p.kind === 'announcement' || p.kind === 'location' },
+  { k:'shoutout', label:'Shout-outs',  test:p => p.kind === 'shoutout' },
+  { k:'policy',   label:'Policies',    test:p => p.source_app === 'handbook' },
+  { k:'quality',  label:'Quality',     test:p => p.source_app === 'quality' },
+  { k:'numbers',  label:'Scoreboard',  test:p => p.source_app === 'actual-vs-forecast' ||
+                                                 !!(p.payload && p.payload.metric) },
+  { k:'photos',   label:'Photos & video', test:p => (p.pass_media || []).length > 0 },
+];
 
 // ── boot ────────────────────────────────────────────────────────────────
 async function boot() {
@@ -453,12 +613,21 @@ async function boot() {
     sb.rpc('pass_my_location_ids'),
     sb.from('hub_venues').select('id,name,is_head_office,sort_order').eq('active', true).order('sort_order'),
     sb.from('pass_values').select('*').order('sort'),
-    sb.from('portal_profiles').select('id,full_name,email').eq('active', true),
+    sb.from('portal_profiles').select('id,full_name,email').eq('active', true).order('full_name'),
     sb.from('portal_apps').select('name,section,sort_order,url').order('sort_order'),
   ]);
   acts.forEach((a,i) => CAN[a] = !!(perms[i] && perms[i].data));
   MY_LOCS  = (locIds.data || []).map(r => (r && r.pass_my_location_ids) || r).filter(Boolean);
   LOCATIONS = locs.data || [];
+
+  // Head office is a location like any other in hub_venues, but being assigned
+  // there is the whole job: you are there to speak to the restaurants. So an
+  // assignment at a head-office venue carries post_other_location with it
+  // rather than needing it granted hat by hat. post_all — the whole company at
+  // once — stays a deliberate grant.
+  const HO = LOCATIONS.filter(l => l.is_head_office).map(l => l.id);
+  AT_HO = MY_LOCS.some(id => HO.includes(id));
+  if (AT_HO) CAN.post_other_location = true;
   VALUES    = vals.data || [];
   PEOPLE    = (people.data || []).filter(p => p.id !== ME.id);
 
@@ -471,7 +640,7 @@ async function boot() {
   renderShell(apps.data || []);
   $('boot').classList.add('hidden');
   $('shell').classList.remove('hidden');
-  await Promise.all([loadFeed(), loadRecognition()]);
+  await Promise.all([loadFeed(), loadRecognition(), loadService()]);
 }
 
 function renderShell(apps) {
@@ -513,6 +682,33 @@ function renderShell(apps) {
 const greeting = () => { const h = new Date().getHours();
   return h < 12 ? 'Morning' : h < 17 ? 'Afternoon' : 'Evening'; };
 
+// The badge answers "is there anything I have not seen", so it is counted
+// before the reads are written and the writing happens once, on load. Marking
+// each post as it scrolls past belongs with the notifications work.
+async function countUnread() {
+  const visible = POSTS.filter(inScope);
+  if (!visible.length) { paintCount(0); return; }
+  const { data } = await sb.from('pass_reads').select('post_id').eq('user_id', ME.id);
+  const seen = new Set((data || []).map(r => r.post_id));
+  UNREAD = visible.filter(p => !seen.has(p.id) && p.author_id !== ME.id).length;
+  paintCount(UNREAD);
+  const fresh = visible.filter(p => !seen.has(p.id));
+  if (fresh.length) {
+    await sb.from('pass_reads').upsert(
+      fresh.map(p => ({ post_id:p.id, user_id:ME.id })), { onConflict:'post_id,user_id' });
+  }
+}
+function paintCount(n) {
+  const a = document.querySelector('#sideNav a.navItem.active');
+  if (!a) return;
+  const old = a.querySelector('.count'); if (old) old.remove();
+  if (n > 0) {
+    const el = document.createElement('span');
+    el.className = 'count'; el.textContent = n;
+    a.appendChild(el);
+  }
+}
+
 // ── feed ────────────────────────────────────────────────────────────────
 async function loadFeed() {
   const { data, error } = await sb.from('pass_posts')
@@ -522,6 +718,7 @@ async function loadFeed() {
     .limit(60);
   if (error) { $('feed').innerHTML = '<div class="card" style="padding:26px"><div class="msg err">' + esc(error.message) + '</div></div>'; return; }
   POSTS = data || [];
+  await countUnread();
   await signMedia();
   renderFeed();
 }
@@ -552,12 +749,25 @@ const inScope = p => SCOPE === 'all'
   || ((p.audience && p.audience.locations) || []).includes(SCOPE);
 
 function renderFeed() {
-  const list = POSTS.filter(inScope)
+  const inView = POSTS.filter(inScope);
+  const cat = CATS.find(c => c.k === FILTER) || CATS[0];
+  const list = inView.filter(cat.test)
     .sort((a,b) => (b.pinned_at ? 1 : 0) - (a.pinned_at ? 1 : 0)
                 || new Date(b.created_at) - new Date(a.created_at));
+
+  // chips come from what is actually there, plus whatever is currently selected
+  // so the row cannot rearrange itself out from under your finger
+  $('filters').innerHTML = CATS
+    .filter(c => c.k === 'all' || c.k === FILTER || inView.some(c.test))
+    .map(c => '<button data-f="' + c.k + '" aria-pressed="' + (c.k === FILTER) + '">' +
+      esc(c.label) + '</button>').join('');
+  $('filters').classList.toggle('hidden', inView.length === 0);
+
   if (!list.length) {
-    $('feed').innerHTML = '<div class="card empty">Nothing here yet.<br>' +
-      (CAN.post ? 'Be the first to post something.' : 'Check back soon.') + '</div>';
+    $('feed').innerHTML = '<div class="card empty">' + (inView.length
+      ? 'Nothing here with those filters.<br>Try Everything, or another location.'
+      : 'Nothing here yet.<br>' + (CAN.post ? 'Be the first to post something.' : 'Check back soon.')) +
+      '</div>';
     $('endCap').classList.add('hidden');
     return;
   }
@@ -576,7 +786,9 @@ function postHtml(p) {
   let tag = '';
   if (p.kind === 'shoutout')          tag = '<span class="tag shout">Shout-out</span>';
   else if (p.kind === 'announcement') tag = '<span class="tag">Announcement</span>';
-  else if (p.kind === 'location')     tag = '<span class="tag">Location post</span>';
+  // 'Location post' is no longer a type you can choose. Rows made before that
+  // change are the same object as an announcement to one location, so they say so.
+  else if (p.kind === 'location')     tag = '<span class="tag">Announcement</span>';
   else if (p.payload && p.payload.must_know) tag = '<span class="tag must">Must know</span>';
 
   const canEdit = p.author_id === ME.id;
@@ -587,7 +799,8 @@ function postHtml(p) {
     '<div class="pHead">' +
       '<div class="pAv' + (sys ? ' sys' : '') + '">' + (sys ? iconFor(sourceName(p.source_app)) : esc(initials(who))) + '</div>' +
       '<div class="pWho"><div class="n">' + esc(who) + '</div>' +
-        '<div class="m">' + tag + '<span>' + esc(audienceLabel(p.audience)) + ' · ' + ago(p.created_at) + '</span></div></div>' +
+        '<div class="m">' + tag + '<span>' + esc(audienceLabel(p.audience)) + ' · ' + ago(p.created_at) +
+        (p.edited_at ? '<i class="edited">edited</i>' : '') + '</span></div></div>' +
       ((canEdit || canMod) ? '<button class="pMore" aria-label="Post actions">⋯</button>' : '') +
     '</div>' +
     (p.title ? '<div class="pTitle">' + esc(p.title) + '</div>' : '') +
@@ -639,6 +852,12 @@ function ago(ts) {
   return new Date(ts).toLocaleDateString('en-AU', { day:'numeric', month:'short' });
 }
 
+$('filters').addEventListener('click', e => {
+  const b = e.target.closest('button[data-f]'); if (!b) return;
+  FILTER = b.dataset.f;
+  renderFeed();
+});
+
 // ── feed interactions ───────────────────────────────────────────────────
 $('feed').addEventListener('click', async e => {
   const card = e.target.closest('.post'); if (!card) return;
@@ -650,7 +869,8 @@ $('feed').addEventListener('click', async e => {
     const imgs = (post.pass_media || []).filter(m => m.kind === 'image')
       .sort((a,b) => (a.sort||0) - (b.sort||0));
     // The viewer shows the full-size file, not the thumbnail it was opened from.
-    openLightbox(imgs.map(m => m.full_path || m.thumb_path), Number(th.dataset.i) || 0);
+    openLightbox(imgs.map(m => ({ path:m.full_path || m.thumb_path, cap:m.alt || '' })),
+                 Number(th.dataset.i) || 0, th);
     return;
   }
 
@@ -663,6 +883,7 @@ $('feed').addEventListener('click', async e => {
       const src = kind === 'vimeo'
         ? 'https://player.vimeo.com/video/' + encodeURIComponent(id) + '?autoplay=1'
         : 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(id) + '?autoplay=1&rel=0';
+      vc.classList.add('playing');   // the card is horizontal until the player lands
       vc.innerHTML = '<iframe src="' + src + '" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen title="Video"></iframe>';
     }
     return;
@@ -701,15 +922,57 @@ $('feed').addEventListener('click', async e => {
   if (e.target.closest('.pMore')) {
     e.stopPropagation();
     document.querySelectorAll('.pMenu').forEach(m => m.remove());
-    const mine = post.author_id === ME.id, mod = CAN.moderate || CAN.moderate_location;
+    const mine = post.author_id === ME.id && post.kind !== 'event';
+    const mod  = CAN.moderate || CAN.moderate_location;
     const menu = document.createElement('div');
     menu.className = 'card pMenu';
     menu.innerHTML =
-      (mine ? '<button class="pmItem danger" data-a="del-own">Delete<br><small style="color:var(--dim)">Removes the comments underneath it too</small></button>' : '') +
-      (mod  ? '<button class="pmItem danger" data-a="del-mod">Remove from the feed</button>' : '') +
+      (mine ? '<button class="pmItem" data-a="edit">Edit post<br><small style="color:var(--dim)">' +
+                (editFree(post) ? 'Free for another ' + freeMins(post) + ' min, then it shows as edited'
+                                : 'It will show as edited') + '</small></button>' +
+              '<button class="pmItem danger" data-a="del-own">Delete<br><small style="color:var(--dim)">Removes the comments underneath it too</small></button>' : '') +
+      (mod  ? (mine ? '<div class="pmSep"></div>' : '') +
+              '<div class="pmHead">People &amp; Culture</div>' +
+              '<button class="pmItem danger" data-a="del-mod">Remove from the feed<br><small style="color:var(--dim)">Reason required. The author is told.</small></button>' : '') +
+      (mine || mod ? '<div class="pmSep"></div>' : '') +
       '<button class="pmItem" data-a="copy">Copy link to this post</button>';
     card.querySelector('.pHead').appendChild(menu);
     menu.addEventListener('click', ev => { if (!ev.target.closest('.pmItem')) ev.stopPropagation(); });
+    return;
+  }
+
+  // ---- edit ----
+  if (e.target.closest('.edCancel')) { renderFeed(); return; }
+  if (e.target.closest('.edSave')) {
+    const box = card.querySelector('.editBox');
+    const body = box.querySelector('textarea').value.trim();
+    const tIn  = box.querySelector('input');
+    if (!body) return;
+    const patch = { body };
+    if (tIn) patch.title = tIn.value.trim() || null;
+    if (!editFree(post)) patch.edited_at = new Date().toISOString();
+    const { error } = await sb.from('pass_posts').update(patch).eq('id', id);
+    if (error) { alert(error.message); return; }
+    await loadFeed();
+    return;
+  }
+
+  // ---- removal: pick a reason, then a tombstone you can undo ----
+  if (e.target.closest('.rxCancel')) { renderFeed(); return; }
+  if (e.target.closest('.rxGo')) {
+    const box = card.querySelector('.reasonBox');
+    const pick = box.querySelector('select').value;
+    const extra = box.querySelector('input').value.trim();
+    const reason = extra ? pick + ' — ' + extra : pick;
+    await softDelete(id, reason, card);
+    return;
+  }
+  if (e.target.closest('.tbUndo')) {
+    const { error } = await sb.from('pass_posts').update({
+      deleted_at:null, deleted_by:null, deleted_by_name:null, delete_reason:null
+    }).eq('id', id);
+    if (error) { alert(error.message); return; }
+    await loadFeed();
     return;
   }
 
@@ -717,21 +980,71 @@ $('feed').addEventListener('click', async e => {
   if (item) {
     const a = item.dataset.a;
     document.querySelectorAll('.pMenu').forEach(m => m.remove());
+
     if (a === 'copy') {
       navigator.clipboard && navigator.clipboard.writeText(location.origin + '/pass/p/' + post.slug);
       return;
     }
-    // soft delete, always — the row and an audit trail are kept
-    let reason = null;
-    if (a === 'del-mod') { reason = prompt('Why is this being removed? The author is told.'); if (reason === null) return; }
-    const { error } = await sb.from('pass_posts').update({
-      deleted_at: new Date().toISOString(), deleted_by: ME.id,
-      deleted_by_name: ME.full_name || ME.email, delete_reason: reason
-    }).eq('id', id);
-    if (error) { alert(error.message); return; }
-    await loadFeed();
+    if (a === 'edit') {
+      const body = card.querySelector('.pBody');
+      const box = document.createElement('div');
+      box.className = 'block editBox';
+      box.innerHTML =
+        (post.kind !== 'shoutout'
+          ? '<div class="miniLabel" style="margin-bottom:9px">Headline <span class="opt">Optional</span></div>' +
+            '<input type="text" class="cmpTitle" maxlength="120" value="' + esc(post.title || '') + '">'
+          : '') +
+        '<textarea>' + esc(post.body || '') + '</textarea>' +
+        '<div class="cmpRow"><span class="spacer"></span>' +
+        '<button class="ghost edCancel">Cancel</button><button class="edSave">Save</button></div>';
+      body.replaceWith(box);
+      box.querySelector('textarea').focus();
+      return;
+    }
+    if (a === 'del-own') { await softDelete(id, null, card); return; }
+    if (a === 'del-mod') {
+      const box = document.createElement('div');
+      box.className = 'reasonBox';
+      box.innerHTML =
+        '<div class="miniLabel">Why is this coming down?</div>' +
+        '<select>' + ['Inappropriate content','Named a guest','Wrong audience','Duplicate','The author asked']
+          .map(r => '<option>' + r + '</option>').join('') + '</select>' +
+        '<input type="text" placeholder="Anything else worth recording (optional)">' +
+        '<div class="hint">The author is told, and the reason is kept on the record. ' +
+        'Nothing is really deleted — it comes out of the feed.</div>' +
+        '<div class="cmpRow"><span class="spacer"></span>' +
+        '<button class="ghost rxCancel">Cancel</button><button class="rxGo">Remove</button></div>';
+      card.appendChild(box);
+      box.querySelector('select').focus();
+      return;
+    }
   }
 });
+
+// A post is never really deleted. It leaves a tombstone the length of one
+// glance, with an undo, because the wrong post gets removed sometimes and
+// finding it again in the table is not a thing anyone should have to do.
+async function softDelete(id, reason, card) {
+  const { error } = await sb.from('pass_posts').update({
+    deleted_at: new Date().toISOString(), deleted_by: ME.id,
+    deleted_by_name: ME.full_name || ME.email, delete_reason: reason
+  }).eq('id', id);
+  if (error) { alert(error.message); return; }
+  card.classList.remove('pinned');
+  card.innerHTML =
+    '<div class="tomb"><b>Post removed</b> by ' + esc(ME.full_name || ME.email) + ' · just now' +
+    (reason ? '<div style="margin-top:6px;font-style:italic">' + esc(reason) + '</div>' : '') +
+    '<div style="margin-top:10px">Nothing is really deleted. It is out of the feed and on the record.' +
+    // Only a moderator can put it back: the row-level rule stops an author
+    // updating a post once it is deleted, so offering them Undo would fail.
+    (CAN.moderate || CAN.moderate_location ? ' <button class="link tbUndo">Undo</button>' : '') +
+    '</div></div>';
+}
+
+const EDIT_FREE_MS = 15 * 60 * 1000;
+const editFree = p => Date.now() - new Date(p.created_at).getTime() < EDIT_FREE_MS;
+const freeMins = p => Math.max(1,
+  Math.ceil((EDIT_FREE_MS - (Date.now() - new Date(p.created_at).getTime())) / 60000));
 document.addEventListener('click', () => document.querySelectorAll('.pMenu').forEach(m => m.remove()));
 
 // ── composer ────────────────────────────────────────────────────────────
@@ -747,10 +1060,12 @@ const MAX_IMGS = 6;
 const URL_RE = /https?:\/\/[^\s<>"']+/i;
 
 // Resizing in the browser is not a nicety. A phone photo is 4-6 MB; six of
-// them is 30 MB of upload on venue wifi and 30 MB of storage forever, to draw
-// a card that is never wider than about 600 CSS pixels. 1600px long edge at
-// WebP quality .82 lands around 150-250 KB and is still sharp on a retina
-// screen.
+// them is 30 MB of upload on venue wifi and 30 MB of storage forever.
+// 2560px long edge at WebP quality .88 lands around 500-900 KB — roughly a
+// fifth of the original, and enough to fill a 5K display in the pop-out
+// viewer or survive a crop for something else. The 900px thumbnail is what
+// the feed grid actually draws, so the big file is only fetched when someone
+// opens an image.
 async function shrink(file, maxEdge, quality) {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, maxEdge / Math.max(bmp.width, bmp.height));
@@ -788,8 +1103,8 @@ async function addFiles(files) {
     renderThumbs();
     try {
       const [full, thumb] = await Promise.all([
-        shrink(file, 1600, 0.82),
-        shrink(file, 480, 0.72),
+        shrink(file, 2560, 0.88),
+        shrink(file, 900, 0.80),
       ]);
       item.w = full.w; item.h = full.h;
       item.preview = URL.createObjectURL(thumb.blob);
@@ -827,7 +1142,7 @@ function renderThumbs() {
   $('attachNote').textContent = failed.length
     ? failed.length + ' could not be added'
     : n ? n + ' of ' + MAX_IMGS + ' added'
-        : 'Up to ' + MAX_IMGS + '. Resized in your browser before they upload.';
+        : 'Up to ' + MAX_IMGS + '. Full resolution up to 2560px, resized in your browser before they upload.';
 }
 
 // Some sites answer a crawler with a login wall dressed as a page: Instagram
@@ -881,10 +1196,23 @@ function linkCardHtml(m, live) {
     : '';
   const cls = 'lcard' + (!img ? ' mini' : '');
 
+  // YouTube hands out hqdefault (480px) in its oEmbed answer. maxresdefault is
+  // the same frame at 1280px and costs nothing extra, but it does not exist for
+  // every video, so fall back to whatever the unfurl gave us if it 404s.
+  const id  = m.embed_id || '';
+  const hi  = (m.kind === 'youtube' && id)
+    ? 'https://i.ytimg.com/vi/' + encodeURIComponent(id) + '/maxresdefault.jpg'
+    : null;
+  const src = hi || img;
+  const fallback = hi && img
+    ? ' onerror="if(this.dataset.fb){return}this.dataset.fb=1;this.src=\'' + esc(img) + '\'"'
+    : '';
+  const dur = m.duration ? '<span class="dur">' + esc(m.duration) + '</span>' : '';
+
   const shot = img
     ? '<span class="shot">' +
-        '<img src="' + esc(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' +
-        (video ? '<span class="play"><i></i></span>' : '') +
+        '<img src="' + esc(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer"' + fallback + '>' +
+        (video ? '<span class="play"><i></i></span>' : '') + dur +
       '</span>'
     : '';
 
@@ -927,39 +1255,57 @@ function mediaHtml(p) {
 
 // ── lightbox ────────────────────────────────────────────────────────────
 let LB = null;
-function openLightbox(paths, start) {
+function openLightbox(items, start, opener) {
   closeLightbox();
-  LB = { paths, i: start };
+  LB = { items, i: start, opener: opener || null };
   const el = document.createElement('div');
   el.className = 'lbox';
   el.innerHTML =
     '<button class="close" aria-label="Close">✕</button>' +
-    (paths.length > 1 ? '<button class="nav prev" aria-label="Previous">‹</button>' +
+    (items.length > 1 ? '<button class="nav prev" aria-label="Previous">‹</button>' +
                         '<button class="nav next" aria-label="Next">›</button>' : '') +
     '<img alt="">' +
-    (paths.length > 1 ? '<div class="count"></div>' : '');
+    '<div class="cap"><span class="t"></span><span class="n"></span></div>';
   document.body.appendChild(el);
   LB.el = el;
+  document.body.style.overflow = 'hidden';   // the page behind must not scroll
   el.addEventListener('click', ev => {
     if (ev.target.closest('.close') || ev.target === el) return closeLightbox();
     if (ev.target.closest('.prev')) return stepLightbox(-1);
     if (ev.target.closest('.next')) return stepLightbox(1);
   });
+  // a phone expects a swipe, not a hunt for a 44px arrow
+  let x0 = null;
+  el.addEventListener('touchstart', ev => { x0 = ev.touches[0].clientX; }, { passive:true });
+  el.addEventListener('touchend', ev => {
+    if (x0 === null) return;
+    const dx = ev.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (Math.abs(dx) > 45) stepLightbox(dx < 0 ? 1 : -1);
+  });
+  el.querySelector('.close').focus();
   paintLightbox();
 }
 function paintLightbox() {
   if (!LB) return;
-  LB.el.querySelector('img').src = SIGNED.get(LB.paths[LB.i]) || '';
-  const c = LB.el.querySelector('.count');
-  if (c) c.textContent = (LB.i + 1) + ' of ' + LB.paths.length;
+  const it = LB.items[LB.i];
+  LB.el.querySelector('img').src = SIGNED.get(it.path) || '';
+  LB.el.querySelector('.cap .t').textContent = it.cap || '';
+  LB.el.querySelector('.cap .n').textContent =
+    LB.items.length > 1 ? (LB.i + 1) + ' of ' + LB.items.length : '';
 }
 function stepLightbox(d) {
   if (!LB) return;
-  LB.i = (LB.i + d + LB.paths.length) % LB.paths.length;
+  LB.i = (LB.i + d + LB.items.length) % LB.items.length;
   paintLightbox();
 }
 function closeLightbox() {
-  if (LB) { LB.el.remove(); LB = null; }
+  if (!LB) return;
+  const opener = LB.opener;
+  LB.el.remove(); LB = null;
+  document.body.style.overflow = '';
+  // back where the eye was, not at the top of the document
+  if (opener && document.body.contains(opener)) opener.focus();
 }
 document.addEventListener('keydown', e => {
   if (!LB) return;
@@ -971,7 +1317,10 @@ document.addEventListener('keydown', e => {
 function buildComposer() {
   $('composer').classList.remove('hidden');
   const kinds = [];
-  if (CAN.post)     kinds.push({ k:'announcement', label:'Announcement' }, { k:'location', label:'Location post' });
+  // 'Location post' was removed: an announcement with a single location picked
+  // as its audience is the same object, and two names for one thing made people
+  // hesitate. Older rows with kind='location' still render (see postHtml).
+  if (CAN.post)     kinds.push({ k:'announcement', label:'Announcement' });
   if (CAN.shoutout) kinds.push({ k:'shoutout', label:'Shout-out' });
   KIND = kinds[0] && kinds[0].k;
   $('cmpType').innerHTML = kinds.map(x =>
@@ -986,8 +1335,7 @@ function buildComposer() {
     }).join('');
   $('valueChips').innerHTML = VALUES.map(v =>
     '<button data-v="' + v.key + '">' + esc(v.label) + '</button>').join('');
-  $('recipChips').innerHTML = PEOPLE.slice(0, 40).map(p =>
-    '<button data-p="' + p.id + '">' + esc(p.full_name || p.email) + '</button>').join('');
+  renderPicked();
   $('notifyRow').classList.toggle('hidden', !CAN.notify);
 
   const first = MY_LOCS[0] || (LOCATIONS[0] || {}).id;
@@ -1013,12 +1361,35 @@ function buildComposer() {
     syncComposer(); };
   $('valueChips').onclick = e => { const b = e.target.closest('button'); if (!b) return;
     VALUE = VALUE === b.dataset.v ? null : b.dataset.v; syncComposer(); };
-  $('recipChips').onclick = e => { const b = e.target.closest('button'); if (!b) return;
-    const id = b.dataset.p;
-    if (RECIPS.includes(id)) RECIPS = RECIPS.filter(x => x !== id);
-    else if (RECIPS.length >= 8) { $('recipHint').innerHTML = '<b>Eight is the limit.</b> Thanking a whole team? A location post carries it better.'; return; }
-    else RECIPS = RECIPS.concat(id);
-    syncComposer(); };
+  $('recipFind').addEventListener('input', e => renderFindList(e.target.value));
+  $('recipFind').addEventListener('keydown', e => {
+    const btns = [...$('recipList').querySelectorAll('button[data-add]')];
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!btns.length) return;
+      e.preventDefault();
+      FIND_I = (FIND_I + (e.key === 'ArrowDown' ? 1 : -1) + btns.length) % btns.length;
+      btns.forEach((b, i) => b.classList.toggle('on', i === FIND_I));
+      btns[FIND_I].scrollIntoView({ block:'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (btns[FIND_I]) addRecip(btns[FIND_I].dataset.add);
+    } else if (e.key === 'Escape') {
+      closeFind();
+    } else if (e.key === 'Backspace' && !e.target.value && RECIPS.length) {
+      // an empty field and a backspace takes the last pill off, as it does everywhere else
+      RECIPS = RECIPS.slice(0, -1);
+      syncComposer();
+    }
+  });
+  $('recipList').onclick = e => {
+    const b = e.target.closest('button[data-add]'); if (b) addRecip(b.dataset.add);
+  };
+  $('recipPicked').onclick = e => {
+    const b = e.target.closest('button[data-drop]'); if (!b) return;
+    RECIPS = RECIPS.filter(x => x !== b.dataset.drop);
+    syncComposer();
+  };
+  document.addEventListener('click', e => { if (!e.target.closest('.findWrap')) closeFind(); });
   ['notifyPush','notifyEmail'].forEach(id => $(id).onchange = syncComposer);
   $('cmpPost').onclick = submitPost;
 
@@ -1056,26 +1427,78 @@ function buildComposer() {
   });
 }
 
+// ── recipient search ────────────────────────────────────────────────────
+// A chip per person works at eight people and collapses at eighty. Type a
+// name, pick it, and it becomes a pill you can take off again.
+let FIND_I = -1;
+
+function renderPicked() {
+  $('recipPicked').innerHTML = RECIPS.map(id => {
+    const n = nameOf(id) || 'Someone';
+    return '<span>' + esc(n) +
+      '<button type="button" data-drop="' + esc(id) + '" aria-label="Remove ' + esc(n) + '">×</button></span>';
+  }).join('');
+  const full = RECIPS.length >= 8;
+  const f = $('recipFind');
+  f.disabled = full;
+  f.placeholder = full ? 'Eight is the limit'
+    : RECIPS.length ? 'Add someone else…' : 'Start typing a name…';
+}
+
+function renderFindList(q) {
+  const box = $('recipList');
+  const s = q.trim().toLowerCase();
+  if (!s) { closeFind(); return; }
+  const rows = PEOPLE.filter(p => !RECIPS.includes(p.id) &&
+      ((p.full_name || '') + ' ' + (p.email || '')).toLowerCase().includes(s))
+    .slice(0, 8);
+  FIND_I = rows.length ? 0 : -1;
+  box.innerHTML = rows.length
+    ? rows.map((p, i) => '<button type="button" role="option" data-add="' + esc(p.id) + '"' +
+        (i === 0 ? ' class="on"' : '') + '>' + esc(p.full_name || p.email) +
+        (p.full_name ? '<small>' + esc(p.email) + '</small>' : '') + '</button>').join('')
+    : '<div class="none">No one by that name.</div>';
+  box.classList.remove('hidden');
+  $('recipFind').setAttribute('aria-expanded', 'true');
+}
+
+function closeFind() {
+  const box = $('recipList');
+  box.classList.add('hidden'); box.innerHTML = ''; FIND_I = -1;
+  const f = $('recipFind'); if (f) f.setAttribute('aria-expanded', 'false');
+}
+
+function addRecip(id) {
+  if (!id || RECIPS.includes(id) || RECIPS.length >= 8) return;
+  RECIPS = RECIPS.concat(id);
+  $('recipFind').value = '';
+  closeFind();
+  syncComposer();
+  if (RECIPS.length < 8) $('recipFind').focus();
+}
+
 function syncComposer() {
   const shout = KIND === 'shoutout';
+  $('cmpTitle').classList.toggle('hidden', shout);
   $('shoutBlock').classList.toggle('hidden', !shout);
   $('audBlock').classList.toggle('hidden', shout);
   $('cmpText').placeholder = shout
     ? "Who are you thanking, and what did they actually do? The detail is the gift."
-    : KIND === 'location' ? 'A post for your location…' : "What's happening?";
+    : "What's happening?";
 
   $('audChips').querySelectorAll('button').forEach(b =>
     b.setAttribute('aria-pressed', String(PICKED.includes(b.dataset.loc))));
   $('valueChips').querySelectorAll('button').forEach(b =>
     b.setAttribute('aria-pressed', String(VALUE === b.dataset.v)));
-  $('recipChips').querySelectorAll('button').forEach(b =>
-    b.setAttribute('aria-pressed', String(RECIPS.includes(b.dataset.p))));
+  renderPicked();
 
   if (shout) {
     $('recipHint').innerHTML = RECIPS.length
       ? RECIPS.length + ' of 8. One shout-out, ' + RECIPS.length + ' ' + (RECIPS.length === 1 ? 'person' : 'people') +
         ' — it counts once for you and once for each of them.'
       : 'Anyone, at any location. Shout-outs ignore posting permissions.';
+    $('recipHint').innerHTML += RECIPS.length >= 8
+      ? ' <b>Eight is the limit.</b> Thanking a whole team? An announcement to their location carries it better.' : '';
   } else {
     $('audHint').innerHTML = PICKED.length
       ? 'Goes to <b>' + esc(PICKED.includes('all') ? 'all users' :
@@ -1096,7 +1519,6 @@ async function submitPost() {
 
   const shout = KIND === 'shoutout';
   if (shout && !RECIPS.length) { msg.textContent = 'Name at least one person.'; return; }
-  if (shout && !VALUE)         { msg.textContent = 'Pick the value they showed.'; return; }
   if (!shout && !PICKED.length){ msg.textContent = 'Pick an audience.'; return; }
 
   const audience = shout ? { all:false, locations:[] }
@@ -1107,6 +1529,8 @@ async function submitPost() {
     kind: KIND,
     author_id: ME.id,
     author_name: ME.full_name || ME.email,
+    title: (!shout && $('cmpTitle').value.trim()) || null,
+    comments_on: $('cmpComments').value === 'on',
     body,
     audience,
     value_key: shout ? VALUE : null,
@@ -1153,10 +1577,93 @@ async function submitPost() {
   DRAFT_IMGS = []; DRAFT_LINK = null; LINK_SEEN = new Set();
   renderThumbs(); $('linkZone').innerHTML = '';
 
-  $('cmpText').value = ''; RECIPS = []; VALUE = null;
+  $('cmpText').value = ''; $('cmpTitle').value = ''; RECIPS = []; VALUE = null;
+  $('cmpComments').value = 'on';
   $('cmpBody').classList.remove('open');
   await Promise.all([loadFeed(), loadRecognition()]);
 }
+
+// ── today's service ─────────────────────────────────────────────────────
+// A location manager sees their own room. Head office is there to see the
+// group, so head office sees every restaurant, one block each, plus a group
+// total — that is the whole reason the card is worth their rail space.
+async function loadService() {
+  const rooms = LOCATIONS.filter(l => !l.is_head_office);
+  const mine  = AT_HO ? rooms : rooms.filter(l => MY_LOCS.includes(l.id));
+  const want  = mine.length ? mine : rooms;          // no assignment yet: show the group
+  if (!want.length) return;
+
+  let rows = [];
+  try {
+    const { data, error } = await dataSb.rpc('get_pass_today');
+    if (error) throw new Error(error.message);
+    rows = data || [];
+  } catch (err) {
+    $('svcCard').classList.remove('hidden');
+    $('svcTitle').textContent = 'Today';
+    $('svcBody').innerHTML = '<div style="font-size:12px;color:var(--dim)">Covers are not answering right now.</div>';
+    $('svcNote').textContent = err.message || '';
+    return;
+  }
+
+  const byName = {};
+  rows.forEach(r => { byName[r.venue] = r; });
+  const shown = want.filter(l => byName[l.name]);
+
+  $('svcCard').classList.remove('hidden');
+  $('svcTitle').textContent = shown.length === 1 ? 'Today at ' + shown[0].name
+    : want.length > 1 ? 'Today across the group' : 'Today';
+
+  if (!shown.length) {
+    $('svcBody').innerHTML = '<div style="font-size:12px;color:var(--dim)">Nothing on the books today.</div>';
+    $('svcNote').textContent = 'Straight from the reservation book. Numbers only — no guest details.';
+    return;
+  }
+
+  const n = v => (v == null ? '—' : String(v));
+  const block = l => {
+    const r  = byName[l.name];
+    const sh = r.shifts || {};
+    const L  = sh.lunch || {}, D = sh.dinner || {};
+    const vipCell = (x) => n(x.vip_bookings || 0) +
+      (x.vip_bookings ? '<i class="sub2">' + x.vip_covers + ' covers</i>' : '<i class="sub2">—</i>');
+    return '<div class="svcVenue">' +
+      (shown.length > 1 ? '<div class="svcName">' + esc(l.name) + '</div>' : '') +
+      '<div class="shiftHead"><span></span><span>Lunch</span><span>Dinner</span></div>' +
+      '<div class="sRow"><span class="k">Booked covers</span><span class="v">' + n(L.covers || 0) +
+        '</span><span class="v">' + n(D.covers || 0) + '</span></div>' +
+      '<div class="sRow"><span class="k">Bookings</span><span class="v">' + n(L.bookings || 0) +
+        '</span><span class="v">' + n(D.bookings || 0) + '</span></div>' +
+      '<div class="sRow"><span class="k">VIP bookings</span><span class="v">' + vipCell(L) +
+        '</span><span class="v">' + vipCell(D) + '</span></div>' +
+      '<div class="sRow tot"><span class="k">Total covers</span><span class="v tv">' +
+        n(r.total_covers) + '</span></div>' +
+      pdrBlock(r.pdr || []) +
+    '</div>';
+  };
+
+  const groupTotal = shown.reduce((t, l) => t + (byName[l.name].total_covers || 0), 0);
+  $('svcBody').innerHTML = shown.map(block).join('') +
+    (shown.length > 1
+      ? '<div class="sRow tot" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--hairline)">' +
+        '<span class="k">Group today</span><span class="v tv">' + groupTotal + '</span></div>'
+      : '');
+  $('svcNote').textContent = 'Straight from the reservation book, refreshed when you load the page. ' +
+    'Counts and room names only — guest details never come through here.';
+}
+
+function pdrBlock(list) {
+  if (!list.length) return '';
+  return '<div class="pdrHead">Private dining · ' + list.length +
+    (list.length === 1 ? ' today' : ' today') + '</div>' +
+    list.map(f => '<div class="pdrRow">' +
+      '<span class="pShift' + (f.shift === 'dinner' ? ' dn' : '') + '">' + esc(f.shift) + '</span>' +
+      '<span class="pWhen">' + esc(f.time || '') + (f.room ? ' · ' + esc(shortRoom(f.room)) : '') + '</span>' +
+      '<span class="pCov">' + (f.covers || 0) + '</span></div>').join('');
+}
+// SevenRooms names rooms "The Gidley — Wine Room"; inside a card already
+// headed The Gidley, the prefix is noise.
+const shortRoom = r => String(r).split(/\s+—\s+|\s+-\s+/).pop();
 
 // ── recognition rail ────────────────────────────────────────────────────
 async function loadRecognition() {
@@ -1165,9 +1672,18 @@ async function loadRecognition() {
     .select('id,author_id,created_at,pass_post_recipients(user_id)')
     .eq('kind','shoutout').is('deleted_at', null).gte('created_at', since.toISOString());
   const posts = data || [];
-  $('tGiven').textContent = posts.filter(p => p.author_id === ME.id).length;
+  const mine  = posts.filter(p => p.author_id === ME.id);
+  $('tGiven').textContent = mine.length;
   $('tRecv').textContent  = posts.filter(p =>
     (p.pass_post_recipients || []).some(r => r.user_id === ME.id)).length;
+
+  // one line, and it is an invitation rather than a target
+  const thanked = new Set();
+  mine.forEach(p => (p.pass_post_recipients || []).forEach(r => thanked.add(r.user_id)));
+  $('tNudge').textContent = thanked.size
+    ? "You've thanked " + thanked.size + (thanked.size === 1 ? ' person' : ' people') +
+      ' this month. Anyone else worth a mention?'
+    : 'No one yet this month. Someone probably deserves it.';
 
   // participation, not volume: the share of each team who have given one
   const givers = new Set(posts.map(p => p.author_id));
