@@ -477,6 +477,7 @@ const ICONS = {
   'VIP Outreach': '<svg viewBox="0 0 24 24"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7a2 2 0 0 1 2-2.2Z"/></svg>',
   'Food Costs': '<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-2-1.3-2 1.3-2-1.3-2 1.3-2-1.3L6 21Z"/><path d="M9.5 8.5h5"/><path d="M9.5 12.5h5"/></svg>',
   'Handbook': '<svg viewBox="0 0 24 24"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H18a1 1 0 0 1 1 1v13H5.5A1.5 1.5 0 0 0 4 18.5Z"/><path d="M4 18.5A1.5 1.5 0 0 0 5.5 20H19"/><path d="M8 7.5h7"/><path d="M8 11h7"/></svg>',
+  'The Pass': '<svg viewBox="0 0 24 24"><path d="M3 10.5v3a1.5 1.5 0 0 0 1.5 1.5H7l6 4.5V5.5L7 10H4.5A1.5 1.5 0 0 0 3 11.5Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></svg>',
     _home: '<svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>',
   _users: '<svg viewBox="0 0 24 24"><path d="M4 20c0-3.3 2.7-6 6-6h4c3.3 0 6 2.7 6 6"/><circle cx="12" cy="8" r="4"/></svg>',
   _default: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>',
@@ -522,8 +523,13 @@ async function enter() {
   // Handbook leads: for most of the team it is the only app they open, and the
   // spec's answer to "should it be a separate site" was to put it first here.
   const SECTION_ORDER = ['Handbook', 'Accounts', 'Scoreboard', 'Marketing'];
+  // The Pass sits beside Home as a top-level item rather than inside a section,
+  // so it is pulled out before grouping — otherwise it would show up twice in
+  // the sidebar, and as a lone tile under its own heading.
+  const passApp = (apps || []).find(a => a.url === '/pass/');
   const groups = {};
-  (apps || []).forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
+  (apps || []).filter(a => a !== passApp)
+    .forEach(a => { const s = a.section || 'General'; (groups[s] = groups[s] || []).push(a); });
   const sections = Object.keys(groups).sort((a, b) => {
     const ia = SECTION_ORDER.indexOf(a), ib = SECTION_ORDER.indexOf(b);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
@@ -535,7 +541,9 @@ async function enter() {
       ${iconFor(a.name)}${esc(a.name)}${a.name === 'Pre-Authorisations' ? '<span class="count hidden" id="navCount"></span>' : ''}
     </a>`;
   $('sideNav').innerHTML =
-    `<div class="navGroup"><a class="navItem active" href="./">${ICONS._home}Home</a></div>` +
+    `<div class="navGroup">`
+    + (passApp ? `<a class="navItem" href="${esc(passApp.url)}">${iconFor(passApp.name)}${esc(passApp.name)}</a>` : '')
+    + `<a class="navItem active" href="./">${ICONS._home}Home</a></div>` +
     sections.map(s => `<div class="navGroup"><div class="g">${esc(s)}</div>${groups[s].map(navItem).join('')}</div>`).join('') +
     (profile.is_super_admin
       ? `<div class="navGroup"><div class="g">Admin</div><a class="navItem" href="#adminCard">${ICONS._users}User management</a></div>`
