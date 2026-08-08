@@ -709,7 +709,8 @@ function renderShell(apps) {
 
   // sidebar: The Pass on top, then the real sections from portal_apps
   const groups = {};
-  apps.forEach(a => { (groups[a.section] = groups[a.section] || []).push(a); });
+  apps.filter(a => a.url !== '/pass/')
+      .forEach(a => { (groups[a.section] = groups[a.section] || []).push(a); });
   const order = SECTION_ORDER.concat(Object.keys(groups).filter(s => !SECTION_ORDER.includes(s)));
   $('sideNav').innerHTML =
     '<div class="navGroup"><a class="navItem active" href="/pass/">' + ICONS.pass + 'The Pass</a>' +
